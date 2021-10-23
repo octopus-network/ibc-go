@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/armon/go-metrics"
 
@@ -23,9 +24,14 @@ var _ channeltypes.MsgServer = Keeper{}
 // CreateClient defines a rpc handler method for MsgCreateClient.
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-
+	fmt.Println("************************* grpc server receive the  create client request ***************************")
+	//fmt.Println(msg.ClientState)
+	//fmt.Println(msg.ConsensusState)
+	fmt.Println(msg.ClientState.TypeUrl)
+	//fmt.Println(msg.String())
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 

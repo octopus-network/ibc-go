@@ -17,6 +17,7 @@ import (
 func (k Keeper) CreateClient(
 	ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState,
 ) (string, error) {
+	k.Logger(ctx).Info("*************************begint to create client ***************************")
 	params := k.GetParams(ctx)
 	if !params.IsAllowedClient(clientState.ClientType()) {
 		return "", sdkerrors.Wrapf(
@@ -50,7 +51,7 @@ func (k Keeper) CreateClient(
 			[]metrics.Label{telemetry.NewLabel(types.LabelClientType, clientState.ClientType())},
 		)
 	}()
-
+	k.Logger(ctx).Info("*************************end to create client ***************************")
 	return clientID, nil
 }
 
