@@ -26,7 +26,7 @@ func NewMisbehaviour(clientID string, header1, header2 *Header) *Misbehaviour {
 	}
 }
 
-// ClientType is grandpa light client
+// ClientType is Grandpa light client
 func (misbehaviour Misbehaviour) ClientType() string {
 	return exported.Grandpa
 }
@@ -40,11 +40,12 @@ func (misbehaviour Misbehaviour) GetClientID() string {
 // maximum value from both headers to prevent producing an invalid header outside
 // of the misbehaviour age range.
 func (misbehaviour Misbehaviour) GetTime() time.Time {
-	t1, t2 := misbehaviour.Header1.GetTime(), misbehaviour.Header2.GetTime()
-	if t1.After(t2) {
-		return t1
-	}
-	return t2
+	// t1, t2 := misbehaviour.Header1.GetTime(), misbehaviour.Header2.GetTime()
+	// if t1.After(t2) {
+	// 	return t1
+	// }
+	// return t2
+	return time.Now()
 }
 
 // ValidateBasic implements Misbehaviour interface
@@ -55,20 +56,11 @@ func (misbehaviour Misbehaviour) ValidateBasic() error {
 	if misbehaviour.Header2 == nil {
 		return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header2 cannot be nil")
 	}
-	if misbehaviour.Header1.TrustedHeight.RevisionHeight == 0 {
+	if misbehaviour.Header1.Height.RevisionHeight == 0 {
 		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header1 cannot have zero revision height")
 	}
-	if misbehaviour.Header2.TrustedHeight.RevisionHeight == 0 {
+	if misbehaviour.Header2.Height.RevisionHeight == 0 {
 		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header2 cannot have zero revision height")
-	}
-	if misbehaviour.Header1.TrustedValidators == nil {
-		return sdkerrors.Wrap(ErrInvalidValidatorSet, "trusted validator set in Header1 cannot be empty")
-	}
-	if misbehaviour.Header2.TrustedValidators == nil {
-		return sdkerrors.Wrap(ErrInvalidValidatorSet, "trusted validator set in Header2 cannot be empty")
-	}
-	if misbehaviour.Header1.Header.ChainID != misbehaviour.Header2.Header.ChainID {
-		return sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers must have identical chainIDs")
 	}
 
 	if err := host.ClientIdentifierValidator(misbehaviour.ClientId); err != nil {
@@ -93,23 +85,6 @@ func (misbehaviour Misbehaviour) ValidateBasic() error {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "Header1 height is less than Header2 height (%s < %s)", misbehaviour.Header1.GetHeight(), misbehaviour.Header2.GetHeight())
 	}
 
-	blockID1, err := tmtypes.BlockIDFromProto(&misbehaviour.Header1.SignedHeader.Commit.BlockID)
-	if err != nil {
-		return sdkerrors.Wrap(err, "invalid block ID from header 1 in misbehaviour")
-	}
-	blockID2, err := tmtypes.BlockIDFromProto(&misbehaviour.Header2.SignedHeader.Commit.BlockID)
-	if err != nil {
-		return sdkerrors.Wrap(err, "invalid block ID from header 2 in misbehaviour")
-	}
-
-	if err := validCommit(misbehaviour.Header1.Header.ChainID, *blockID1,
-		misbehaviour.Header1.Commit, misbehaviour.Header1.ValidatorSet); err != nil {
-		return err
-	}
-	if err := validCommit(misbehaviour.Header2.Header.ChainID, *blockID2,
-		misbehaviour.Header2.Commit, misbehaviour.Header2.ValidatorSet); err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -38,24 +38,24 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 		return nil, sdkerrors.Wrap(clienttypes.ErrInvalidSubstitute, "subject client state does not match substitute client state")
 	}
 
-	switch cs.Status(ctx, subjectClientStore, cdc) {
+	// switch cs.Status(ctx, subjectClientStore, cdc) {
 
-	case exported.Frozen:
-		if !cs.AllowUpdateAfterMisbehaviour {
-			return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unfrozen")
-		}
+	// case exported.Frozen:
+	// 	if !cs.AllowUpdateAfterMisbehaviour {
+	// 		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unfrozen")
+	// 	}
 
-		// unfreeze the client
-		cs.FrozenHeight = clienttypes.ZeroHeight()
+	// 	// unfreeze the client
+	// 	cs.FrozenHeight = clienttypes.ZeroHeight()
 
-	case exported.Expired:
-		if !cs.AllowUpdateAfterExpiry {
-			return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unexpired")
-		}
+	// case exported.Expired:
+	// 	if !cs.AllowUpdateAfterExpiry {
+	// 		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unexpired")
+	// 	}
 
-	default:
-		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client cannot be updated with proposal")
-	}
+	// default:
+	// 	return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client cannot be updated with proposal")
+	// }
 
 	// copy consensus states and processed time from substitute to subject
 	// starting from initial height and ending on the latest height (inclusive)

@@ -28,9 +28,6 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState,
 	proofUpgradeClient, proofUpgradeConsState []byte,
 ) (exported.ClientState, exported.ConsensusState, error) {
-	if len(cs.UpgradePath) == 0 {
-		return nil, nil, sdkerrors.Wrap(clienttypes.ErrInvalidUpgradeClient, "cannot upgrade client, no upgrade path set")
-	}
 
 	// last height of current counterparty chain must be client's latest height
 	lastHeight := cs.GetLatestHeight()
@@ -48,11 +45,6 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClientType, "upgraded client must be Tendermint client. expected: %T got: %T",
 			&ClientState{}, upgradedClient)
 	}
-	tmUpgradeConsState, ok := upgradedConsState.(*ConsensusState)
-	if !ok {
-		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "upgraded consensus state must be Tendermint consensus state. expected %T, got: %T",
-			&ConsensusState{}, upgradedConsState)
-	}
 
 	// unmarshal proofs
 	var merkleProofClient, merkleProofConsState commitmenttypes.MerkleProof
@@ -63,44 +55,12 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 		return nil, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof, "could not unmarshal consensus state merkle proof: %v", err)
 	}
 
-	// Must prove against latest consensus state to ensure we are verifying against latest upgrade plan
-	// This verifies that upgrade is intended for the provided revision, since committed client must exist
-	// at this consensus state
-	consState, err := GetConsensusState(clientStore, cdc, lastHeight)
-	if err != nil {
-		return nil, nil, sdkerrors.Wrap(err, "could not retrieve consensus state for lastHeight")
-	}
-
-	// Verify client proof
-	bz, err := cdc.MarshalInterface(upgradedClient)
-	if err != nil {
-		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "could not marshal client state: %v", err)
-	}
-	// construct clientState Merkle path
-	upgradeClientPath := constructUpgradeClientMerklePath(cs.UpgradePath, lastHeight)
-	if err := merkleProofClient.VerifyMembership(cs.ProofSpecs, consState.GetRoot(), upgradeClientPath, bz); err != nil {
-		return nil, nil, sdkerrors.Wrapf(err, "client state proof failed. Path: %s", upgradeClientPath.Pretty())
-	}
-
-	// Verify consensus state proof
-	bz, err = cdc.MarshalInterface(upgradedConsState)
-	if err != nil {
-		return nil, nil, sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "could not marshal consensus state: %v", err)
-	}
-	// construct consensus state Merkle path
-	upgradeConsStatePath := constructUpgradeConsStateMerklePath(cs.UpgradePath, lastHeight)
-	if err := merkleProofConsState.VerifyMembership(cs.ProofSpecs, consState.GetRoot(), upgradeConsStatePath, bz); err != nil {
-		return nil, nil, sdkerrors.Wrapf(err, "consensus state proof failed. Path: %s", upgradeConsStatePath.Pretty())
-	}
-
 	// Construct new client state and consensus state
 	// Relayer chosen client parameters are ignored.
 	// All chain-chosen parameters come from committed client, all client-chosen parameters
 	// come from current client.
 	newClientState := NewClientState(
-		tmUpgradeClient.ChainId, cs.TrustLevel, cs.TrustingPeriod, tmUpgradeClient.UnbondingPeriod,
-		cs.MaxClockDrift, tmUpgradeClient.LatestHeight, tmUpgradeClient.ProofSpecs, tmUpgradeClient.UpgradePath,
-		cs.AllowUpdateAfterExpiry, cs.AllowUpdateAfterMisbehaviour,
+		tmUpgradeClient.ChainId, tmUpgradeClient.LatestHeight, tmUpgradeClient.FrozenHeight,
 	)
 
 	if err := newClientState.Validate(); err != nil {
@@ -115,7 +75,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// NOTE: We do not set processed time for this consensus state since this consensus state should not be used for packet verification
 	// as the root is empty. The next consensus state submitted using update will be usable for packet-verification.
 	newConsState := NewConsensusState(
-		tmUpgradeConsState.Timestamp, commitmenttypes.NewMerkleRoot([]byte(SentinelRoot)), tmUpgradeConsState.NextValidatorsHash,
+		commitmenttypes.NewMerkleRoot([]byte(SentinelRoot)),
 	)
 
 	// set metadata for this consensus state

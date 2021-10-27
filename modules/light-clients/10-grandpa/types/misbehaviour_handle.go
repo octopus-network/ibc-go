@@ -1,10 +1,7 @@
 package types
 
 import (
-	"bytes"
 	"time"
-
-	tmtypes "github.com/tendermint/tendermint/types"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -36,27 +33,27 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 
 	// if heights are equal check that this is valid misbehaviour of a fork
 	// otherwise if heights are unequal check that this is valid misbehavior of BFT time violation
-	if tmMisbehaviour.Header1.GetHeight().EQ(tmMisbehaviour.Header2.GetHeight()) {
-		blockID1, err := tmtypes.BlockIDFromProto(&tmMisbehaviour.Header1.SignedHeader.Commit.BlockID)
-		if err != nil {
-			return nil, sdkerrors.Wrap(err, "invalid block ID from header 1 in misbehaviour")
-		}
-		blockID2, err := tmtypes.BlockIDFromProto(&tmMisbehaviour.Header2.SignedHeader.Commit.BlockID)
-		if err != nil {
-			return nil, sdkerrors.Wrap(err, "invalid block ID from header 2 in misbehaviour")
-		}
+	// if tmMisbehaviour.Header1.GetHeight().EQ(tmMisbehaviour.Header2.GetHeight()) {
+	// 	blockID1, err := tmtypes.BlockIDFromProto(&tmMisbehaviour.Header1.SignedHeader.Commit.BlockID)
+	// 	if err != nil {
+	// 		return nil, sdkerrors.Wrap(err, "invalid block ID from header 1 in misbehaviour")
+	// 	}
+	// 	blockID2, err := tmtypes.BlockIDFromProto(&tmMisbehaviour.Header2.SignedHeader.Commit.BlockID)
+	// 	if err != nil {
+	// 		return nil, sdkerrors.Wrap(err, "invalid block ID from header 2 in misbehaviour")
+	// 	}
 
-		// Ensure that Commit Hashes are different
-		if bytes.Equal(blockID1.Hash, blockID2.Hash) {
-			return nil, sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers block hashes are equal")
-		}
-	} else {
-		// Header1 is at greater height than Header2, therefore Header1 time must be less than or equal to
-		// Header2 time in order to be valid misbehaviour (violation of monotonic time).
-		if tmMisbehaviour.Header1.SignedHeader.Header.Time.After(tmMisbehaviour.Header2.SignedHeader.Header.Time) {
-			return nil, sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers are not at same height and are monotonically increasing")
-		}
-	}
+	// 	// Ensure that Commit Hashes are different
+	// 	if bytes.Equal(blockID1.Hash, blockID2.Hash) {
+	// 		return nil, sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers block hashes are equal")
+	// 	}
+	// } else {
+	// 	// Header1 is at greater height than Header2, therefore Header1 time must be less than or equal to
+	// 	// Header2 time in order to be valid misbehaviour (violation of monotonic time).
+	// 	if tmMisbehaviour.Header1.SignedHeader.Header.Time.After(tmMisbehaviour.Header2.SignedHeader.Header.Time) {
+	// 		return nil, sdkerrors.Wrap(clienttypes.ErrInvalidMisbehaviour, "headers are not at same height and are monotonically increasing")
+	// 	}
+	// }
 
 	// Regardless of the type of misbehaviour, ensure that both headers are valid and would have been accepted by light-client
 
@@ -64,13 +61,13 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	// and unmarshal from clientStore
 
 	// Get consensus bytes from clientStore
-	tmConsensusState1, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header1.TrustedHeight)
+	tmConsensusState1, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header1.Height)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header1 at TrustedHeight: %s", tmMisbehaviour.Header1)
 	}
 
 	// Get consensus bytes from clientStore
-	tmConsensusState2, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header2.TrustedHeight)
+	tmConsensusState2, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header2.Height)
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header2 at TrustedHeight: %s", tmMisbehaviour.Header2)
 	}
@@ -102,29 +99,29 @@ func checkMisbehaviourHeader(
 	clientState *ClientState, consState *ConsensusState, header *Header, currentTimestamp time.Time,
 ) error {
 
-	tmTrustedValset, err := tmtypes.ValidatorSetFromProto(header.TrustedValidators)
-	if err != nil {
-		return sdkerrors.Wrap(err, "trusted validator set is not tendermint validator set type")
-	}
+	// tmTrustedValset, err := tmtypes.ValidatorSetFromProto(header.TrustedValidators)
+	// if err != nil {
+	// 	return sdkerrors.Wrap(err, "trusted validator set is not tendermint validator set type")
+	// }
 
-	tmCommit, err := tmtypes.CommitFromProto(header.Commit)
-	if err != nil {
-		return sdkerrors.Wrap(err, "commit is not tendermint commit type")
-	}
+	// tmCommit, err := tmtypes.CommitFromProto(header.Commit)
+	// if err != nil {
+	// 	return sdkerrors.Wrap(err, "commit is not tendermint commit type")
+	// }
 
-	// check the trusted fields for the header against ConsensusState
-	if err := checkTrustedHeader(header, consState); err != nil {
-		return err
-	}
+	// // check the trusted fields for the header against ConsensusState
+	// if err := checkTrustedHeader(header, consState); err != nil {
+	// 	return err
+	// }
 
-	// assert that the age of the trusted consensus state is not older than the trusting period
-	if currentTimestamp.Sub(consState.Timestamp) >= clientState.TrustingPeriod {
-		return sdkerrors.Wrapf(
-			ErrTrustingPeriodExpired,
-			"current timestamp minus the latest consensus state timestamp is greater than or equal to the trusting period (%d >= %d)",
-			currentTimestamp.Sub(consState.Timestamp), clientState.TrustingPeriod,
-		)
-	}
+	// // assert that the age of the trusted consensus state is not older than the trusting period
+	// if currentTimestamp.Sub(consState.Timestamp) >= clientState.TrustingPeriod {
+	// 	return sdkerrors.Wrapf(
+	// 		ErrTrustingPeriodExpired,
+	// 		"current timestamp minus the latest consensus state timestamp is greater than or equal to the trusting period (%d >= %d)",
+	// 		currentTimestamp.Sub(consState.Timestamp), clientState.TrustingPeriod,
+	// 	)
+	// }
 
 	chainID := clientState.GetChainID()
 	// If chainID is in revision format, then set revision number of chainID with the revision number
@@ -135,10 +132,10 @@ func checkMisbehaviourHeader(
 
 	// - ValidatorSet must have TrustLevel similarity with trusted FromValidatorSet
 	// - ValidatorSets on both headers are valid given the last trusted ValidatorSet
-	if err := tmTrustedValset.VerifyCommitLightTrusting(
-		chainID, tmCommit, clientState.TrustLevel.ToTendermint(),
-	); err != nil {
-		return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "validator set in header has too much change from trusted validator set: %v", err)
-	}
+	// if err := tmTrustedValset.VerifyCommitLightTrusting(
+	// 	chainID, tmCommit, clientState.TrustLevel.ToTendermint(),
+	// ); err != nil {
+	// 	return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "validator set in header has too much change from trusted validator set: %v", err)
+	// }
 	return nil
 }

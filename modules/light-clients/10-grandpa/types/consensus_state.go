@@ -1,10 +1,7 @@
 package types
 
 import (
-	"time"
-
-	tmbytes "github.com/tendermint/tendermint/libs/bytes"
-	tmtypes "github.com/tendermint/tendermint/types"
+	time "time"
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
@@ -17,16 +14,14 @@ const SentinelRoot = "sentinel_root"
 
 // NewConsensusState creates a new ConsensusState instance.
 func NewConsensusState(
-	timestamp time.Time, root commitmenttypes.MerkleRoot, nextValsHash tmbytes.HexBytes,
+	root commitmenttypes.MerkleRoot,
 ) *ConsensusState {
 	return &ConsensusState{
-		Timestamp:          timestamp,
-		Root:               root,
-		NextValidatorsHash: nextValsHash,
+		Root: root,
 	}
 }
 
-// ClientType returns Tendermint
+// ClientType returns Grandpa
 func (ConsensusState) ClientType() string {
 	return exported.Grandpa
 }
@@ -38,7 +33,8 @@ func (cs ConsensusState) GetRoot() exported.Root {
 
 // GetTimestamp returns block time in nanoseconds of the header that created consensus state
 func (cs ConsensusState) GetTimestamp() uint64 {
-	return uint64(cs.Timestamp.UnixNano())
+	return uint64(time.Now().UnixNano())
+
 }
 
 // ValidateBasic defines a basic validation for the tendermint consensus state.
@@ -48,11 +44,11 @@ func (cs ConsensusState) ValidateBasic() error {
 	if cs.Root.Empty() {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidConsensus, "root cannot be empty")
 	}
-	if err := tmtypes.ValidateHash(cs.NextValidatorsHash); err != nil {
-		return sdkerrors.Wrap(err, "next validators hash is invalid")
-	}
-	if cs.Timestamp.Unix() <= 0 {
-		return sdkerrors.Wrap(clienttypes.ErrInvalidConsensus, "timestamp must be a positive Unix time")
-	}
+	// if err := tmtypes.ValidateHash(cs.NextValidatorsHash); err != nil {
+	// 	return sdkerrors.Wrap(err, "next validators hash is invalid")
+	// }
+	// if cs.Timestamp.Unix() <= 0 {
+	// 	return sdkerrors.Wrap(clienttypes.ErrInvalidConsensus, "timestamp must be a positive Unix time")
+	// }
 	return nil
 }

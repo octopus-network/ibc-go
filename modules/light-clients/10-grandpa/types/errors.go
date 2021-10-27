@@ -8,7 +8,7 @@ const (
 	SubModuleName = "grandpa-client"
 )
 
-// IBC tendermint client sentinel errors
+// IBC Grandpa client sentinel errors
 var (
 	ErrInvalidChainID          = sdkerrors.Register(SubModuleName, 2, "invalid chain-id")
 	ErrInvalidTrustingPeriod   = sdkerrors.Register(SubModuleName, 3, "invalid trusting period")

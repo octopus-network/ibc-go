@@ -291,16 +291,16 @@ func PruneAllExpiredConsensusStates(
 	var heights []exported.Height
 
 	pruneCb := func(height exported.Height) bool {
-		consState, err := GetConsensusState(clientStore, cdc, height)
+		//consState, err := GetConsensusState(clientStore, cdc, height)
 		// this error should never occur
-		if err != nil {
-			return true
-		}
+		// if err != nil {
+		// 	return true
+		// }
 
-		if clientState.IsExpired(consState.Timestamp, ctx.BlockTime()) {
-			heights = append(heights, height)
-		}
-
+		// if clientState.IsExpired(consState.Timestamp, ctx.BlockTime()) {
+		// 	heights = append(heights, height)
+		// }
+		heights = append(heights, height)
 		return false
 	}
 
