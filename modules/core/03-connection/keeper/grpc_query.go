@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,6 +20,8 @@ var _ types.QueryServer = Keeper{}
 
 // Connection implements the Query/Connection gRPC method
 func (q Keeper) Connection(c context.Context, req *types.QueryConnectionRequest) (*types.QueryConnectionResponse, error) {
+	fmt.Println("*************************  query Connection begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -35,15 +38,19 @@ func (q Keeper) Connection(c context.Context, req *types.QueryConnectionRequest)
 			sdkerrors.Wrap(types.ErrConnectionNotFound, req.ConnectionId).Error(),
 		)
 	}
-
-	return &types.QueryConnectionResponse{
+	resp := &types.QueryConnectionResponse{
 		Connection:  &connection,
 		ProofHeight: clienttypes.GetSelfHeight(ctx),
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query Connection end ***************************")
+	return resp, nil
 }
 
 // Connections implements the Query/Connections gRPC method
 func (q Keeper) Connections(c context.Context, req *types.QueryConnectionsRequest) (*types.QueryConnectionsResponse, error) {
+	fmt.Println("*************************  query Connections begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -72,16 +79,20 @@ func (q Keeper) Connections(c context.Context, req *types.QueryConnectionsReques
 	if err != nil {
 		return nil, err
 	}
-
-	return &types.QueryConnectionsResponse{
+	resp := &types.QueryConnectionsResponse{
 		Connections: connections,
 		Pagination:  pageRes,
 		Height:      clienttypes.GetSelfHeight(ctx),
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query Connections end ***************************")
+	return resp, nil
 }
 
 // ClientConnections implements the Query/ClientConnections gRPC method
 func (q Keeper) ClientConnections(c context.Context, req *types.QueryClientConnectionsRequest) (*types.QueryClientConnectionsResponse, error) {
+	fmt.Println("*************************  query ClientConnections begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -98,15 +109,21 @@ func (q Keeper) ClientConnections(c context.Context, req *types.QueryClientConne
 			sdkerrors.Wrap(types.ErrClientConnectionPathsNotFound, req.ClientId).Error(),
 		)
 	}
-
-	return &types.QueryClientConnectionsResponse{
+	resp := &types.QueryClientConnectionsResponse{
 		ConnectionPaths: clientConnectionPaths,
 		ProofHeight:     clienttypes.GetSelfHeight(ctx),
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query ClientConnections end ***************************")
+	return resp, nil
 }
 
 // ConnectionClientState implements the Query/ConnectionClientState gRPC method
 func (q Keeper) ConnectionClientState(c context.Context, req *types.QueryConnectionClientStateRequest) (*types.QueryConnectionClientStateResponse, error) {
+
+	fmt.Println("*************************  query ConnectionClientState begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -136,12 +153,18 @@ func (q Keeper) ConnectionClientState(c context.Context, req *types.QueryConnect
 	identifiedClientState := clienttypes.NewIdentifiedClientState(connection.ClientId, clientState)
 
 	height := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryConnectionClientStateResponse(identifiedClientState, nil, height), nil
+	resp := types.NewQueryConnectionClientStateResponse(identifiedClientState, nil, height)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ConnectionClientState end ***************************")
+	return resp, nil
 
 }
 
 // ConnectionConsensusState implements the Query/ConnectionConsensusState gRPC method
 func (q Keeper) ConnectionConsensusState(c context.Context, req *types.QueryConnectionConsensusStateRequest) (*types.QueryConnectionConsensusStateResponse, error) {
+	fmt.Println("*************************  query ConnectionConsensusState begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -175,5 +198,8 @@ func (q Keeper) ConnectionConsensusState(c context.Context, req *types.QueryConn
 	}
 
 	proofHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryConnectionConsensusStateResponse(connection.ClientId, anyConsensusState, height, nil, proofHeight), nil
+	resp := types.NewQueryConnectionConsensusStateResponse(connection.ClientId, anyConsensusState, height, nil, proofHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ConnectionConsensusState end ***************************")
+	return resp, nil
 }

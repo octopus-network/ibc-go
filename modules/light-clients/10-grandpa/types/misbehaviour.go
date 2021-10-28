@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -50,6 +51,7 @@ func (misbehaviour Misbehaviour) GetTime() time.Time {
 
 // ValidateBasic implements Misbehaviour interface
 func (misbehaviour Misbehaviour) ValidateBasic() error {
+	fmt.Println("************Grandpa client misbehaviour ValidateBasic begin ****************")
 	if misbehaviour.Header1 == nil {
 		return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header1 cannot be nil")
 	}
@@ -84,7 +86,7 @@ func (misbehaviour Misbehaviour) ValidateBasic() error {
 	if misbehaviour.Header1.GetHeight().LT(misbehaviour.Header2.GetHeight()) {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "Header1 height is less than Header2 height (%s < %s)", misbehaviour.Header1.GetHeight(), misbehaviour.Header2.GetHeight())
 	}
-
+	fmt.Println("************Grandpa client misbehaviour ValidateBasic end ****************")
 	return nil
 }
 

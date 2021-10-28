@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"reflect"
 	"time"
 
@@ -49,6 +50,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore,
 	header exported.Header,
 ) (exported.ClientState, exported.ConsensusState, error) {
+	fmt.Println("************Grandpa client CheckHeaderAndUpdateState begin ****************")
 	tmHeader, ok := header.(*Header)
 	if !ok {
 		return nil, nil, sdkerrors.Wrapf(
@@ -135,6 +137,8 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	// }
 
 	newClientState, consensusState := update(ctx, clientStore, &cs, tmHeader)
+	fmt.Println(header)
+	fmt.Println("************Grandpa client CheckHeaderAndUpdateState end ****************")
 	return newClientState, consensusState, nil
 }
 

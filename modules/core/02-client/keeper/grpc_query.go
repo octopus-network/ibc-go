@@ -23,6 +23,8 @@ var _ types.QueryServer = Keeper{}
 
 // ClientState implements the Query/ClientState gRPC method
 func (q Keeper) ClientState(c context.Context, req *types.QueryClientStateRequest) (*types.QueryClientStateResponse, error) {
+	fmt.Println("************************* query  ClientState begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -46,14 +48,19 @@ func (q Keeper) ClientState(c context.Context, req *types.QueryClientStateReques
 	}
 
 	proofHeight := types.GetSelfHeight(ctx)
-	return &types.QueryClientStateResponse{
+	resp := &types.QueryClientStateResponse{
 		ClientState: any,
 		ProofHeight: proofHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ClientState end ***************************")
+	return resp, nil
 }
 
 // ClientStates implements the Query/ClientStates gRPC method
 func (q Keeper) ClientStates(c context.Context, req *types.QueryClientStatesRequest) (*types.QueryClientStatesResponse, error) {
+	fmt.Println("************************* query  ClientStates begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -89,15 +96,19 @@ func (q Keeper) ClientStates(c context.Context, req *types.QueryClientStatesRequ
 	}
 
 	sort.Sort(clientStates)
-
-	return &types.QueryClientStatesResponse{
+	resp := &types.QueryClientStatesResponse{
 		ClientStates: clientStates,
 		Pagination:   pageRes,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ClientStates end ***************************")
+	return resp, nil
 }
 
 // ConsensusState implements the Query/ConsensusState gRPC method
 func (q Keeper) ConsensusState(c context.Context, req *types.QueryConsensusStateRequest) (*types.QueryConsensusStateResponse, error) {
+	fmt.Println("************************* query  ConsensusState begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -137,14 +148,19 @@ func (q Keeper) ConsensusState(c context.Context, req *types.QueryConsensusState
 	}
 
 	proofHeight := types.GetSelfHeight(ctx)
-	return &types.QueryConsensusStateResponse{
+	resp := &types.QueryConsensusStateResponse{
 		ConsensusState: any,
 		ProofHeight:    proofHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ConsensusState end ***************************")
+	return resp, nil
 }
 
 // ConsensusStates implements the Query/ConsensusStates gRPC method
 func (q Keeper) ConsensusStates(c context.Context, req *types.QueryConsensusStatesRequest) (*types.QueryConsensusStatesResponse, error) {
+	fmt.Println("************************* query  ConsensusStates begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -181,15 +197,21 @@ func (q Keeper) ConsensusStates(c context.Context, req *types.QueryConsensusStat
 	if err != nil {
 		return nil, err
 	}
-
-	return &types.QueryConsensusStatesResponse{
+	resp := &types.QueryConsensusStatesResponse{
 		ConsensusStates: consensusStates,
 		Pagination:      pageRes,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ConsensusStates end ***************************")
+	return resp, nil
 }
 
 // ClientStatus implements the Query/ClientStatus gRPC method
 func (q Keeper) ClientStatus(c context.Context, req *types.QueryClientStatusRequest) (*types.QueryClientStatusResponse, error) {
+
+	fmt.Println("************************* query  ClientStatus begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -210,23 +232,35 @@ func (q Keeper) ClientStatus(c context.Context, req *types.QueryClientStatusRequ
 	clientStore := q.ClientStore(ctx, req.ClientId)
 	status := clientState.Status(ctx, clientStore, q.cdc)
 
-	return &types.QueryClientStatusResponse{
+	resp := &types.QueryClientStatusResponse{
 		Status: status.String(),
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ClientStatus end ***************************")
+
+	return resp, nil
 }
 
 // ClientParams implements the Query/ClientParams gRPC method
 func (q Keeper) ClientParams(c context.Context, _ *types.QueryClientParamsRequest) (*types.QueryClientParamsResponse, error) {
+	fmt.Println("************************* query  ClientParams begin ***************************")
+
 	ctx := sdk.UnwrapSDKContext(c)
 	params := q.GetParams(ctx)
 
-	return &types.QueryClientParamsResponse{
+	resp := &types.QueryClientParamsResponse{
 		Params: &params,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query  ClientParams end ***************************")
+	return resp, nil
 }
 
 // UpgradedClientState implements the Query/UpgradedClientState gRPC method
 func (q Keeper) UpgradedClientState(c context.Context, req *types.QueryUpgradedClientStateRequest) (*types.QueryUpgradedClientStateResponse, error) {
+
+	fmt.Println("************************* query  UpgradedClientState begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -256,14 +290,19 @@ func (q Keeper) UpgradedClientState(c context.Context, req *types.QueryUpgradedC
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
-	return &types.QueryUpgradedClientStateResponse{
+	resp := &types.QueryUpgradedClientStateResponse{
 		UpgradedClientState: any,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query UpgradedClientState end ***************************")
+
+	return resp, nil
 }
 
 // UpgradedConsensusState implements the Query/UpgradedConsensusState gRPC method
 func (q Keeper) UpgradedConsensusState(c context.Context, req *types.QueryUpgradedConsensusStateRequest) (*types.QueryUpgradedConsensusStateResponse, error) {
+	fmt.Println("************************* query  UpgradedConsensusState begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -286,8 +325,11 @@ func (q Keeper) UpgradedConsensusState(c context.Context, req *types.QueryUpgrad
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-
-	return &types.QueryUpgradedConsensusStateResponse{
+	resp := &types.QueryUpgradedConsensusStateResponse{
 		UpgradedConsensusState: any,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("************************* query UpgradedConsensusState end ***************************")
+
+	return resp, nil
 }

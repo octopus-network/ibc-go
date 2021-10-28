@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -24,6 +25,8 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	clientStore sdk.KVStore,
 	misbehaviour exported.Misbehaviour,
 ) (exported.ClientState, error) {
+
+	fmt.Println("************Grandpa client CheckMisbehaviourAndUpdateState begin ****************")
 	tmMisbehaviour, ok := misbehaviour.(*Misbehaviour)
 	if !ok {
 		return nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClientType, "expected type %T, got %T", misbehaviour, &Misbehaviour{})
@@ -89,7 +92,8 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	}
 
 	cs.FrozenHeight = FrozenHeight
-
+	
+	fmt.Println("************Grandpa client CheckMisbehaviourAndUpdateState end ****************")
 	return &cs, nil
 }
 
