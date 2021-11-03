@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/gogo/protobuf/proto"
 
@@ -45,6 +46,8 @@ func (k Keeper) ConnOpenInit(
 	}
 
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "NONE", "new-state", "INIT")
+
+	fmt.Printf("connection open init for %s  and connection-id is %s \n", clientID, connectionID)
 
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "connection", "open-init")
@@ -110,6 +113,40 @@ func (k Keeper) ConnOpenTry(
 	} else {
 		// generate a new connection
 		connectionID = k.GenerateConnectionIdentifier(ctx)
+	}
+
+	// TODO: mock for grandpa and remove the validates!
+	if clientState.ClientType() == exported.Grandpa {
+		// store connection in chainB state
+		if err := k.addConnectionToClient(ctx, clientID, connectionID); err != nil {
+			return "", sdkerrors.Wrapf(err, "failed to add connection with ID %s to client with ID %s", connectionID, clientID)
+		}
+
+		supportedVersions := types.GetCompatibleVersions()
+		if len(previousConnection.Versions) != 0 {
+			supportedVersions = previousConnection.GetVersions()
+		}
+		// chain B picks a version from Chain A's available versions that is compatible
+		// with Chain B's supported IBC versions. PickVersion will select the intersection
+		// of the supported versions and the counterparty versions.
+		version, err := types.PickVersion(supportedVersions, counterpartyVersions)
+		if err != nil {
+			return "", err
+		}
+		// connection defines chain B's ConnectionEnd
+		connection := types.NewConnectionEnd(types.TRYOPEN, clientID, counterparty, []*types.Version{version}, delayPeriod)
+
+		k.SetConnection(ctx, connectionID, connection)
+		k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", previousConnection.State.String(), "new-state", "TRYOPEN")
+
+		fmt.Println(connection)
+		fmt.Printf("connection open try for client-id %s ,connection-id is %s, previous-state is %s, new-state is TRYOPEN\n", clientID, connectionID, previousConnection.State.String())
+
+		defer func() {
+			telemetry.IncrCounter(1, "ibc", "connection", "open-try")
+		}()
+
+		return connectionID, nil
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
@@ -204,6 +241,24 @@ func (k Keeper) ConnOpenAck(
 	proofHeight exported.Height, // height that relayer constructed proofTry
 	consensusHeight exported.Height, // latest height of chainA that chainB has stored on its chainA client
 ) error {
+
+	// TODO: mock for grandpa and remove the validates!
+	if clientState.ClientType() == exported.Grandpa {
+		// Retrieve connection
+		connection, found := k.GetConnection(ctx, connectionID)
+		if !found {
+			return sdkerrors.Wrap(types.ErrConnectionNotFound, connectionID)
+		}
+		// Update connection state to Open
+		connection.State = types.OPEN
+		connection.Versions = []*types.Version{version}
+		connection.Counterparty.ConnectionId = counterpartyConnectionID
+		k.SetConnection(ctx, connectionID, connection)
+		fmt.Println(connection)
+		fmt.Printf("connection open ack for client-id %s ,connection-id is %s,  new-state is OPEN\n", connection.GetClientID(), connectionID)
+		return nil
+	}
+
 	// Check that chainB client hasn't stored invalid height
 	selfHeight := clienttypes.GetSelfHeight(ctx)
 	if consensusHeight.GTE(selfHeight) {
@@ -317,22 +372,26 @@ func (k Keeper) ConnOpenConfirm(
 		)
 	}
 
-	prefix := k.GetCommitmentPrefix()
-	expectedCounterparty := types.NewCounterparty(connection.ClientId, connectionID, commitmenttypes.NewMerklePrefix(prefix.Bytes()))
-	expectedConnection := types.NewConnectionEnd(types.OPEN, connection.Counterparty.ClientId, expectedCounterparty, connection.Versions, connection.DelayPeriod)
+	// TODO: mock for grandpa and remove validate!
 
-	// Check that connection on ChainA is open
-	if err := k.VerifyConnectionState(
-		ctx, connection, proofHeight, proofAck, connection.Counterparty.ConnectionId,
-		expectedConnection,
-	); err != nil {
-		return err
-	}
+	// prefix := k.GetCommitmentPrefix()
+	// expectedCounterparty := types.NewCounterparty(connection.ClientId, connectionID, commitmenttypes.NewMerklePrefix(prefix.Bytes()))
+	// expectedConnection := types.NewConnectionEnd(types.OPEN, connection.Counterparty.ClientId, expectedCounterparty, connection.Versions, connection.DelayPeriod)
+
+	// // Check that connection on ChainA is open
+	// if err := k.VerifyConnectionState(
+	// 	ctx, connection, proofHeight, proofAck, connection.Counterparty.ConnectionId,
+	// 	expectedConnection,
+	// ); err != nil {
+	// 	return err
+	// }
 
 	// Update ChainB's connection to Open
 	connection.State = types.OPEN
 	k.SetConnection(ctx, connectionID, connection)
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "TRYOPEN", "new-state", "OPEN")
+	fmt.Println(connection)
+	fmt.Printf("connection open confirm for client-id %s ,connection-id is %s, previous-state is TRYOPEN ,new-state is OPEN\n", connection.GetClientID(), connectionID)
 
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")

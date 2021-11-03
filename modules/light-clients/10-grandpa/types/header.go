@@ -20,7 +20,7 @@ func (h Header) ClientType() string {
 	return exported.Grandpa
 }
 
-// GetHeight returns the current height. It returns 0 if the tendermint
+// GetHeight returns the current height. It returns 0 if the grandpa
 // header is nil.
 // NOTE: the header.Header is checked to be non nil in ValidateBasic.
 func (h Header) GetHeight() exported.Height {

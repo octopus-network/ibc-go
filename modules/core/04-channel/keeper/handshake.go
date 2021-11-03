@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"fmt"
+
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -53,6 +55,7 @@ func (k Keeper) ChanOpenInit(
 
 	getVersions := connectionEnd.GetVersions()
 	if len(getVersions) != 1 {
+		fmt.Printf("single version must be negotiated on connection before opening channel, got: %v \n", getVersions)
 		return "", nil, sdkerrors.Wrapf(
 			connectiontypes.ErrInvalidVersion,
 			"single version must be negotiated on connection before opening channel, got: %v",
@@ -61,6 +64,7 @@ func (k Keeper) ChanOpenInit(
 	}
 
 	if !connectiontypes.VerifySupportedFeature(getVersions[0], order.String()) {
+		fmt.Printf("connection version %s does not support channel ordering: %s \n", getVersions[0], order.String())
 		return "", nil, sdkerrors.Wrapf(
 			connectiontypes.ErrInvalidVersion,
 			"connection version %s does not support channel ordering: %s",
@@ -69,6 +73,7 @@ func (k Keeper) ChanOpenInit(
 	}
 
 	if !k.portKeeper.Authenticate(ctx, portCap, portID) {
+		fmt.Printf("caller does not own port capability for port ID %s \n", portID)
 		return "", nil, sdkerrors.Wrapf(porttypes.ErrInvalidPort, "caller does not own port capability for port ID %s", portID)
 	}
 
@@ -78,6 +83,7 @@ func (k Keeper) ChanOpenInit(
 
 	capKey, err := k.scopedKeeper.NewCapability(ctx, host.ChannelCapabilityPath(portID, channelID))
 	if err != nil {
+		fmt.Printf("ould not create channel capability for port ID %s and channel ID %s \n", portID, channelID)
 		return "", nil, sdkerrors.Wrapf(err, "could not create channel capability for port ID %s and channel ID %s", portID, channelID)
 	}
 
@@ -86,6 +92,9 @@ func (k Keeper) ChanOpenInit(
 	k.SetNextSequenceAck(ctx, portID, channelID, 1)
 
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", "NONE", "new-state", "INIT")
+
+	fmt.Println(channel)
+	fmt.Printf("channle open init, channel-id is %s , port-id is %s ,new-state is INIT \n", channelID, portID)
 
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "channel", "open-init")
@@ -238,7 +247,8 @@ func (k Keeper) ChanOpenTry(
 	k.SetChannel(ctx, portID, channelID, channel)
 
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", previousChannel.State.String(), "new-state", "TRYOPEN")
-
+	fmt.Println(channel)
+	fmt.Printf("channle open try, channel-id is %s , port-id is %s ,previous-state is %s,new-state is TRYOPEN \n", channelID, portID, previousChannel.State.String())
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "channel", "open-try")
 	}()
@@ -297,26 +307,28 @@ func (k Keeper) ChanOpenAck(
 		)
 	}
 
-	counterpartyHops, found := k.CounterpartyHops(ctx, channel)
-	if !found {
-		// should not reach here, connectionEnd was able to be retrieved above
-		panic("cannot find connection")
-	}
+	// TODO: mock for grandpa and remove validate!
+
+	// counterpartyHops, found := k.CounterpartyHops(ctx, channel)
+	// if !found {
+	// 	// should not reach here, connectionEnd was able to be retrieved above
+	// 	panic("cannot find connection")
+	// }
 
 	// counterparty of the counterparty channel end (i.e self)
-	expectedCounterparty := types.NewCounterparty(portID, channelID)
-	expectedChannel := types.NewChannel(
-		types.TRYOPEN, channel.Ordering, expectedCounterparty,
-		counterpartyHops, counterpartyVersion,
-	)
+	// expectedCounterparty := types.NewCounterparty(portID, channelID)
+	// expectedChannel := types.NewChannel(
+	// 	types.TRYOPEN, channel.Ordering, expectedCounterparty,
+	// 	counterpartyHops, counterpartyVersion,
+	// )
 
-	if err := k.connectionKeeper.VerifyChannelState(
-		ctx, connectionEnd, proofHeight, proofTry,
-		channel.Counterparty.PortId, counterpartyChannelID,
-		expectedChannel,
-	); err != nil {
-		return err
-	}
+	// if err := k.connectionKeeper.VerifyChannelState(
+	// 	ctx, connectionEnd, proofHeight, proofTry,
+	// 	channel.Counterparty.PortId, counterpartyChannelID,
+	// 	expectedChannel,
+	// ); err != nil {
+	// 	return err
+	// }
 
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", channel.State.String(), "new-state", "OPEN")
 
@@ -328,6 +340,9 @@ func (k Keeper) ChanOpenAck(
 	channel.Version = counterpartyVersion
 	channel.Counterparty.ChannelId = counterpartyChannelID
 	k.SetChannel(ctx, portID, channelID, channel)
+
+	fmt.Println(channel)
+	fmt.Printf("channle open ack, channel-id is %s , port-id is %s ,previous-state is %s,new-state is OPEN \n", channelID, portID, channel.State.String())
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -405,6 +420,9 @@ func (k Keeper) ChanOpenConfirm(
 	k.SetChannel(ctx, portID, channelID, channel)
 	k.Logger(ctx).Info("channel state updated", "port-id", portID, "channel-id", channelID, "previous-state", "TRYOPEN", "new-state", "OPEN")
 
+	fmt.Println(channel)
+	fmt.Printf("channle open ack, channel-id is %s , port-id is %s ,previous-state is TRYOPEN,new-state is OPEN \n", channelID, portID)
+
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "channel", "open-confirm")
 	}()
@@ -469,6 +487,9 @@ func (k Keeper) ChanCloseInit(
 
 	channel.State = types.CLOSED
 	k.SetChannel(ctx, portID, channelID, channel)
+
+	fmt.Println(channel)
+	fmt.Printf("channle close init, channel-id is %s , port-id is %s ,previous-state is %s,new-state is CLOSED \n", channelID, portID, channel.State.String())
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
@@ -547,6 +568,9 @@ func (k Keeper) ChanCloseConfirm(
 
 	channel.State = types.CLOSED
 	k.SetChannel(ctx, portID, channelID, channel)
+
+	fmt.Println(channel)
+	fmt.Printf("channle close confirm, channel-id is %s , port-id is %s ,previous-state is %s,new-state is CLOSED \n", channelID, portID, channel.State.String())
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(

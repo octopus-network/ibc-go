@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -58,40 +57,40 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 		)
 	}
 
-	// Check if the Client store already has a consensus state for the header's height
-	// If the consensus state exists, and it matches the header then we return early
-	// since header has already been submitted in a previous UpdateClient.
-	var conflictingHeader bool
-	prevConsState, _ := GetConsensusState(clientStore, cdc, header.GetHeight())
-	if prevConsState != nil {
-		// This header has already been submitted and the necessary state is already stored
-		// in client store, thus we can return early without further validation.
-		if reflect.DeepEqual(prevConsState, tmHeader.ConsensusState()) {
-			return &cs, prevConsState, nil
-		}
-		// A consensus state already exists for this height, but it does not match the provided header.
-		// Thus, we must check that this header is valid, and if so we will freeze the client.
-		conflictingHeader = true
-	}
+	// // Check if the Client store already has a consensus state for the header's height
+	// // If the consensus state exists, and it matches the header then we return early
+	// // since header has already been submitted in a previous UpdateClient.
+	// var conflictingHeader bool
+	// prevConsState, _ := GetConsensusState(clientStore, cdc, header.GetHeight())
+	// if prevConsState != nil {
+	// 	// This header has already been submitted and the necessary state is already stored
+	// 	// in client store, thus we can return early without further validation.
+	// 	if reflect.DeepEqual(prevConsState, tmHeader.ConsensusState()) {
+	// 		return &cs, prevConsState, nil
+	// 	}
+	// 	// A consensus state already exists for this height, but it does not match the provided header.
+	// 	// Thus, we must check that this header is valid, and if so we will freeze the client.
+	// 	conflictingHeader = true
+	// }
 
-	// get consensus state from clientStore
-	trustedConsState, err := GetConsensusState(clientStore, cdc, tmHeader.Height)
-	if err != nil {
-		return nil, nil, sdkerrors.Wrapf(
-			err, "could not get consensus state from clientstore at TrustedHeight: %s", tmHeader.Height,
-		)
-	}
+	// // get consensus state from clientStore
+	// trustedConsState, err := GetConsensusState(clientStore, cdc, tmHeader.Height)
+	// if err != nil {
+	// 	return nil, nil, sdkerrors.Wrapf(
+	// 		err, "could not get consensus state from clientstore at TrustedHeight: %s", tmHeader.Height,
+	// 	)
+	// }
 
-	if err := checkValidity(&cs, trustedConsState, tmHeader, ctx.BlockTime()); err != nil {
-		return nil, nil, err
-	}
+	// if err := checkValidity(&cs, trustedConsState, tmHeader, ctx.BlockTime()); err != nil {
+	// 	return nil, nil, err
+	// }
 
-	consState := tmHeader.ConsensusState()
-	// Header is different from existing consensus state and also valid, so freeze the client and return
-	if conflictingHeader {
-		cs.FrozenHeight = FrozenHeight
-		return &cs, consState, nil
-	}
+	// consState := tmHeader.ConsensusState()
+	// // Header is different from existing consensus state and also valid, so freeze the client and return
+	// if conflictingHeader {
+	// 	cs.FrozenHeight = FrozenHeight
+	// 	return &cs, consState, nil
+	// }
 	// Check that consensus state timestamps are monotonic
 	// prevCons, prevOk := GetPreviousConsensusState(clientStore, cdc, header.GetHeight())
 	// nextCons, nextOk := GetNextConsensusState(clientStore, cdc, header.GetHeight())
@@ -137,7 +136,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	// }
 
 	newClientState, consensusState := update(ctx, clientStore, &cs, tmHeader)
-	fmt.Println(header)
+
 	fmt.Println("************Grandpa client CheckHeaderAndUpdateState end ****************")
 	return newClientState, consensusState, nil
 }
@@ -162,7 +161,7 @@ func checkTrustedHeader(header *Header, consState *ConsensusState) error {
 	return nil
 }
 
-// checkValidity checks if the Tendermint header is valid.
+// checkValidity checks if the Grandpa header is valid.
 // CONTRACT: consState.Height == header.TrustedHeight
 func checkValidity(
 	clientState *ClientState, consState *ConsensusState,
@@ -247,13 +246,21 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 	height := header.GetHeight().(clienttypes.Height)
 	if height.GT(clientState.LatestHeight) {
 		clientState.LatestHeight = height
+
 	}
+
+	// clientState.LatestHeight = height
 	consensusState := &ConsensusState{
 		Root: commitmenttypes.NewMerkleRoot([]byte(header.String())),
 	}
 
 	// set metadata for this consensus state
 	setConsensusMetadata(ctx, clientStore, header.GetHeight())
+	
+	fmt.Printf("new height is %s \n", header.String())
+	fmt.Printf("client state latestheight is %s \n", clientState.LatestHeight.String())
+	fmt.Println(clientState)
+	fmt.Println(consensusState)
 
 	return clientState, consensusState
 }

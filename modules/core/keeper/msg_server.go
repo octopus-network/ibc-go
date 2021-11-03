@@ -9,9 +9,9 @@ import (
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/ibc-go/modules/core/02-client/types"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/cosmos/ibc-go/modules/core/03-connection/types"
-	"github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	channeltypes "github.com/cosmos/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/cosmos/ibc-go/modules/core/05-port/types"
 	coretypes "github.com/cosmos/ibc-go/modules/core/types"
@@ -65,15 +65,15 @@ func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateCl
 // UpdateClient defines a rpc handler method for MsgUpdateClient.
 func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateClient) (*clienttypes.MsgUpdateClientResponse, error) {
 	fmt.Println("************************* grpc server receive the  UpdateClient begin ***************************")
-	fmt.Println(msg.Header.TypeUrl)
+	fmt.Println(msg)
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
-
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(header)
 
 	if err = k.ClientKeeper.UpdateClient(ctx, msg.ClientId, header); err != nil {
 		return nil, err
@@ -85,8 +85,9 @@ func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateCl
 			sdk.NewAttribute(sdk.AttributeKeyModule, clienttypes.AttributeValueCategory),
 		),
 	)
-	fmt.Println(header)
+
 	fmt.Println("************************* grpc server receive the  UpdateClient end ***************************")
+
 	return &clienttypes.MsgUpdateClientResponse{}, nil
 }
 
@@ -153,6 +154,7 @@ func (k Keeper) SubmitMisbehaviour(goCtx context.Context, msg *clienttypes.MsgSu
 // ConnectionOpenInit defines a rpc handler method for MsgConnectionOpenInit.
 func (k Keeper) ConnectionOpenInit(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenInit) (*connectiontypes.MsgConnectionOpenInitResponse, error) {
 	fmt.Println("************************* grpc server receive the  ConnectionOpenInit begin ***************************")
+	fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	connectionID, err := k.ConnectionKeeper.ConnOpenInit(ctx, msg.ClientId, msg.Counterparty, msg.Version, msg.DelayPeriod)
 	if err != nil {
@@ -173,7 +175,6 @@ func (k Keeper) ConnectionOpenInit(goCtx context.Context, msg *connectiontypes.M
 		),
 	})
 
-	fmt.Println(msg)
 	fmt.Println("************************* grpc server receive the  ConnectionOpenInit end ***************************")
 	return &connectiontypes.MsgConnectionOpenInitResponse{}, nil
 }
@@ -181,7 +182,7 @@ func (k Keeper) ConnectionOpenInit(goCtx context.Context, msg *connectiontypes.M
 // ConnectionOpenTry defines a rpc handler method for MsgConnectionOpenTry.
 func (k Keeper) ConnectionOpenTry(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenTry) (*connectiontypes.MsgConnectionOpenTryResponse, error) {
 	fmt.Println("************************* grpc server receive the  ConnectionOpenTry begin ***************************")
-
+	fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	targetClient, err := clienttypes.UnpackClientState(msg.ClientState)
@@ -214,7 +215,6 @@ func (k Keeper) ConnectionOpenTry(goCtx context.Context, msg *connectiontypes.Ms
 		),
 	})
 
-	fmt.Println(msg)
 	fmt.Println("************************* grpc server receive the  ConnectionOpenTry end ***************************")
 	return &connectiontypes.MsgConnectionOpenTryResponse{}, nil
 }

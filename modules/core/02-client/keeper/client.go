@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/hex"
+	"fmt"
 
 	"github.com/armon/go-metrics"
 
@@ -17,7 +18,7 @@ import (
 func (k Keeper) CreateClient(
 	ctx sdk.Context, clientState exported.ClientState, consensusState exported.ConsensusState,
 ) (string, error) {
-	// k.Logger(ctx).Info("*************************begint to create client ***************************")
+
 	params := k.GetParams(ctx)
 	if !params.IsAllowedClient(clientState.ClientType()) {
 		return "", sdkerrors.Wrapf(
@@ -51,7 +52,8 @@ func (k Keeper) CreateClient(
 			[]metrics.Label{telemetry.NewLabel(types.LabelClientType, clientState.ClientType())},
 		)
 	}()
-	// k.Logger(ctx).Info("*************************end to create client ***************************")
+	fmt.Printf("client created for client-id %s at height %s \n", clientID, clientState.GetLatestHeight().String())
+
 	return clientID, nil
 }
 
@@ -107,6 +109,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 		}
 
 		k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
+		fmt.Printf("client state updated for client-id %s at height %s \n", clientID, consensusHeight.String())
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(
@@ -124,6 +127,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 		eventType = types.EventTypeSubmitMisbehaviour
 
 		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
+		fmt.Printf("client frozen due to misbehaviour for client-id %s \n", clientID)
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(
@@ -148,6 +152,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 			sdk.NewAttribute(types.AttributeKeyHeader, headerStr),
 		),
 	)
+
 	return nil
 }
 
