@@ -524,7 +524,10 @@ func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.Msg
 // RecvPacket defines a rpc handler method for MsgRecvPacket.
 func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacket) (*channeltypes.MsgRecvPacketResponse, error) {
 	fmt.Println("************************* grpc server receive the  RecvPacket request ***************************")
-	//fmt.Println(msg)
+	fmt.Println("*************************receive packet  is ***************************")
+	fmt.Println(msg.Packet)
+	fmt.Println("********************************************************************")
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)

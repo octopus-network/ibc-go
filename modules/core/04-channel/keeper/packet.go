@@ -347,6 +347,9 @@ func (k Keeper) WriteAcknowledgement(
 	// log that a packet acknowledgement has been written
 	k.Logger(ctx).Info("acknowledged written", "packet", fmt.Sprintf("%v", packet))
 
+	fmt.Println("************************* acknowledged written ***************************")
+	fmt.Println(acknowledgement)
+	fmt.Println("********************************************************************")
 	EmitWriteAcknowledgementEvent(ctx, packet, channel, acknowledgement)
 
 	return nil
