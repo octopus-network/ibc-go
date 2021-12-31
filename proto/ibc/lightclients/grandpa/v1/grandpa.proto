@@ -16,7 +16,7 @@ message ClientState {
 
   string chain_id = 1;
   // Block height when the client was frozen due to a misbehaviour
-  uint64 frozen_height = 2
+  uint32 frozen_height = 2
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
  
   uint64 validator_set_id = 3;
@@ -33,7 +33,7 @@ message ClientState {
 
   // latest_commitment: Option<Commitment>,
     // block_number is height?
-  uint64 block_number = 6
+  uint32 block_number = 6
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
     //validator_set_id
   uint64 block_validator_set_id = 7;
@@ -48,7 +48,7 @@ message ConsensusState {
    // mmr root
    bytes root = 1;
    // block_number is height?
-   uint64 block_number = 2
+   uint32 block_number = 2
     [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
    //validator_set_id
    uint64 validator_set_id = 3;
