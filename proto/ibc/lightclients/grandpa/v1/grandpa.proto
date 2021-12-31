@@ -51,7 +51,7 @@ message ConsensusState {
    uint64 block_number = 2
     [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
    //validator_set_id
-   uint32 validator_set_id = 3;
+   uint64 validator_set_id = 3;
 
  }
  
