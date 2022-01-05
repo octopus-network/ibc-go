@@ -4,70 +4,192 @@ package ibc.lightclients.grandpa.v1;
 
 option go_package = "github.com/cosmos/ibc-go/modules/light-clients/10-grandpa/types";
 
-import "ibc/core/client/v1/client.proto";
-import "ibc/core/commitment/v1/commitment.proto";
+// import "ibc/core/client/v1/client.proto";
+// import "ibc/core/commitment/v1/commitment.proto";
 import "gogoproto/gogo.proto";
 
 
+message Header {
+  //uint32 block_number = 1
+  //      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
+  SignedCommitment signed_commitment =1 
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signed_commitment\""];
+  ValidatorMerkleProof validator_merkle_proof = 2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_merkle_proof\""];
+  MmrLeaf mmr_leaf = 3
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
+  MmrLeafProof mmr_leaf_proof = 4
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
+}
+
+message SignedCommitment {
+  Commitment commitment = 1
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"commitment\""];
+
+  repeated signature signatures = 2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signatures\""];
+
+}
+
+message Commitment {
+  // block height
+  uint32 block_number = 1
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""]; 
+  
+  // mmr root
+  bytes payload = 2
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"payload\""]; 
+
+  //validator_set_id
+  uint64 validator_set_id = 3
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_set_id\""]; 
+}
+
+message signature {
+  bytes signature = 1
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signature\""];
+}
+
+message ValidatorMerkleProof{
+  /// Proof items (does not contain the leaf hash, nor the root obviously).
+	///
+	/// This vec contains all inner node hashes necessary to reconstruct the root hash given the
+	/// leaf hash.
+	repeated bytes proof = 1
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"proof\""];
+	/// Number of leaves in the original tree.
+	///
+	/// This is needed to detect a case where we have an odd number of leaves that "get promoted"
+	/// to upper layers.
+  /// pub number_of_leaves: usize,
+	uint32 number_of_leaves = 2
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"number_of_leaves\""];
+
+	/// Index of the leaf the proof is for (0-based).
+  /// pub leaf_index: usize,
+	uint32 leaf_index = 3
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"leaf_index\""];
+
+	/// Leaf content.
+	///pub leaf: Vec<u8>,
+  bytes leaf = 4
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"leaf\""];
+}
+
+
+message MmrLeaf {
+  
+  /// Version of the leaf format.
+	/// Can be used to enable future format migrations and compatibility.
+  uint32 version = 1;
+  
+  /// Current block parent number and hash.
+  ParentNumberAndHash parent_number_and_hash =2
+    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"parent_number_and_hash\""];
+
+  /// A merkle root of the next BEEFY authority set.
+  ValidatorSet beefy_next_authority_set =3
+    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"beefy_next_authority_set\""];
+
+  /// A merkle root of all registered parachain heads.
+	bytes parachain_heads = 4 
+    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"parachain_heads\""];
+
+}
+
+message ParentNumberAndHash{
+  uint32 block_number = 1
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
+  // header hash
+  bytes mmr_root =2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_root\""];
+}
+
+message ValidatorSet{
+  /// Id of the next set.
+	///
+	/// Id is required to correlate BEEFY signed commitments with the validator set.
+	/// Light Client can easily verify that the commitment witness it is getting is
+	/// produced by the latest validator set.
+  uint64 id = 1;
+
+	/// Number of validators in the set.
+	///
+	/// Some BEEFY Light Clients may use an interactive protocol to verify only subset
+	/// of signatures. We put set length here, so that these clients can verify the minimal
+	/// number of required signatures.
+  uint32 len = 2;
+
+	/// Merkle Root Hash build from BEEFY AuthorityIds.
+	///
+	/// This is used by Light Clients to confirm that the commitments are signed by the correct
+	/// validator set. Light Clients using interactive protocol, might verify only subset of
+	/// signatures, hence don't require the full list here (will receive inclusion proofs).
+  bytes root = 3;
+}
+
+message MmrLeafProof{
+  /// The index of the leaf the proof is for.
+	uint64 leaf_index = 1;
+	/// Number of leaves in MMR, when the proof was generated.
+	uint64 leaf_count = 2;
+	/// Proof elements (hashes of siblings of inner nodes on the path to the leaf).
+	repeated bytes items = 3
+    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"items\""];
+}
 
 // Client state
 message ClientState {
   option (gogoproto.goproto_getters) = false;
 
   string chain_id = 1;
-  // Block height when the client was frozen due to a misbehaviour
-  uint32 frozen_height = 2
-      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
- 
-  uint64 validator_set_id = 3;
-  /// Number of validators in the set.
-  /// Some BEEFY Light Clients may use an interactive protocol to verify only subset
-  /// of signatures. We put set length here, so that these clients can verify the minimal
-  /// number of required signatures.
-  uint32 validator_set_len = 4;
-  /// Merkle Root Hash build from BEEFY AuthorityIds.
-  /// This is used by Light Clients to confirm that the commitments are signed by the correct
-  /// validator set. Light Clients using interactive protocol, might verify only subset of
-  /// signatures, hence don't require the full list here (will receive inclusion proofs).
-  bytes validator_set_root = 5;
 
-  // latest_commitment: Option<Commitment>,
-    // block_number is height?
-  uint32 block_number = 6
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
-    //validator_set_id
-  uint64 block_validator_set_id = 7;
-  // mmr root
-  bytes block_mmr_root = 8;
+  // block_number is height?
+  uint32 block_number = 2
+    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
+  
+    // Block height when the client was frozen due to a misbehaviour
+  uint32 frozen_height = 3
+      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
+
+  //latest_commitment: Option<Commitment>
+  Commitment latest_commitment = 4;
+ 
+  ValidatorSet validator_set = 5;
+
+  // InProcessState in_process_state = 6;
 
 }
+
+// message InProcessState{
+//   uint32 position = 1;
+// 	bytes commitment_hash =2;
+// 	SignedCommitment signed_commitment = 3;
+// 	repeated ValidatorMerkleProof validator_proofs = 4;
+// 	BeefyNextAuthoritySet validator_set = 5;
+// }
 
 // Consensus state
 message ConsensusState {
   option (gogoproto.goproto_getters) = false;
    // mmr root
-   bytes root = 1;
-   // block_number is height?
-   uint32 block_number = 2
-    [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
-   //validator_set_id
-   uint64 validator_set_id = 3;
+   Commitment root = 1;
 
  }
  
- message Header {
-  option (gogoproto.goproto_getters) = false;
-  /// The parent hash.
-  bytes parent_hash = 1 [(gogoproto.nullable) = false];
-  /// The block number.
-  uint32 block_number = 2 [(gogoproto.nullable) = false];
-  /// The state trie merkle root
-  bytes state_root = 3 [(gogoproto.nullable) = false];
-  /// The merkle root of the extrinsics.
-	bytes extrinsics_root = 4 [(gogoproto.nullable) = false];
-  /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-  bytes digest = 5 [(gogoproto.nullable) = false];
-}
+//  message Header {
+//   option (gogoproto.goproto_getters) = false;
+//   /// The parent hash.
+//   bytes parent_hash = 1 [(gogoproto.nullable) = false];
+//   /// The block number.
+//   uint32 block_number = 2 [(gogoproto.nullable) = false];
+//   /// The state trie merkle root
+//   bytes state_root = 3 [(gogoproto.nullable) = false];
+//   /// The merkle root of the extrinsics.
+// 	bytes extrinsics_root = 4 [(gogoproto.nullable) = false];
+//   /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
+//   bytes digest = 5 [(gogoproto.nullable) = false];
+// }
 
 // Misbehaviour
 // The Misbehaviour type is used for detecting misbehaviour and freezing the client - to prevent further packet flow -
