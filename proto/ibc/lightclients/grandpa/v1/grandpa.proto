@@ -9,16 +9,19 @@ option go_package = "github.com/cosmos/ibc-go/modules/light-clients/10-grandpa/t
 import "gogoproto/gogo.proto";
 
 
-message Header {
+message MmrRoot {
   //uint32 block_number = 1
   //      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
-  SignedCommitment signed_commitment =1 
+  /// Block Header.
+  BlockHeader block_header = 1 [(gogoproto.nullable) = false];
+  
+  SignedCommitment signed_commitment =2 
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signed_commitment\""];
-  ValidatorMerkleProof validator_merkle_proof = 2
+  ValidatorMerkleProof validator_merkle_proof = 3
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_merkle_proof\""];
-  MmrLeaf mmr_leaf = 3
+  MmrLeaf mmr_leaf = 4
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
-  MmrLeafProof mmr_leaf_proof = 4
+  MmrLeafProof mmr_leaf_proof = 5
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
 }
 
@@ -152,17 +155,20 @@ message ClientState {
   uint32 frozen_height = 3
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
 
-  //latest_commitment: Option<Commitment>
-  Commitment latest_commitment = 4;
- 
-  ValidatorSet validator_set = 5;
+  BlockHeader block_header = 4 [(gogoproto.nullable) = false];
 
-  // InProcessState in_process_state = 6;
+  //latest_commitment: Option<Commitment>
+  Commitment latest_commitment = 5;
+ 
+  ValidatorSet validator_set = 6;
+
+  // InProcessState in_process_state = 7;
 
 }
 
+
 // message InProcessState{
-//   uint32 position = 1;
+//  uint32 position = 1;
 // 	bytes commitment_hash =2;
 // 	SignedCommitment signed_commitment = 3;
 // 	repeated ValidatorMerkleProof validator_proofs = 4;
@@ -172,24 +178,46 @@ message ClientState {
 // Consensus state
 message ConsensusState {
   option (gogoproto.goproto_getters) = false;
-   // mmr root
-   Commitment root = 1;
+  /// The parent hash.
+  bytes parent_hash = 1 [(gogoproto.nullable) = false];
+  /// The block number.
+  uint32 block_number = 2 [(gogoproto.nullable) = false];
+  /// The state trie merkle root
+  bytes state_root = 3 [(gogoproto.nullable) = false];
+  /// The merkle root of the extrinsics.
+  bytes extrinsics_root = 4 [(gogoproto.nullable) = false];
+  /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
+  bytes digest = 5 [(gogoproto.nullable) = false];
 
  }
  
-//  message Header {
-//   option (gogoproto.goproto_getters) = false;
-//   /// The parent hash.
-//   bytes parent_hash = 1 [(gogoproto.nullable) = false];
-//   /// The block number.
-//   uint32 block_number = 2 [(gogoproto.nullable) = false];
-//   /// The state trie merkle root
-//   bytes state_root = 3 [(gogoproto.nullable) = false];
-//   /// The merkle root of the extrinsics.
-// 	bytes extrinsics_root = 4 [(gogoproto.nullable) = false];
-//   /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-//   bytes digest = 5 [(gogoproto.nullable) = false];
-// }
+
+message Header {
+  option (gogoproto.goproto_getters) = false;
+  /// Block Header.
+  BlockHeader block_header = 1 [(gogoproto.nullable) = false];
+
+  MmrLeaf mmr_leaf = 2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
+  MmrLeafProof mmr_leaf_proof = 3
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
+
+}
+
+// Block Header
+ message BlockHeader {
+  option (gogoproto.goproto_getters) = false;
+  /// The parent hash.
+  bytes parent_hash = 1 [(gogoproto.nullable) = false];
+  /// The block number.
+  uint32 block_number = 2 [(gogoproto.nullable) = false];
+  /// The state trie merkle root
+  bytes state_root = 3 [(gogoproto.nullable) = false];
+  /// The merkle root of the extrinsics.
+	bytes extrinsics_root = 4 [(gogoproto.nullable) = false];
+  /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
+  bytes digest = 5 [(gogoproto.nullable) = false];
+}
 
 // Misbehaviour
 // The Misbehaviour type is used for detecting misbehaviour and freezing the client - to prevent further packet flow -
