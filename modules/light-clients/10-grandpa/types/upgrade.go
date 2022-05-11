@@ -60,7 +60,9 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// All chain-chosen parameters come from committed client, all client-chosen parameters
 	// come from current client.
 	newClientState := NewClientState(
-		tmUpgradeClient.ChainId, tmUpgradeClient.LatestHeight, tmUpgradeClient.FrozenHeight,
+		tmUpgradeClient.ChainId, tmUpgradeClient.BlockNumber,
+		tmUpgradeClient.FrozenHeight, tmUpgradeClient.BlockHeader,
+		*tmUpgradeClient.LatestCommitment, *tmUpgradeClient.ValidatorSet,
 	)
 
 	if err := newClientState.Validate(); err != nil {
@@ -75,11 +77,16 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// NOTE: We do not set processed time for this consensus state since this consensus state should not be used for packet verification
 	// as the root is empty. The next consensus state submitted using update will be usable for packet-verification.
 	newConsState := NewConsensusState(
-		commitmenttypes.NewMerkleRoot([]byte(SentinelRoot)),
+		tmUpgradeClient.BlockHeader.ParentHash,
+		tmUpgradeClient.BlockHeader.BlockNumber,
+		tmUpgradeClient.BlockHeader.StateRoot,
+		tmUpgradeClient.BlockHeader.ExtrinsicsRoot,
+		tmUpgradeClient.BlockHeader.Digest,
+		
 	)
 
 	// set metadata for this consensus state
-	setConsensusMetadata(ctx, clientStore, tmUpgradeClient.LatestHeight)
+	setConsensusMetadata(ctx, clientStore, clienttypes.NewHeight(0, uint64(tmUpgradeClient.BlockNumber)))
 	fmt.Println(proofUpgradeConsState)
 	fmt.Println("[Grandpa]************Grandpa client VerifyUpgradeAndUpdateState end ****************")
 

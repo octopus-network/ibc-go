@@ -64,13 +64,15 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	// and unmarshal from clientStore
 
 	// Get consensus bytes from clientStore
-	tmConsensusState1, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header1.Height)
+	tmConsensusState1, err := GetConsensusState(clientStore, cdc,
+		clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header1.BlockHeader.BlockNumber)))
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header1 at TrustedHeight: %s", tmMisbehaviour.Header1)
 	}
 
 	// Get consensus bytes from clientStore
-	tmConsensusState2, err := GetConsensusState(clientStore, cdc, tmMisbehaviour.Header2.Height)
+	tmConsensusState2, err := GetConsensusState(clientStore, cdc,
+		clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header2.BlockHeader.BlockNumber)))
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header2 at TrustedHeight: %s", tmMisbehaviour.Header2)
 	}
@@ -91,8 +93,8 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 		return nil, sdkerrors.Wrap(err, "verifying Header2 in Misbehaviour failed")
 	}
 
-	cs.FrozenHeight = FrozenHeight
-	
+	cs.FrozenHeight = uint32(FrozenHeight.RevisionHeight)
+
 	fmt.Println("[Grandpa]************Grandpa client CheckMisbehaviourAndUpdateState end ****************")
 	return &cs, nil
 }

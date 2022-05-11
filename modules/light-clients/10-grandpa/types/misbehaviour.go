@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -20,8 +21,9 @@ var FrozenHeight = clienttypes.NewHeight(0, 1)
 
 // NewMisbehaviour creates a new Misbehaviour instance.
 func NewMisbehaviour(clientID string, header1, header2 *Header) *Misbehaviour {
+	cid, _ := strconv.Atoi(clientID)
 	return &Misbehaviour{
-		ClientId: clientID,
+		ClientId: uint64(cid),
 		Header1:  header1,
 		Header2:  header2,
 	}
@@ -34,7 +36,7 @@ func (misbehaviour Misbehaviour) ClientType() string {
 
 // GetClientID returns the ID of the client that committed a misbehaviour.
 func (misbehaviour Misbehaviour) GetClientID() string {
-	return misbehaviour.ClientId
+	return strconv.Itoa(int(misbehaviour.ClientId))
 }
 
 // GetTime returns the timestamp at which misbehaviour occurred. It uses the
@@ -58,14 +60,15 @@ func (misbehaviour Misbehaviour) ValidateBasic() error {
 	if misbehaviour.Header2 == nil {
 		return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header2 cannot be nil")
 	}
-	if misbehaviour.Header1.Height.RevisionHeight == 0 {
+	if misbehaviour.Header1.BlockHeader.BlockNumber == 0 {
 		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header1 cannot have zero revision height")
 	}
-	if misbehaviour.Header2.Height.RevisionHeight == 0 {
+	if misbehaviour.Header2.BlockHeader.BlockNumber == 0 {
 		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header2 cannot have zero revision height")
 	}
 
-	if err := host.ClientIdentifierValidator(misbehaviour.ClientId); err != nil {
+	sid := strconv.Itoa(int(misbehaviour.ClientId))
+	if err := host.ClientIdentifierValidator(sid); err != nil {
 		return sdkerrors.Wrap(err, "misbehaviour client ID is invalid")
 	}
 

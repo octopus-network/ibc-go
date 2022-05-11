@@ -109,7 +109,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 		}
 
 		k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
-		fmt.Printf("client state updated for client-id %s at height %s \n", clientID, consensusHeight.String())
+		fmt.Printf("[keeper_client] client state updated for client-id %s at height %s \n", clientID, consensusHeight.String())
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(
@@ -127,7 +127,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 		eventType = types.EventTypeSubmitMisbehaviour
 
 		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
-		fmt.Printf("client frozen due to misbehaviour for client-id %s \n", clientID)
+		fmt.Printf("[keeper_client] client frozen due to misbehaviour for client-id %s \n", clientID)
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(

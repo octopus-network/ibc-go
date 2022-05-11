@@ -20,13 +20,21 @@ var _ exported.ClientState = (*ClientState)(nil)
 // NewClientState creates a new ClientState instance
 func NewClientState(
 	chainID string,
-	latestHeight clienttypes.Height,
-	frozenHeight clienttypes.Height,
+	blockNumber uint32,
+	frozenHeight uint32,
+	blockHeader BlockHeader,
+	latestCommitment Commitment,
+	validatorSet ValidatorSet,
 ) *ClientState {
 	return &ClientState{
-		ChainId:      chainID,
-		LatestHeight: latestHeight,
-		FrozenHeight: clienttypes.ZeroHeight(),
+		ChainId: chainID,
+
+		BlockNumber:  blockNumber,
+		FrozenHeight: frozenHeight,
+		BlockHeader:  blockHeader,
+		//latest_commitment: Option<Commitment>
+		LatestCommitment: &latestCommitment,
+		ValidatorSet:     &validatorSet,
 	}
 }
 
@@ -42,7 +50,11 @@ func (cs ClientState) ClientType() string {
 
 // GetLatestHeight returns latest block height.
 func (cs ClientState) GetLatestHeight() exported.Height {
-	return cs.LatestHeight
+	// return cs.BlockNumber
+	return clienttypes.Height{
+		RevisionNumber: 0,
+		RevisionHeight: uint64(cs.BlockNumber),
+	}
 }
 
 // Status returns the status of the Grandpa client.
@@ -113,13 +125,13 @@ func (cs ClientState) Validate() error {
 	// }
 
 	// the latest height revision number must match the chain id revision number
-	if cs.LatestHeight.RevisionNumber != clienttypes.ParseChainID(cs.ChainId) {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight,
-			"latest height revision number must match chain id revision number (%d != %d)", cs.LatestHeight.RevisionNumber, clienttypes.ParseChainID(cs.ChainId))
-	}
-	if cs.LatestHeight.RevisionHeight == 0 {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint client's latest height revision height cannot be zero")
-	}
+	// if cs.LatestHeight.RevisionNumber != clienttypes.ParseChainID(cs.ChainId) {
+	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight,
+	// 		"latest height revision number must match chain id revision number (%d != %d)", cs.LatestHeight.RevisionNumber, clienttypes.ParseChainID(cs.ChainId))
+	// }
+	// if cs.LatestHeight.RevisionHeight == 0 {
+	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint client's latest height revision height cannot be zero")
+	// }
 
 	// if cs.TrustingPeriod >= cs.UnbondingPeriod {
 	// 	return sdkerrors.Wrapf(
@@ -164,10 +176,14 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 	fmt.Println("[Grandpa]************Grandpa ZeroCustomFields***************")
 	// copy over all chain-specified fields
 	// and leave custom fields empty
+
 	return &ClientState{
-		ChainId:      cs.ChainId,
-		LatestHeight: cs.LatestHeight,
-		FrozenHeight: cs.FrozenHeight,
+		ChainId:          cs.ChainId,
+		BlockNumber:      cs.BlockNumber,
+		FrozenHeight:     cs.FrozenHeight,
+		BlockHeader:      cs.BlockHeader,
+		LatestCommitment: cs.LatestCommitment,
+		ValidatorSet:     cs.ValidatorSet,
 	}
 }
 
