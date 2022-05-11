@@ -137,7 +137,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 
 	newClientState, consensusState := update(ctx, clientStore, &cs, tmHeader)
 
-	fmt.Println("************Grandpa client CheckHeaderAndUpdateState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client CheckHeaderAndUpdateState end ****************")
 	return newClientState, consensusState, nil
 }
 
@@ -257,8 +257,8 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 	// set metadata for this consensus state
 	setConsensusMetadata(ctx, clientStore, header.GetHeight())
 	
-	fmt.Printf("new height is %s \n", header.String())
-	fmt.Printf("client state latestheight is %s \n", clientState.LatestHeight.String())
+	fmt.Printf("[Grandpa]new height is %s \n", header.String())
+	fmt.Printf("[Grandpa]client state latestheight is %s \n", clientState.LatestHeight.String())
 	fmt.Println(clientState)
 	fmt.Println(consensusState)
 

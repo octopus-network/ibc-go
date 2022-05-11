@@ -28,7 +28,7 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 	ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore,
 	substituteClientStore sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
-	fmt.Println("************Grandpa client CheckSubstituteAndUpdateState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client CheckSubstituteAndUpdateState begin ****************")
 	substituteClientState, ok := substituteClient.(*ClientState)
 	if !ok {
 		return nil, sdkerrors.Wrapf(
@@ -88,7 +88,7 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 
 	// no validation is necessary since the substitute is verified to be Active
 	// in 02-client.
-	fmt.Println("************Grandpa client CheckSubstituteAndUpdateState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client CheckSubstituteAndUpdateState end ****************")
 	return &cs, nil
 }
 

@@ -26,7 +26,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	misbehaviour exported.Misbehaviour,
 ) (exported.ClientState, error) {
 
-	fmt.Println("************Grandpa client CheckMisbehaviourAndUpdateState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client CheckMisbehaviourAndUpdateState begin ****************")
 	tmMisbehaviour, ok := misbehaviour.(*Misbehaviour)
 	if !ok {
 		return nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClientType, "expected type %T, got %T", misbehaviour, &Misbehaviour{})
@@ -93,7 +93,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 
 	cs.FrozenHeight = FrozenHeight
 	
-	fmt.Println("************Grandpa client CheckMisbehaviourAndUpdateState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client CheckMisbehaviourAndUpdateState end ****************")
 	return &cs, nil
 }
 

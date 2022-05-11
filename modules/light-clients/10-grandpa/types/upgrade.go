@@ -28,7 +28,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	upgradedClient exported.ClientState, upgradedConsState exported.ConsensusState,
 	proofUpgradeClient, proofUpgradeConsState []byte,
 ) (exported.ClientState, exported.ConsensusState, error) {
-	fmt.Println("************Grandpa client VerifyUpgradeAndUpdateState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyUpgradeAndUpdateState begin ****************")
 	// last height of current counterparty chain must be client's latest height
 	lastHeight := cs.GetLatestHeight()
 
@@ -81,7 +81,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// set metadata for this consensus state
 	setConsensusMetadata(ctx, clientStore, tmUpgradeClient.LatestHeight)
 	fmt.Println(proofUpgradeConsState)
-	fmt.Println("************Grandpa client VerifyUpgradeAndUpdateState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyUpgradeAndUpdateState end ****************")
 
 	return newClientState, newConsState, nil
 }

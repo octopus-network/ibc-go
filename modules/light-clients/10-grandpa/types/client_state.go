@@ -71,7 +71,7 @@ func (cs ClientState) Status(
 	// if cs.IsExpired(consState.Timestamp, ctx.BlockTime()) {
 	// 	return exported.Expired
 	// }
-	fmt.Println("************Grandpa Status****************")
+	fmt.Println("[Grandpa]************Grandpa Status****************")
 	return exported.Active
 }
 
@@ -85,7 +85,7 @@ func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
 
 // Validate performs a basic validation of the client state fields.
 func (cs ClientState) Validate() error {
-	fmt.Println("************Grandpa validate****************")
+	fmt.Println("[Grandpa]************Grandpa validate****************")
 	if strings.TrimSpace(cs.ChainId) == "" {
 		return sdkerrors.Wrap(ErrInvalidChainID, "chain id cannot be empty string")
 	}
@@ -151,7 +151,7 @@ func (cs ClientState) Validate() error {
 // GetProofSpecs returns the format the client expects for proof verification
 // as a string array specifying the proof type for each position in chained proof
 func (cs ClientState) GetProofSpecs() []*ics23.ProofSpec {
-	fmt.Println("************Grandpa GetProofSpecs***************")
+	fmt.Println("[Grandpa]************Grandpa GetProofSpecs***************")
 	//ps := []*ics23.ProofSpec{}
 	ps := commitmenttypes.GetSDKSpecs()
 	return ps
@@ -161,7 +161,7 @@ func (cs ClientState) GetProofSpecs() []*ics23.ProofSpec {
 // ZeroCustomFields returns a ClientState that is a copy of the current ClientState
 // with all client customizable fields zeroed out
 func (cs ClientState) ZeroCustomFields() exported.ClientState {
-	fmt.Println("************Grandpa ZeroCustomFields***************")
+	fmt.Println("[Grandpa]************Grandpa ZeroCustomFields***************")
 	// copy over all chain-specified fields
 	// and leave custom fields empty
 	return &ClientState{
@@ -174,14 +174,14 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 // Initialize will check that initial consensus state is a Grandpa consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
 func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientStore sdk.KVStore, consState exported.ConsensusState) error {
-	fmt.Println("************Grandpa client state initialize begin****************")
+	fmt.Println("[Grandpa]************Grandpa client state initialize begin****************")
 	if _, ok := consState.(*ConsensusState); !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid initial consensus state. expected type: %T, got: %T",
 			&ConsensusState{}, consState)
 	}
 	// set metadata for initial consensus state.
 	setConsensusMetadata(ctx, clientStore, cs.GetLatestHeight())
-	fmt.Println("*********************Grandpa client state initialize end ****************************")
+	fmt.Println("[Grandpa]*********************Grandpa client state initialize end ****************************")
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (cs ClientState) VerifyClientState(
 	proof []byte,
 	clientState exported.ClientState,
 ) error {
-	fmt.Println("************Grandpa client VerifyClientState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyClientState begin ****************")
 	// merkleProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -225,7 +225,7 @@ func (cs ClientState) VerifyClientState(
 	// //return merkleProof.VerifyMembership(cs.ProofSpecs, provingConsensusState.GetRoot(), path, bz)
 	// ret := merkleProof.VerifyMembership(cs.GetProofSpecs(), provingConsensusState.GetRoot(), path, bz)
 	fmt.Println(clientState)
-	fmt.Println("************Grandpa client VerifyClientState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyClientState end ****************")
 	return nil
 
 }
@@ -242,7 +242,7 @@ func (cs ClientState) VerifyClientConsensusState(
 	proof []byte,
 	consensusState exported.ConsensusState,
 ) error {
-	fmt.Println("************Grandpa client VerifyClientConsensusState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyClientConsensusState begin ****************")
 
 	// merkleProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
@@ -273,7 +273,7 @@ func (cs ClientState) VerifyClientConsensusState(
 	// 	return err
 	// }
 	fmt.Println(consensusState)
-	fmt.Println("************Grandpa client VerifyClientConsensusState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyClientConsensusState end ****************")
 	return nil
 }
 
@@ -288,7 +288,7 @@ func (cs ClientState) VerifyConnectionState(
 	connectionID string,
 	connectionEnd exported.ConnectionI,
 ) error {
-	fmt.Println("************Grandpa client VerifyConnectionState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyConnectionState begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -314,7 +314,7 @@ func (cs ClientState) VerifyConnectionState(
 	// 	return err
 	// }
 	fmt.Println(connectionEnd)
-	fmt.Println("************Grandpa client VerifyConnectionState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyConnectionState end ****************")
 
 	return nil
 }
@@ -331,7 +331,7 @@ func (cs ClientState) VerifyChannelState(
 	channelID string,
 	channel exported.ChannelI,
 ) error {
-	fmt.Println("************Grandpa client VerifyChannelState begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyChannelState begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -357,7 +357,7 @@ func (cs ClientState) VerifyChannelState(
 	// 	return err
 	// }
 	fmt.Println(channel)
-	fmt.Println("************Grandpa client VerifyChannelState end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyChannelState end ****************")
 
 	return nil
 }
@@ -378,7 +378,7 @@ func (cs ClientState) VerifyPacketCommitment(
 	sequence uint64,
 	commitmentBytes []byte,
 ) error {
-	fmt.Println("************Grandpa client VerifyPacketCommitment begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketCommitment begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -399,7 +399,7 @@ func (cs ClientState) VerifyPacketCommitment(
 	// 	return err
 	// }
 	fmt.Println(commitmentBytes)
-	fmt.Println("************Grandpa client VerifyPacketCommitment end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketCommitment end ****************")
 	return nil
 }
 
@@ -419,7 +419,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	sequence uint64,
 	acknowledgement []byte,
 ) error {
-	fmt.Println("************Grandpa client VerifyPacketAcknowledgement begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketAcknowledgement begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -440,7 +440,7 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	// 	return err
 	// }
 	fmt.Println(acknowledgement)
-	fmt.Println("************Grandpa client VerifyPacketAcknowledgement end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketAcknowledgement end ****************")
 	return nil
 }
 
@@ -460,7 +460,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	channelID string,
 	sequence uint64,
 ) error {
-	fmt.Println("************Grandpa client VerifyPacketReceiptAbsence begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketReceiptAbsence begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -481,7 +481,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	// 	return err
 	// }
 	fmt.Println(sequence)
-	fmt.Println("************Grandpa client VerifyPacketReceiptAbsence end ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyPacketReceiptAbsence end ****************")
 	return nil
 }
 
@@ -500,7 +500,7 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	channelID string,
 	nextSequenceRecv uint64,
 ) error {
-	fmt.Println("************Grandpa client VerifyNextSequenceRecv begin ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyNextSequenceRecv begin ****************")
 	// merkleProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	// if err != nil {
 	// 	return err
@@ -522,8 +522,8 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	// if err := merkleProof.VerifyMembership(cs.ProofSpecs, consensusState.GetRoot(), path, bz); err != nil {
 	// 	return err
 	// }
-	fmt.Println("************nextSequenceRecv ****************")
-	fmt.Println("************Grandpa client VerifyNextSequenceRecv end ****************")
+	fmt.Println("[Grandpa]************nextSequenceRecv ****************")
+	fmt.Println("[Grandpa]************Grandpa client VerifyNextSequenceRecv end ****************")
 	return nil
 }
 
