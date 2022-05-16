@@ -21,7 +21,7 @@ var _ exported.ClientState = (*ClientState)(nil)
 func NewClientState(
 	chainID string,
 	blockNumber uint32,
-	frozenHeight uint32,
+	frozenHeight clienttypes.Height,
 	blockHeader BlockHeader,
 	latestCommitment Commitment,
 	validatorSet ValidatorSet,

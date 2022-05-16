@@ -1,7 +1,10 @@
 package types
 
 import (
+	time "time"
+
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/modules/core/exported"
 )
 
@@ -21,6 +24,8 @@ func (h Header) ConsensusState() *ConsensusState {
 		ExtrinsicsRoot: h.BlockHeader.ExtrinsicsRoot,
 		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
 		Digest: h.BlockHeader.Digest,
+		Root:   commitmenttypes.NewMerkleRoot([]byte(h.GetHeight().String())),
+		Timestamp:time.Now(),
 	}
 }
 

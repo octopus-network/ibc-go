@@ -8,6 +8,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/modules/core/exported"
 )
 
@@ -260,7 +261,9 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 		/// The merkle root of the extrinsics.
 		ExtrinsicsRoot: header.BlockHeader.ExtrinsicsRoot,
 		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest: header.BlockHeader.Digest,
+		Digest:    header.BlockHeader.Digest,
+		Root:      commitmenttypes.NewMerkleRoot([]byte(header.String())),
+		Timestamp: time.Now(),
 	}
 
 	// set metadata for this consensus state

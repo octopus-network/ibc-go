@@ -17,6 +17,8 @@ func NewConsensusState(
 	stateRoot []byte,
 	extrinsicsRoot []byte,
 	digest []byte,
+	root commitmenttypes.MerkleRoot,
+	timestamp time.Time,
 ) *ConsensusState {
 	return &ConsensusState{
 		/// The parent hash.
@@ -28,7 +30,9 @@ func NewConsensusState(
 		/// The merkle root of the extrinsics.
 		ExtrinsicsRoot: extrinsicsRoot,
 		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest: digest,
+		Digest:    digest,
+		Root:      root,
+		Timestamp: timestamp,
 	}
 }
 
@@ -44,7 +48,8 @@ func (cs ConsensusState) GetRoot() exported.Root {
 
 // GetTimestamp returns block time in nanoseconds of the header that created consensus state
 func (cs ConsensusState) GetTimestamp() uint64 {
-	return uint64(time.Now().UnixNano())
+	
+	return uint64(cs.Timestamp.UnixNano())
 
 }
 

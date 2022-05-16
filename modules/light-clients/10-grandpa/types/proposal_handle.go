@@ -97,9 +97,9 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 func IsMatchingClientState(subject, substitute ClientState) bool {
 	// zero out parameters which do not need to match
 	subject.BlockNumber = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	subject.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	subject.FrozenHeight = clienttypes.ZeroHeight()
 	substitute.BlockNumber = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	substitute.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	substitute.FrozenHeight = clienttypes.ZeroHeight()
 	subject.ChainId = ""
 	substitute.ChainId = ""
 
