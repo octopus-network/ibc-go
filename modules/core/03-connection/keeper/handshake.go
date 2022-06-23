@@ -47,7 +47,7 @@ func (k Keeper) ConnOpenInit(
 
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "NONE", "new-state", "INIT")
 
-	fmt.Printf("connection open init for %s  and connection-id is %s \n", clientID, connectionID)
+	fmt.Printf("[Grandpa]connection open init for %s  and connection-id is %s \n", clientID, connectionID)
 
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "connection", "open-init")
@@ -140,7 +140,7 @@ func (k Keeper) ConnOpenTry(
 		k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", previousConnection.State.String(), "new-state", "TRYOPEN")
 
 		fmt.Println(connection)
-		fmt.Printf("connection open try for client-id %s ,connection-id is %s, previous-state is %s, new-state is TRYOPEN\n", clientID, connectionID, previousConnection.State.String())
+		fmt.Printf("[Grandpa]connection open try for client-id %s ,connection-id is %s, previous-state is %s, new-state is TRYOPEN\n", clientID, connectionID, previousConnection.State.String())
 
 		defer func() {
 			telemetry.IncrCounter(1, "ibc", "connection", "open-try")
@@ -255,7 +255,7 @@ func (k Keeper) ConnOpenAck(
 		connection.Counterparty.ConnectionId = counterpartyConnectionID
 		k.SetConnection(ctx, connectionID, connection)
 		fmt.Println(connection)
-		fmt.Printf("connection open ack for client-id %s ,connection-id is %s,  new-state is OPEN\n", connection.GetClientID(), connectionID)
+		fmt.Printf("[Grandpa]connection open ack for client-id %s ,connection-id is %s,  new-state is OPEN\n", connection.GetClientID(), connectionID)
 		return nil
 	}
 
@@ -372,26 +372,24 @@ func (k Keeper) ConnOpenConfirm(
 		)
 	}
 
-	// TODO: mock for grandpa and remove validate!
+	prefix := k.GetCommitmentPrefix()
+	expectedCounterparty := types.NewCounterparty(connection.ClientId, connectionID, commitmenttypes.NewMerklePrefix(prefix.Bytes()))
+	expectedConnection := types.NewConnectionEnd(types.OPEN, connection.Counterparty.ClientId, expectedCounterparty, connection.Versions, connection.DelayPeriod)
 
-	// prefix := k.GetCommitmentPrefix()
-	// expectedCounterparty := types.NewCounterparty(connection.ClientId, connectionID, commitmenttypes.NewMerklePrefix(prefix.Bytes()))
-	// expectedConnection := types.NewConnectionEnd(types.OPEN, connection.Counterparty.ClientId, expectedCounterparty, connection.Versions, connection.DelayPeriod)
-
-	// // Check that connection on ChainA is open
-	// if err := k.VerifyConnectionState(
-	// 	ctx, connection, proofHeight, proofAck, connection.Counterparty.ConnectionId,
-	// 	expectedConnection,
-	// ); err != nil {
-	// 	return err
-	// }
+	// Check that connection on ChainA is open
+	if err := k.VerifyConnectionState(
+		ctx, connection, proofHeight, proofAck, connection.Counterparty.ConnectionId,
+		expectedConnection,
+	); err != nil {
+		return err
+	}
 
 	// Update ChainB's connection to Open
 	connection.State = types.OPEN
 	k.SetConnection(ctx, connectionID, connection)
 	k.Logger(ctx).Info("connection state updated", "connection-id", connectionID, "previous-state", "TRYOPEN", "new-state", "OPEN")
 	fmt.Println(connection)
-	fmt.Printf("connection open confirm for client-id %s ,connection-id is %s, previous-state is TRYOPEN ,new-state is OPEN\n", connection.GetClientID(), connectionID)
+	fmt.Printf("[Grandpa]connection open confirm for client-id %s ,connection-id is %s, previous-state is TRYOPEN ,new-state is OPEN\n", connection.GetClientID(), connectionID)
 
 	defer func() {
 		telemetry.IncrCounter(1, "ibc", "connection", "open-confirm")

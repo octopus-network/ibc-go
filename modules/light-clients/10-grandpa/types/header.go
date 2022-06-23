@@ -23,9 +23,9 @@ func (h Header) ConsensusState() *ConsensusState {
 		/// The merkle root of the extrinsics.
 		ExtrinsicsRoot: h.BlockHeader.ExtrinsicsRoot,
 		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest: h.BlockHeader.Digest,
-		Root:   commitmenttypes.NewMerkleRoot([]byte(h.GetHeight().String())),
-		Timestamp:time.Now(),
+		Digest:    h.BlockHeader.Digest,
+		Root:      commitmenttypes.NewMerkleRoot([]byte(h.BlockHeader.ExtrinsicsRoot)),
+		Timestamp: time.Unix(0, 0),
 	}
 }
 
@@ -45,9 +45,9 @@ func (h Header) GetHeight() exported.Height {
 // // GetTime returns the current block timestamp. It returns a zero time if
 // // the tendermint header is nil.
 // // NOTE: the header.Header is checked to be non nil in ValidateBasic.
-// func (h Header) GetTime() time.Time {
-// 	return h.Header.Time
-// }
+func (h Header) GetTime() time.Time {
+	return time.Unix(0, 0)
+}
 
 // ValidateBasic calls the SignedHeader ValidateBasic function and checks
 // that validatorsets are not nil.

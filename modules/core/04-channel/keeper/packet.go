@@ -125,6 +125,11 @@ func (k Keeper) SendPacket(
 	k.SetNextSequenceSend(ctx, packet.GetSourcePort(), packet.GetSourceChannel(), nextSequenceSend)
 	k.SetPacketCommitment(ctx, packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence(), commitment)
 
+	fmt.Println("[ics20] SendTransfer callback nextSequenceSend : ")
+	fmt.Println(nextSequenceSend)
+	fmt.Println("[ics20] SendTransfer callback commitment : ")
+	fmt.Println(commitment)
+
 	EmitSendPacketEvent(ctx, packet, channel, timeoutHeight)
 
 	k.Logger(ctx).Info(
@@ -135,6 +140,7 @@ func (k Keeper) SendPacket(
 		"dst_port", packet.GetDestPort(),
 		"dst_channel", packet.GetDestChannel(),
 	)
+
 	return nil
 }
 
@@ -306,6 +312,10 @@ func (k Keeper) WriteAcknowledgement(
 	packet exported.PacketI,
 	acknowledgement []byte,
 ) error {
+	fmt.Println("[Grandpa]************************* acknowledged written ***************************")
+	fmt.Println(acknowledgement)
+	fmt.Println("[Grandpa]********************************************************************")
+
 	channel, found := k.GetChannel(ctx, packet.GetDestPort(), packet.GetDestChannel())
 	if !found {
 		return sdkerrors.Wrap(types.ErrChannelNotFound, packet.GetDestChannel())
@@ -347,9 +357,9 @@ func (k Keeper) WriteAcknowledgement(
 	// log that a packet acknowledgement has been written
 	k.Logger(ctx).Info("acknowledged written", "packet", fmt.Sprintf("%v", packet))
 
-	fmt.Println("************************* acknowledged written ***************************")
+	fmt.Println("[Grandpa]************************* acknowledged written ***************************")
 	fmt.Println(acknowledgement)
-	fmt.Println("********************************************************************")
+	fmt.Println("[Grandpa]********************************************************************")
 	EmitWriteAcknowledgementEvent(ctx, packet, channel, acknowledgement)
 
 	return nil
@@ -369,6 +379,9 @@ func (k Keeper) AcknowledgePacket(
 	proof []byte,
 	proofHeight exported.Height,
 ) error {
+	fmt.Println("[Grandpa] keeper AcknowledgePacket ")
+	fmt.Println(acknowledgement)
+
 	channel, found := k.GetChannel(ctx, packet.GetSourcePort(), packet.GetSourceChannel())
 	if !found {
 		return sdkerrors.Wrapf(
@@ -476,6 +489,8 @@ func (k Keeper) AcknowledgePacket(
 
 	// log that a packet has been acknowledged
 	k.Logger(ctx).Info("packet acknowledged", "packet", fmt.Sprintf("%v", packet))
+	fmt.Println("[Grandpa] keeper packet acknowledged ")
+	fmt.Println(packet)
 
 	// emit an event marking that we have processed the acknowledgement
 	EmitAcknowledgePacketEvent(ctx, packet, channel)

@@ -523,10 +523,10 @@ func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.Msg
 
 // RecvPacket defines a rpc handler method for MsgRecvPacket.
 func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacket) (*channeltypes.MsgRecvPacketResponse, error) {
-	fmt.Println("************************* grpc server receive the  RecvPacket request ***************************")
-	fmt.Println("*************************receive packet  is ***************************")
+	fmt.Println("[msg_server]************************* grpc server receive the  RecvPacket request ***************************")
+	fmt.Println("[msg_server]*************************receive packet  is ***************************")
 	fmt.Println(msg.Packet)
-	fmt.Println("********************************************************************")
+	fmt.Println("[msg_server]********************************************************************")
 
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
@@ -571,6 +571,9 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 	// Cache context so that we may discard state changes from callback if the acknowledgement is unsuccessful.
 	cacheCtx, writeFn = ctx.CacheContext()
 	ack := cbs.OnRecvPacket(cacheCtx, msg.Packet, relayer)
+	fmt.Println("[msg_server] OnRecvPacket ack returned ")
+	fmt.Println(ack)
+
 	// NOTE: The context returned by CacheContext() refers to a new EventManager, so it needs to explicitly set events to the original context.
 	// Events from callback are emitted regardless of acknowledgement success
 	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())

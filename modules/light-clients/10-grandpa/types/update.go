@@ -135,10 +135,17 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	// 	deleteConsensusMetadata(clientStore, pruneHeight)
 	// }
 
-	newClientState, consensusState := update(ctx, clientStore, &cs, tmHeader)
-
+	// newClientState, newConsensusState := update(ctx, clientStore, &cs, tmHeader)
+	newClientState := NewClientState(cs.ChainId, cs.BlockNumber, cs.FrozenHeight, cs.BlockHeader, *cs.LatestCommitment, *cs.ValidatorSet)
+	newConsensusState, _ := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
+	// set metadata for this consensus state
+	setConsensusMetadata(ctx, clientStore, tmHeader.GetHeight())
+	fmt.Println("[Grandpa] new client state")
+	fmt.Println(newClientState)
+	fmt.Println("[Grandpa] new client consensusState")
+	fmt.Println(newConsensusState)
 	fmt.Println("[Grandpa]************Grandpa client CheckHeaderAndUpdateState end ****************")
-	return newClientState, consensusState, nil
+	return newClientState, newConsensusState, nil
 }
 
 // checkTrustedHeader checks that consensus state matches trusted fields of Header
@@ -251,6 +258,8 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 
 	// clientState.LatestHeight = height
 	clientState.BlockNumber = header.BlockHeader.BlockNumber
+	clientState.BlockHeader = header.BlockHeader
+
 	consensusState := &ConsensusState{
 		/// The parent hash.
 		ParentHash: header.BlockHeader.ParentHash,
@@ -261,18 +270,18 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 		/// The merkle root of the extrinsics.
 		ExtrinsicsRoot: header.BlockHeader.ExtrinsicsRoot,
 		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest:    header.BlockHeader.Digest,
-		Root:      commitmenttypes.NewMerkleRoot([]byte(header.String())),
-		Timestamp: time.Now(),
+		Digest: header.BlockHeader.Digest,
+		// Root:      commitmenttypes.NewMerkleRoot([]byte(header.String())),
+		Root: commitmenttypes.NewMerkleRoot([]byte(header.BlockHeader.ExtrinsicsRoot)),
+		// Timestamp: time.Now(),
+		Timestamp: time.Unix(0, 0),
 	}
 
 	// set metadata for this consensus state
 	setConsensusMetadata(ctx, clientStore, header.GetHeight())
 
 	fmt.Printf("[Grandpa]new header is %s \n", header.String())
-	fmt.Printf("[Grandpa]client state latestheight is %s \n", clientState.BlockNumber)
-	fmt.Println(clientState)
-	fmt.Println(consensusState)
+	fmt.Printf("[Grandpa] new client state latestheight is %d \n", clientState.BlockNumber)
 
 	return clientState, consensusState
 }

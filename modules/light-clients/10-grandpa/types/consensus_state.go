@@ -43,7 +43,9 @@ func (ConsensusState) ClientType() string {
 
 // GetRoot returns the commitment Root for the specific
 func (cs ConsensusState) GetRoot() exported.Root {
-	return commitmenttypes.NewMerkleRoot([]byte(SentinelRoot))
+	// return commitmenttypes.NewMerkleRoot([]byte(SentinelRoot))
+	return cs.Root
+
 }
 
 // GetTimestamp returns block time in nanoseconds of the header that created consensus state

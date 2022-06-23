@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -10,7 +11,7 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/modules/core/exported"
-	"github.com/tendermint/tendermint/types/time"
+	// "github.com/tendermint/tendermint/types/time"
 )
 
 // VerifyUpgradeAndUpdateState checks if the upgraded client has been committed by the current client
@@ -83,8 +84,8 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 		tmUpgradeClient.BlockHeader.StateRoot,
 		tmUpgradeClient.BlockHeader.ExtrinsicsRoot,
 		tmUpgradeClient.BlockHeader.Digest,
-		commitmenttypes.NewMerkleRoot([]byte(SentinelRoot)),
-		time.Now(),
+		commitmenttypes.NewMerkleRoot([]byte(tmUpgradeClient.BlockHeader.ExtrinsicsRoot)),
+		time.Unix(0, 0),
 	)
 
 	// set metadata for this consensus state

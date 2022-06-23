@@ -325,12 +325,20 @@ func (am AppModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	fmt.Println("[ics20] transfer module OnRecvPacket")
+
 	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
 	var data types.FungibleTokenPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		ack = channeltypes.NewErrorAcknowledgement("cannot unmarshal ICS-20 transfer packet data")
 	}
+	fmt.Println("[ics20] transfer module OnRecvPacket FungibleTokenPacketData")
+	fmt.Println(data)
+	// fmt.Println(data.Sender)
+	// fmt.Println(data.Receiver)
+	// fmt.Println(data.Denom)
+	// fmt.Println(data.Amount)
 
 	// only attempt the application logic if the packet data
 	// was successfully decoded
@@ -353,6 +361,8 @@ func (am AppModule) OnRecvPacket(
 	)
 
 	// NOTE: acknowledgement will be written synchronously during IBC handler execution.
+	fmt.Println("[ics20] transfer module OnRecvPacket ack")
+	fmt.Println(ack)
 	return ack
 }
 
@@ -363,14 +373,23 @@ func (am AppModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) (*sdk.Result, error) {
-	var ack channeltypes.Acknowledgement
-	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
-		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
-	}
+	fmt.Println("[ics20] transfer module OnAcknowledgementPacket")
+	fmt.Println(packet)
+	fmt.Println(acknowledgement)
+
 	var data types.FungibleTokenPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet data: %s", err.Error())
 	}
+	fmt.Println("[ics20] transfer module OnAcknowledgementPacket FungibleTokenPacketData")
+	fmt.Println(data)
+
+	var ack channeltypes.Acknowledgement
+	if err := types.ModuleCdc.UnmarshalJSON(acknowledgement, &ack); err != nil {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
+	}
+	fmt.Println("[ics20] transfer module OnAcknowledgementPacket Acknowledgement")
+	fmt.Println(ack)
 
 	if err := am.keeper.OnAcknowledgementPacket(ctx, packet, data, ack); err != nil {
 		return nil, err

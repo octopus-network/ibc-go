@@ -92,7 +92,7 @@ func (cs ClientState) Status(
 func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
 	// expirationTime := latestTimestamp.Add(cs.TrustingPeriod)
 	// return !expirationTime.After(now)
-	return true
+	return false
 }
 
 // Validate performs a basic validation of the client state fields.
