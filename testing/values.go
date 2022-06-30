@@ -5,6 +5,7 @@
 package ibctesting
 
 import (
+	"strconv"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -59,3 +60,7 @@ var (
 
 	prefix = commitmenttypes.NewMerklePrefix([]byte("ibc"))
 )
+
+func GetMockRecvCanaryCapabilityName(packet channeltypes.Packet) string {
+	return MockRecvCanaryCapabilityName + strconv.Itoa(int(packet.GetSequence()))
+}
