@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,8 @@ var _ types.QueryServer = (*Keeper)(nil)
 
 // Channel implements the Query/Channel gRPC method
 func (q Keeper) Channel(c context.Context, req *types.QueryChannelRequest) (*types.QueryChannelResponse, error) {
+	fmt.Println("*************************  query Channel begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -40,11 +43,17 @@ func (q Keeper) Channel(c context.Context, req *types.QueryChannelRequest) (*typ
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryChannelResponse(channel, nil, selfHeight), nil
+	resp := types.NewQueryChannelResponse(channel, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query Channel end ***************************")
+	return resp, nil
 }
 
 // Channels implements the Query/Channels gRPC method
 func (q Keeper) Channels(c context.Context, req *types.QueryChannelsRequest) (*types.QueryChannelsResponse, error) {
+	fmt.Println("*************************  query Channels begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -75,15 +84,22 @@ func (q Keeper) Channels(c context.Context, req *types.QueryChannelsRequest) (*t
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryChannelsResponse{
+	resp := &types.QueryChannelsResponse{
 		Channels:   channels,
 		Pagination: pageRes,
 		Height:     selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query Channel end ***************************")
+
+	return resp, nil
 }
 
 // ConnectionChannels implements the Query/ConnectionChannels gRPC method
 func (q Keeper) ConnectionChannels(c context.Context, req *types.QueryConnectionChannelsRequest) (*types.QueryConnectionChannelsResponse, error) {
+	fmt.Println("*************************  query ConnectionChannels begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -124,15 +140,22 @@ func (q Keeper) ConnectionChannels(c context.Context, req *types.QueryConnection
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryConnectionChannelsResponse{
+	resp := &types.QueryConnectionChannelsResponse{
 		Channels:   channels,
 		Pagination: pageRes,
 		Height:     selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query ConnectionChannels end ***************************")
+
+	return resp, nil
 }
 
 // ChannelClientState implements the Query/ChannelClientState gRPC method
 func (q Keeper) ChannelClientState(c context.Context, req *types.QueryChannelClientStateRequest) (*types.QueryChannelClientStateResponse, error) {
+	fmt.Println("*************************  query ChannelClientState begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -151,11 +174,18 @@ func (q Keeper) ChannelClientState(c context.Context, req *types.QueryChannelCli
 	identifiedClientState := clienttypes.NewIdentifiedClientState(clientID, clientState)
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryChannelClientStateResponse(identifiedClientState, nil, selfHeight), nil
+
+	resp := types.NewQueryChannelClientStateResponse(identifiedClientState, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+	return resp, nil
 }
 
 // ChannelConsensusState implements the Query/ChannelConsensusState gRPC method
 func (q Keeper) ChannelConsensusState(c context.Context, req *types.QueryChannelConsensusStateRequest) (*types.QueryChannelConsensusStateResponse, error) {
+	fmt.Println("*************************  query ChannelConsensusState begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -197,11 +227,17 @@ func (q Keeper) ChannelConsensusState(c context.Context, req *types.QueryChannel
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryChannelConsensusStateResponse(connection.ClientId, anyConsensusState, consHeight, nil, selfHeight), nil
+	resp := types.NewQueryChannelConsensusStateResponse(connection.ClientId, anyConsensusState, consHeight, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+
+	return resp, nil
 }
 
 // PacketCommitment implements the Query/PacketCommitment gRPC method
 func (q Keeper) PacketCommitment(c context.Context, req *types.QueryPacketCommitmentRequest) (*types.QueryPacketCommitmentResponse, error) {
+	fmt.Println("*************************  query PacketCommitment begin ***************************")
+	fmt.Println(req)
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -222,11 +258,18 @@ func (q Keeper) PacketCommitment(c context.Context, req *types.QueryPacketCommit
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryPacketCommitmentResponse(commitmentBz, nil, selfHeight), nil
+	resp := types.NewQueryPacketCommitmentResponse(commitmentBz, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+
+	return resp, nil
 }
 
 // PacketCommitments implements the Query/PacketCommitments gRPC method
 func (q Keeper) PacketCommitments(c context.Context, req *types.QueryPacketCommitmentsRequest) (*types.QueryPacketCommitmentsResponse, error) {
+	fmt.Println("*************************  query PacketCommitments begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -258,15 +301,22 @@ func (q Keeper) PacketCommitments(c context.Context, req *types.QueryPacketCommi
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryPacketCommitmentsResponse{
+	resp := &types.QueryPacketCommitmentsResponse{
 		Commitments: commitments,
 		Pagination:  pageRes,
 		Height:      selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+
+	return resp, nil
 }
 
 // PacketReceipt implements the Query/PacketReceipt gRPC method
 func (q Keeper) PacketReceipt(c context.Context, req *types.QueryPacketReceiptRequest) (*types.QueryPacketReceiptResponse, error) {
+	fmt.Println("*************************  query PacketReceipt begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -284,11 +334,18 @@ func (q Keeper) PacketReceipt(c context.Context, req *types.QueryPacketReceiptRe
 	_, recvd := q.GetPacketReceipt(ctx, req.PortId, req.ChannelId, req.Sequence)
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryPacketReceiptResponse(recvd, nil, selfHeight), nil
+	resp := types.NewQueryPacketReceiptResponse(recvd, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+
+	return resp, nil
 }
 
 // PacketAcknowledgement implements the Query/PacketAcknowledgement gRPC method
 func (q Keeper) PacketAcknowledgement(c context.Context, req *types.QueryPacketAcknowledgementRequest) (*types.QueryPacketAcknowledgementResponse, error) {
+	fmt.Println("*************************  query PacketAcknowledgement begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -309,11 +366,18 @@ func (q Keeper) PacketAcknowledgement(c context.Context, req *types.QueryPacketA
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryPacketAcknowledgementResponse(acknowledgementBz, nil, selfHeight), nil
+	resp := types.NewQueryPacketAcknowledgementResponse(acknowledgementBz, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query ChannelClientState end ***************************")
+
+	return resp, nil
 }
 
 // PacketAcknowledgements implements the Query/PacketAcknowledgements gRPC method
 func (q Keeper) PacketAcknowledgements(c context.Context, req *types.QueryPacketAcknowledgementsRequest) (*types.QueryPacketAcknowledgementsResponse, error) {
+	fmt.Println("*************************  query PacketAcknowledgements begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -367,11 +431,16 @@ func (q Keeper) PacketAcknowledgements(c context.Context, req *types.QueryPacket
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryPacketAcknowledgementsResponse{
+
+	resp := &types.QueryPacketAcknowledgementsResponse{
 		Acknowledgements: acks,
 		Pagination:       pageRes,
 		Height:           selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query PacketAcknowledgements end ***************************")
+
+	return resp, nil
 }
 
 // UnreceivedPackets implements the Query/UnreceivedPackets gRPC method. Given
@@ -391,6 +460,10 @@ func (q Keeper) PacketAcknowledgements(c context.Context, req *types.QueryPacket
 // is not up to date. Ideally the query height should equal the latest height
 // on the counterparty's client which represents this chain.
 func (q Keeper) UnreceivedPackets(c context.Context, req *types.QueryUnreceivedPacketsRequest) (*types.QueryUnreceivedPacketsResponse, error) {
+
+	fmt.Println("*************************  query UnreceivedPackets begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -416,10 +489,15 @@ func (q Keeper) UnreceivedPackets(c context.Context, req *types.QueryUnreceivedP
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryUnreceivedPacketsResponse{
+
+	resp := &types.QueryUnreceivedPacketsResponse{
 		Sequences: unreceivedSequences,
 		Height:    selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query UnreceivedPackets end ***************************")
+
+	return resp, nil
 }
 
 // UnreceivedAcks implements the Query/UnreceivedAcks gRPC method. Given
@@ -440,6 +518,9 @@ func (q Keeper) UnreceivedPackets(c context.Context, req *types.QueryUnreceivedP
 // is not up to date. Ideally the query height should equal the latest height
 // on the counterparty's client which represents this chain.
 func (q Keeper) UnreceivedAcks(c context.Context, req *types.QueryUnreceivedAcksRequest) (*types.QueryUnreceivedAcksResponse, error) {
+	fmt.Println("*************************  query UnreceivedAcks begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -466,14 +547,21 @@ func (q Keeper) UnreceivedAcks(c context.Context, req *types.QueryUnreceivedAcks
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return &types.QueryUnreceivedAcksResponse{
+
+	resp := &types.QueryUnreceivedAcksResponse{
 		Sequences: unreceivedSequences,
 		Height:    selfHeight,
-	}, nil
+	}
+	fmt.Println(resp)
+	fmt.Println("*************************  query UnreceivedAcks end ***************************")
+	return resp, nil
 }
 
 // NextSequenceReceive implements the Query/NextSequenceReceive gRPC method
 func (q Keeper) NextSequenceReceive(c context.Context, req *types.QueryNextSequenceReceiveRequest) (*types.QueryNextSequenceReceiveResponse, error) {
+	fmt.Println("*************************  query NextSequenceReceive begin ***************************")
+	fmt.Println(req)
+
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -492,7 +580,11 @@ func (q Keeper) NextSequenceReceive(c context.Context, req *types.QueryNextSeque
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
-	return types.NewQueryNextSequenceReceiveResponse(sequence, nil, selfHeight), nil
+
+	resp := types.NewQueryNextSequenceReceiveResponse(sequence, nil, selfHeight)
+	fmt.Println(resp)
+	fmt.Println("*************************  query NextSequenceReceive end ***************************")
+	return resp, nil
 }
 
 func validategRPCRequest(portID, channelID string) error {

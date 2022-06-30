@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	metrics "github.com/armon/go-metrics"
 
@@ -23,12 +24,15 @@ var _ channeltypes.MsgServer = Keeper{}
 // CreateClient defines a rpc handler method for MsgCreateClient.
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	fmt.Println("[msg_server]************************* grpc server receive the  CreateClient begin ***************************")
+	fmt.Println(msg.ClientState.TypeUrl)
 
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
-
+	fmt.Println(clientState.String())
 	consensusState, err := clienttypes.UnpackConsensusState(msg.ConsensusState)
 	if err != nil {
 		return nil, err
@@ -37,31 +41,42 @@ func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateCl
 	if _, err = k.ClientKeeper.CreateClient(ctx, clientState, consensusState); err != nil {
 		return nil, err
 	}
+	fmt.Println(msg.ClientState)
+	fmt.Println(msg.ConsensusState)
+	fmt.Println("[msg_server]************************* grpc server receive the  CreateClient end ***************************")
 
 	return &clienttypes.MsgCreateClientResponse{}, nil
 }
 
 // UpdateClient defines a rpc handler method for MsgUpdateClient.
 func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateClient) (*clienttypes.MsgUpdateClientResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  UpdateClient begin ***************************")
+	//fmt.Println(msg)
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println(header)
 
 	if err = k.ClientKeeper.UpdateClient(ctx, msg.ClientId, header); err != nil {
 		return nil, err
 	}
 
+	fmt.Println("[msg_server]************************* grpc server receive the  UpdateClient end ***************************")
 	return &clienttypes.MsgUpdateClientResponse{}, nil
 }
 
 // UpgradeClient defines a rpc handler method for MsgUpgradeClient.
 func (k Keeper) UpgradeClient(goCtx context.Context, msg *clienttypes.MsgUpgradeClient) (*clienttypes.MsgUpgradeClientResponse, error) {
+	fmt.Println("************************* grpc server receive the  UpgradeClient begin ***************************")
+	fmt.Println(msg.ClientState.TypeUrl)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	upgradedClient, err := clienttypes.UnpackClientState(msg.ClientState)
+	fmt.Println(upgradedClient)
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +90,20 @@ func (k Keeper) UpgradeClient(goCtx context.Context, msg *clienttypes.MsgUpgrade
 		return nil, err
 	}
 
+	fmt.Println(upgradedClient)
+	fmt.Println(upgradedConsState)
+	fmt.Println("[msg_server]************************* grpc server receive the  UpgradeClient end ***************************")
+
 	return &clienttypes.MsgUpgradeClientResponse{}, nil
 }
 
 // SubmitMisbehaviour defines a rpc handler method for MsgSubmitMisbehaviour.
 func (k Keeper) SubmitMisbehaviour(goCtx context.Context, msg *clienttypes.MsgSubmitMisbehaviour) (*clienttypes.MsgSubmitMisbehaviourResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  SubmitMisbehaviour begin ***************************")
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	misbehaviour, err := clienttypes.UnpackMisbehaviour(msg.Misbehaviour)
+
 	if err != nil {
 		return nil, err
 	}
@@ -90,26 +111,35 @@ func (k Keeper) SubmitMisbehaviour(goCtx context.Context, msg *clienttypes.MsgSu
 	if err := k.ClientKeeper.CheckMisbehaviourAndUpdateState(ctx, misbehaviour); err != nil {
 		return nil, sdkerrors.Wrap(err, "failed to process misbehaviour for IBC client")
 	}
+	fmt.Println(misbehaviour)
+	fmt.Println("[msg_server]************************* grpc server receive the  SubmitMisbehaviour end ***************************")
 
 	return &clienttypes.MsgSubmitMisbehaviourResponse{}, nil
 }
 
 // ConnectionOpenInit defines a rpc handler method for MsgConnectionOpenInit.
 func (k Keeper) ConnectionOpenInit(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenInit) (*connectiontypes.MsgConnectionOpenInitResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenInit begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	if _, err := k.ConnectionKeeper.ConnOpenInit(ctx, msg.ClientId, msg.Counterparty, msg.Version, msg.DelayPeriod); err != nil {
 		return nil, sdkerrors.Wrap(err, "connection handshake open init failed")
 	}
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenInit end ***************************")
 	return &connectiontypes.MsgConnectionOpenInitResponse{}, nil
 }
 
 // ConnectionOpenTry defines a rpc handler method for MsgConnectionOpenTry.
 func (k Keeper) ConnectionOpenTry(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenTry) (*connectiontypes.MsgConnectionOpenTryResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenTry begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	targetClient, err := clienttypes.UnpackClientState(msg.ClientState)
+	fmt.Println(targetClient)
+
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +152,18 @@ func (k Keeper) ConnectionOpenTry(goCtx context.Context, msg *connectiontypes.Ms
 		return nil, sdkerrors.Wrap(err, "connection handshake open try failed")
 	}
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenTry end ***************************")
+
 	return &connectiontypes.MsgConnectionOpenTryResponse{}, nil
 }
 
 // ConnectionOpenAck defines a rpc handler method for MsgConnectionOpenAck.
 func (k Keeper) ConnectionOpenAck(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenAck) (*connectiontypes.MsgConnectionOpenAckResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenAck begin ***************************")
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	targetClient, err := clienttypes.UnpackClientState(msg.ClientState)
+	fmt.Println(targetClient)
+
 	if err != nil {
 		return nil, err
 	}
@@ -140,12 +175,15 @@ func (k Keeper) ConnectionOpenAck(goCtx context.Context, msg *connectiontypes.Ms
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "connection handshake open ack failed")
 	}
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenAck end ***************************")
 
 	return &connectiontypes.MsgConnectionOpenAckResponse{}, nil
 }
 
 // ConnectionOpenConfirm defines a rpc handler method for MsgConnectionOpenConfirm.
 func (k Keeper) ConnectionOpenConfirm(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenConfirm) (*connectiontypes.MsgConnectionOpenConfirmResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenConfirm begin ***************************")
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	if err := k.ConnectionKeeper.ConnOpenConfirm(
@@ -153,6 +191,8 @@ func (k Keeper) ConnectionOpenConfirm(goCtx context.Context, msg *connectiontype
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "connection handshake open confirm failed")
 	}
+	
+	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenConfirm end ***************************")
 
 	return &connectiontypes.MsgConnectionOpenConfirmResponse{}, nil
 }
@@ -161,6 +201,8 @@ func (k Keeper) ConnectionOpenConfirm(goCtx context.Context, msg *connectiontype
 // ChannelOpenInit will perform 04-channel checks, route to the application
 // callback, and write an OpenInit channel into state upon successful execution.
 func (k Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChannelOpenInit) (*channeltypes.MsgChannelOpenInitResponse, error) {
+
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenInit begin ***************************")
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Lookup module by port capability
@@ -192,6 +234,8 @@ func (k Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChan
 	// Write channel into state
 	k.ChannelKeeper.WriteOpenInitChannel(ctx, msg.PortId, channelID, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.Channel.Counterparty, msg.Channel.Version)
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenInit end ***************************")
+
 	return &channeltypes.MsgChannelOpenInitResponse{
 		ChannelId: channelID,
 	}, nil
@@ -201,6 +245,8 @@ func (k Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChan
 // ChannelOpenTry will perform 04-channel checks, route to the application
 // callback, and write an OpenTry channel into state upon successful execution.
 func (k Keeper) ChannelOpenTry(goCtx context.Context, msg *channeltypes.MsgChannelOpenTry) (*channeltypes.MsgChannelOpenTryResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenTry begin ***************************")
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Lookup module by port capability
@@ -232,6 +278,8 @@ func (k Keeper) ChannelOpenTry(goCtx context.Context, msg *channeltypes.MsgChann
 	// Write channel into state
 	k.ChannelKeeper.WriteOpenTryChannel(ctx, msg.PortId, channelID, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.Channel.Counterparty, version)
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenInit end ***************************")
+
 	return &channeltypes.MsgChannelOpenTryResponse{}, nil
 }
 
@@ -239,6 +287,8 @@ func (k Keeper) ChannelOpenTry(goCtx context.Context, msg *channeltypes.MsgChann
 // ChannelOpenAck will perform 04-channel checks, route to the application
 // callback, and write an OpenAck channel into state upon successful execution.
 func (k Keeper) ChannelOpenAck(goCtx context.Context, msg *channeltypes.MsgChannelOpenAck) (*channeltypes.MsgChannelOpenAckResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenAck begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Lookup module by channel capability
@@ -268,6 +318,8 @@ func (k Keeper) ChannelOpenAck(goCtx context.Context, msg *channeltypes.MsgChann
 	// Write channel into state
 	k.ChannelKeeper.WriteOpenAckChannel(ctx, msg.PortId, msg.ChannelId, msg.CounterpartyVersion, msg.CounterpartyChannelId)
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenAck end ***************************")
+
 	return &channeltypes.MsgChannelOpenAckResponse{}, nil
 }
 
@@ -275,6 +327,9 @@ func (k Keeper) ChannelOpenAck(goCtx context.Context, msg *channeltypes.MsgChann
 // ChannelOpenConfirm will perform 04-channel checks, route to the application
 // callback, and write an OpenConfirm channel into state upon successful execution.
 func (k Keeper) ChannelOpenConfirm(goCtx context.Context, msg *channeltypes.MsgChannelOpenConfirm) (*channeltypes.MsgChannelOpenConfirmResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenConfirm begin ***************************")
+	//fmt.Println(msg)
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Lookup module by channel capability
@@ -302,11 +357,15 @@ func (k Keeper) ChannelOpenConfirm(goCtx context.Context, msg *channeltypes.MsgC
 	// Write channel into state
 	k.ChannelKeeper.WriteOpenConfirmChannel(ctx, msg.PortId, msg.ChannelId)
 
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelOpenConfirm end ***************************")
+
 	return &channeltypes.MsgChannelOpenConfirmResponse{}, nil
 }
 
 // ChannelCloseInit defines a rpc handler method for MsgChannelCloseInit.
 func (k Keeper) ChannelCloseInit(goCtx context.Context, msg *channeltypes.MsgChannelCloseInit) (*channeltypes.MsgChannelCloseInitResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseInit begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	// Lookup module by channel capability
 	module, cap, err := k.ChannelKeeper.LookupModuleByChannel(ctx, msg.PortId, msg.ChannelId)
@@ -329,11 +388,20 @@ func (k Keeper) ChannelCloseInit(goCtx context.Context, msg *channeltypes.MsgCha
 		return nil, sdkerrors.Wrap(err, "channel handshake close init failed")
 	}
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+		),
+	})
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseInit end ***************************")
 	return &channeltypes.MsgChannelCloseInitResponse{}, nil
 }
 
 // ChannelCloseConfirm defines a rpc handler method for MsgChannelCloseConfirm.
 func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.MsgChannelCloseConfirm) (*channeltypes.MsgChannelCloseConfirmResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseConfirm begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	// Lookup module by channel capability
@@ -357,11 +425,23 @@ func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.Msg
 		return nil, sdkerrors.Wrap(err, "channel handshake close confirm failed")
 	}
 
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+		),
+	})
+	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseConfirm end ***************************")
 	return &channeltypes.MsgChannelCloseConfirmResponse{}, nil
 }
 
 // RecvPacket defines a rpc handler method for MsgRecvPacket.
 func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacket) (*channeltypes.MsgRecvPacketResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  RecvPacket request ***************************")
+	fmt.Println("[msg_server]*************************receive packet  is ***************************")
+	fmt.Println(msg.Packet)
+	fmt.Println("[msg_server]********************************************************************")
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -405,6 +485,10 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 	// Cache context so that we may discard state changes from callback if the acknowledgement is unsuccessful.
 	cacheCtx, writeFn = ctx.CacheContext()
 	ack := cbs.OnRecvPacket(cacheCtx, msg.Packet, relayer)
+	
+	fmt.Println("[msg_server] OnRecvPacket ack returned ")
+	fmt.Println(ack)
+
 	// NOTE: The context returned by CacheContext() refers to a new EventManager, so it needs to explicitly set events to the original context.
 	// Events from callback are emitted regardless of acknowledgement success
 	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
@@ -434,12 +518,14 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 			},
 		)
 	}()
-
+	fmt.Println("[msg_server]************************* grpc server receive the  RecvPacket end ***************************")
 	return &channeltypes.MsgRecvPacketResponse{}, nil
 }
 
 // Timeout defines a rpc handler method for MsgTimeout.
 func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*channeltypes.MsgTimeoutResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  Timeout begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -502,12 +588,14 @@ func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*c
 			},
 		)
 	}()
-
+	fmt.Println("[msg_server]************************* grpc server receive the  Timeout end ***************************")
 	return &channeltypes.MsgTimeoutResponse{}, nil
 }
 
 // TimeoutOnClose defines a rpc handler method for MsgTimeoutOnClose.
 func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeoutOnClose) (*channeltypes.MsgTimeoutOnCloseResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  TimeoutOnClose begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -573,12 +661,14 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 			},
 		)
 	}()
-
+	fmt.Println("[msg_server]************************* grpc server receive the  TimeoutOnClose end ***************************")
 	return &channeltypes.MsgTimeoutOnCloseResponse{}, nil
 }
 
 // Acknowledgement defines a rpc handler method for MsgAcknowledgement.
 func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAcknowledgement) (*channeltypes.MsgAcknowledgementResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  Acknowledgement begin ***************************")
+	//fmt.Println(msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -635,6 +725,6 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 			},
 		)
 	}()
-
+	fmt.Println("[msg_server]************************* grpc server receive the  Acknowledgement end ***************************")
 	return &channeltypes.MsgAcknowledgementResponse{}, nil
 }

@@ -286,6 +286,9 @@ func NewSimApp(
 	// seal capability keeper after scoping modules
 	app.CapabilityKeeper.Seal()
 
+	// seal capability keeper after scoping modules
+	app.CapabilityKeeper.Seal()
+
 	// add keepers
 	app.AccountKeeper = authkeeper.NewAccountKeeper(
 		appCodec, keys[authtypes.StoreKey], app.GetSubspace(authtypes.ModuleName), authtypes.ProtoBaseAccount, maccPerms,

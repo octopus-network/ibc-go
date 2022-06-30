@@ -14,6 +14,10 @@ var (
 	newChainId = "newChainId-1"
 )
 
+var (
+	newChainId = "newChainId-1"
+)
+
 func (suite *TendermintTestSuite) TestVerifyUpgrade() {
 	var (
 		upgradedClient                              exported.ClientState

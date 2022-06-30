@@ -18,6 +18,10 @@ const (
 
 	// Tendermint is used to indicate that the client uses the Tendermint Consensus Algorithm.
 	Tendermint string = "07-tendermint"
+	//Tendermint string = "10-grandpa"
+
+	// Grandpa is used to indicate that the client uses the Grandpa Consensus Algorithm.
+	Grandpa string = "10-grandpa"
 
 	// Localhost is the client type for a localhost client. It is also used as the clientID
 	// for the localhost client.
