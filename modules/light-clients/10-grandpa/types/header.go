@@ -3,9 +3,9 @@ package types
 import (
 	time "time"
 
-	clienttypes "github.com/cosmos/ibc-go/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
+	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 )
 
 var _ exported.Header = &Header{}

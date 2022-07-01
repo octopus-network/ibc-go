@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ibc.lightclients.grandpa.v1;
 
-option go_package = "github.com/cosmos/ibc-go/modules/light-clients/10-grandpa/types";
+option go_package = "github.com/cosmos/ibc-go/v3/modules/light-clients/10-grandpa/types";
 
 import "ibc/core/client/v1/client.proto";
 import "ibc/core/commitment/v1/commitment.proto";

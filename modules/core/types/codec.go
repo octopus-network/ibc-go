@@ -10,7 +10,7 @@ import (
 	solomachinetypes "github.com/cosmos/ibc-go/v3/modules/light-clients/06-solomachine/types"
 	ibctmtypes "github.com/cosmos/ibc-go/v3/modules/light-clients/07-tendermint/types"
 	localhosttypes "github.com/cosmos/ibc-go/v3/modules/light-clients/09-localhost/types"
-	ibcgrandpatypes "github.com/cosmos/ibc-go/modules/light-clients/10-grandpa/types"
+	ibcgrandpatypes "github.com/cosmos/ibc-go/v3/modules/light-clients/10-grandpa/types"
 )
 
 // RegisterInterfaces registers x/ibc interfaces into protobuf Any.
@@ -24,3 +24,4 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	localhosttypes.RegisterInterfaces(registry)
 	commitmenttypes.RegisterInterfaces(registry)
 }
+

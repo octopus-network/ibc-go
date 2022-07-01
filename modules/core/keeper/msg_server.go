@@ -191,7 +191,7 @@ func (k Keeper) ConnectionOpenConfirm(goCtx context.Context, msg *connectiontype
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "connection handshake open confirm failed")
 	}
-	
+
 	fmt.Println("[msg_server]************************* grpc server receive the  ConnectionOpenConfirm end ***************************")
 
 	return &connectiontypes.MsgConnectionOpenConfirmResponse{}, nil
@@ -388,12 +388,6 @@ func (k Keeper) ChannelCloseInit(goCtx context.Context, msg *channeltypes.MsgCha
 		return nil, sdkerrors.Wrap(err, "channel handshake close init failed")
 	}
 
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-		),
-	})
 	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseInit end ***************************")
 	return &channeltypes.MsgChannelCloseInitResponse{}, nil
 }
@@ -425,12 +419,6 @@ func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.Msg
 		return nil, sdkerrors.Wrap(err, "channel handshake close confirm failed")
 	}
 
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-		),
-	})
 	fmt.Println("[msg_server]************************* grpc server receive the  ChannelCloseConfirm end ***************************")
 	return &channeltypes.MsgChannelCloseConfirmResponse{}, nil
 }
@@ -485,7 +473,7 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 	// Cache context so that we may discard state changes from callback if the acknowledgement is unsuccessful.
 	cacheCtx, writeFn = ctx.CacheContext()
 	ack := cbs.OnRecvPacket(cacheCtx, msg.Packet, relayer)
-	
+
 	fmt.Println("[msg_server] OnRecvPacket ack returned ")
 	fmt.Println(ack)
 

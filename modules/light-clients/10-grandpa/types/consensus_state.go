@@ -3,8 +3,8 @@ package types
 import (
 	time "time"
 
-	commitmenttypes "github.com/cosmos/ibc-go/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/modules/core/exported"
+	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
+	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 )
 
 // SentinelRoot is used as a stand-in root value for the consensus state set at the upgrade height

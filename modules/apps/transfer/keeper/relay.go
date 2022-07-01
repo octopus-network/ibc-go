@@ -253,12 +253,11 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		if denomTrace.Path != "" {
 			denom = denomTrace.IBCDenom()
 		}
-		token := sdk.NewCoin(denom, transferAmount)
-
 		fmt.Println("[ics20] transfer relay OnRecvPacket denomTrace")
 		fmt.Println(denomTrace)
 
-		token := sdk.NewCoin(denom, sdk.NewIntFromUint64(data.Amount))
+		token := sdk.NewCoin(denom, transferAmount)
+
 		fmt.Println("[ics20] transfer relay OnRecvPacket token")
 		fmt.Println(token)
 		// unescrow tokens
