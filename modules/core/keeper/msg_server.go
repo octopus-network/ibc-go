@@ -311,7 +311,7 @@ func (k Keeper) ChannelOpenAck(goCtx context.Context, msg *channeltypes.MsgChann
 	}
 
 	// Perform application logic callback
-	if err = cbs.OnChanOpenAck(ctx, msg.PortId, msg.ChannelId, msg.CounterpartyVersion); err != nil {
+	if err = cbs.OnChanOpenAck(ctx, msg.PortId, msg.ChannelId, msg.CounterpartyChannelId, msg.CounterpartyVersion); err != nil {
 		return nil, sdkerrors.Wrap(err, "channel open ack callback failed")
 	}
 
@@ -463,7 +463,7 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 	case nil:
 		writeFn()
 	case channeltypes.ErrNoOpMsg:
-		return &channeltypes.MsgRecvPacketResponse{}, nil // no-op
+		return &channeltypes.MsgRecvPacketResponse{Result: channeltypes.NOOP}, nil
 	default:
 		return nil, sdkerrors.Wrap(err, "receive packet verification failed")
 	}
@@ -507,7 +507,8 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 		)
 	}()
 	fmt.Println("[msg_server]************************* grpc server receive the  RecvPacket end ***************************")
-	return &channeltypes.MsgRecvPacketResponse{}, nil
+
+	return &channeltypes.MsgRecvPacketResponse{Result: channeltypes.SUCCESS}, nil
 }
 
 // Timeout defines a rpc handler method for MsgTimeout.
@@ -547,7 +548,7 @@ func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*c
 	case nil:
 		writeFn()
 	case channeltypes.ErrNoOpMsg:
-		return &channeltypes.MsgTimeoutResponse{}, nil // no-op
+		return &channeltypes.MsgTimeoutResponse{Result: channeltypes.NOOP}, nil
 	default:
 		return nil, sdkerrors.Wrap(err, "timeout packet verification failed")
 	}
@@ -577,7 +578,8 @@ func (k Keeper) Timeout(goCtx context.Context, msg *channeltypes.MsgTimeout) (*c
 		)
 	}()
 	fmt.Println("[msg_server]************************* grpc server receive the  Timeout end ***************************")
-	return &channeltypes.MsgTimeoutResponse{}, nil
+
+	return &channeltypes.MsgTimeoutResponse{Result: channeltypes.SUCCESS}, nil
 }
 
 // TimeoutOnClose defines a rpc handler method for MsgTimeoutOnClose.
@@ -617,7 +619,7 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 	case nil:
 		writeFn()
 	case channeltypes.ErrNoOpMsg:
-		return &channeltypes.MsgTimeoutOnCloseResponse{}, nil // no-op
+		return &channeltypes.MsgTimeoutOnCloseResponse{Result: channeltypes.NOOP}, nil
 	default:
 		return nil, sdkerrors.Wrap(err, "timeout on close packet verification failed")
 	}
@@ -650,7 +652,8 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 		)
 	}()
 	fmt.Println("[msg_server]************************* grpc server receive the  TimeoutOnClose end ***************************")
-	return &channeltypes.MsgTimeoutOnCloseResponse{}, nil
+
+	return &channeltypes.MsgTimeoutOnCloseResponse{Result: channeltypes.SUCCESS}, nil
 }
 
 // Acknowledgement defines a rpc handler method for MsgAcknowledgement.
@@ -690,7 +693,7 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 	case nil:
 		writeFn()
 	case channeltypes.ErrNoOpMsg:
-		return &channeltypes.MsgAcknowledgementResponse{}, nil // no-op
+		return &channeltypes.MsgAcknowledgementResponse{Result: channeltypes.NOOP}, nil
 	default:
 		return nil, sdkerrors.Wrap(err, "acknowledge packet verification failed")
 	}
@@ -713,6 +716,8 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 			},
 		)
 	}()
+
 	fmt.Println("[msg_server]************************* grpc server receive the  Acknowledgement end ***************************")
-	return &channeltypes.MsgAcknowledgementResponse{}, nil
+
+	return &channeltypes.MsgAcknowledgementResponse{Result: channeltypes.SUCCESS}, nil
 }

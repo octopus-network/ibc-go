@@ -260,6 +260,10 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 
 		fmt.Println("[ics20] transfer relay OnRecvPacket token")
 		fmt.Println(token)
+		if k.bankKeeper.BlockedAddr(receiver) {
+			return sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", receiver)
+		}
+
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
 		fmt.Println("[ics20] transfer relay OnRecvPacket escrowAddress")
