@@ -9,31 +9,6 @@ import "ibc/core/commitment/v1/commitment.proto";
 import "gogoproto/gogo.proto";
 import "google/protobuf/timestamp.proto";
 
-message MmrRoot {
-  //uint32 block_number = 1
-  //      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
-  /// Block Header.
-  BlockHeader block_header = 1 [(gogoproto.nullable) = false];
-  
-  SignedCommitment signed_commitment =2 
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signed_commitment\""];
-  ValidatorMerkleProof validator_merkle_proof = 3
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_merkle_proof\""];
-  MmrLeaf mmr_leaf = 4
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
-  MmrLeafProof mmr_leaf_proof = 5
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
-}
-
-message SignedCommitment {
-  Commitment commitment = 1
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"commitment\""];
-
-  repeated Signature signatures = 2
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signatures\""];
-
-}
-
 message Commitment {
   // block height
    uint32 block_number = 1
@@ -52,6 +27,15 @@ message Commitment {
 message Signature {
         bytes signature = 1
         [(gogoproto.moretags) = "yaml:\"signature\""];
+}
+
+message SignedCommitment {
+  Commitment commitment = 1
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"commitment\""];
+
+  repeated Signature signatures = 2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signatures\""];
+
 }
 
 message ValidatorMerkleProof{
@@ -160,17 +144,16 @@ message ClientState {
   ibc.core.client.v1.Height frozen_height = 3
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
 
-  BlockHeader block_header = 4 [(gogoproto.nullable) = false];
+  // BlockHeader block_header = 4 [(gogoproto.nullable) = false];
 
   //latest_commitment: Option<Commitment>
-  Commitment latest_commitment = 5;
+  Commitment latest_commitment =4;
  
-  ValidatorSet validator_set = 6;
+  ValidatorSet validator_set = 5;
 
   // InProcessState in_process_state = 7;
 
 }
-
 
 // message InProcessState{
 //  uint32 position = 1;
@@ -184,37 +167,35 @@ message ClientState {
 message ConsensusState {
   option (gogoproto.goproto_getters) = false;
   /// The parent hash.
-  bytes parent_hash = 1 ;
-  /// The block number.
-  uint32 block_number = 2 ;
-  /// The state trie merkle root
-  bytes state_root = 3 ;
-  /// The merkle root of the extrinsics.
-  bytes extrinsics_root = 4 ;
-  /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-  bytes digest = 5 ;
+  // bytes parent_hash = 1 ;
+  // /// The block number.
+  // uint32 block_number = 2 ;
+  // /// The state trie merkle root
+  // bytes state_root = 3 ;
+  // /// The merkle root of the extrinsics.
+  // bytes extrinsics_root = 4 ;
+  // /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
+  // bytes digest = 5 ;
   // commitment root (i.e app hash)
-  ibc.core.commitment.v1.MerkleRoot root = 6 [(gogoproto.nullable) = false];
+  ibc.core.commitment.v1.MerkleRoot root = 1 [(gogoproto.nullable) = false];
   // timestamp that corresponds to the block height in which the ConsensusState
   // was stored.
-  google.protobuf.Timestamp timestamp = 7 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
+  google.protobuf.Timestamp timestamp = 2 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
  }
  
-
-message Header {
+// Misbehaviour
+// The Misbehaviour type is used for detecting misbehaviour and freezing the client - to prevent further packet flow -
+// if applicable. GRANDPA client Misbehaviour consists of two headers at the same height both of which the light client
+message Misbehaviour {
   option (gogoproto.goproto_getters) = false;
-  /// Block Header.
-  BlockHeader block_header = 1 [(gogoproto.nullable) = false];
 
-  MmrLeaf mmr_leaf = 2
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
-  MmrLeafProof mmr_leaf_proof = 3
-        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
-
+  uint64 client_id = 1 [(gogoproto.moretags) = "yaml:\"client_id\""];
+  Header header_1  = 2 [(gogoproto.customname) = "Header1", (gogoproto.moretags) = "yaml:\"header_1\""];
+  Header header_2  = 3 [(gogoproto.customname) = "Header2", (gogoproto.moretags) = "yaml:\"header_2\""];
 }
 
 // Block Header
- message BlockHeader {
+message BlockHeader {
   option (gogoproto.goproto_getters) = false;
   /// The parent hash.
   bytes parent_hash = 1 ;
@@ -228,14 +209,32 @@ message Header {
   bytes digest = 5 ;
 }
 
-// Misbehaviour
-// The Misbehaviour type is used for detecting misbehaviour and freezing the client - to prevent further packet flow -
-// if applicable. GRANDPA client Misbehaviour consists of two headers at the same height both of which the light client
-message Misbehaviour {
-  option (gogoproto.goproto_getters) = false;
-
-  uint64 client_id = 1 [(gogoproto.moretags) = "yaml:\"client_id\""];
-  Header header_1  = 2 [(gogoproto.customname) = "Header1", (gogoproto.moretags) = "yaml:\"header_1\""];
-  Header header_2  = 3 [(gogoproto.customname) = "Header2", (gogoproto.moretags) = "yaml:\"header_2\""];
+message MmrRoot {
+  //uint32 block_number = 1
+  //      [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"block_number\""];
+  /// Block Header.
+  // BlockHeader block_header = 1 [(gogoproto.nullable) = false];
+  
+  SignedCommitment signed_commitment =1 
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signed_commitment\""];
+  ValidatorMerkleProof validator_merkle_proof = 2
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_merkle_proof\""];
+  MmrLeaf mmr_leaf = 3
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
+  MmrLeafProof mmr_leaf_proof = 4
+        [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
 }
 
+message Header {
+  option (gogoproto.goproto_getters) = false;
+  /// Block Header.
+  BlockHeader block_header = 1 [(gogoproto.nullable) = false];
+
+  /// mmr root
+  MmrRoot mmr_root = 2 [(gogoproto.nullable) = false];
+  // MmrLeaf mmr_leaf = 2
+  //       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
+  // MmrLeafProof mmr_leaf_proof = 3
+  //       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
+
+}
