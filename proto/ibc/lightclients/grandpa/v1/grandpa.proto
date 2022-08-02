@@ -236,5 +236,7 @@ message Header {
   //       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
   // MmrLeafProof mmr_leaf_proof = 3
   //       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf_proof\""];
+  /// block timestamp 
+  google.protobuf.Timestamp timestamp = 3 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
 
 }
