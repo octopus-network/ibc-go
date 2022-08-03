@@ -217,7 +217,7 @@ message MmrRoot {
   
   SignedCommitment signed_commitment =1 
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"signed_commitment\""];
-  ValidatorMerkleProof validator_merkle_proof = 2
+  repeated ValidatorMerkleProof validator_merkle_proofs = 2
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"validator_merkle_proof\""];
   MmrLeaf mmr_leaf = 3
         [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"mmr_leaf\""];
