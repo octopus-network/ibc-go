@@ -135,7 +135,7 @@ message ClientState {
   string chain_id = 1;
 
   // block_number is height?
-  uint32 block_number = 2
+  uint32 latest_height = 2
     [ (gogoproto.moretags) = "yaml:\"block_number\""];
   
     // Block height when the client was frozen due to a misbehaviour
@@ -146,10 +146,7 @@ message ClientState {
 
   // BlockHeader block_header = 4 [(gogoproto.nullable) = false];
 
-  //latest_commitment: Option<Commitment>
-  Commitment latest_commitment =4;
- 
-  ValidatorSet validator_set = 5;
+  ValidatorSet validator_set = 4;
 
   // InProcessState in_process_state = 7;
 
@@ -170,17 +167,19 @@ message ConsensusState {
   // bytes parent_hash = 1 ;
   // /// The block number.
   // uint32 block_number = 2 ;
-  // /// The state trie merkle root
+ 
   // bytes state_root = 3 ;
   // /// The merkle root of the extrinsics.
   // bytes extrinsics_root = 4 ;
   // /// A chain-specific digest of data useful for light clients or referencing auxiliary data.
   // bytes digest = 5 ;
-  // commitment root (i.e app hash)
-  ibc.core.commitment.v1.MerkleRoot root = 1 [(gogoproto.nullable) = false];
+  //commitment: Option<Commitment>,used to verify mmr proof
+  Commitment commitment =1;
+   // /// The state trie merkle root that used to verify storage proof
+  ibc.core.commitment.v1.MerkleRoot state_root = 2 [(gogoproto.nullable) = false];
   // timestamp that corresponds to the block height in which the ConsensusState
   // was stored.
-  google.protobuf.Timestamp timestamp = 2 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
+  google.protobuf.Timestamp timestamp = 3 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
  }
  
 // Misbehaviour
