@@ -145,10 +145,12 @@ message ClientState {
       [(gogoproto.nullable) = false, (gogoproto.moretags) = "yaml:\"frozen_height\""];
 
   // BlockHeader block_header = 4 [(gogoproto.nullable) = false];
+  //latest_commitment: Option<Commitment>
+  Commitment latest_commitment =4;
 
-  ValidatorSet validator_set = 4;
+  ValidatorSet validator_set = 5;
 
-  // InProcessState in_process_state = 7;
+  // InProcessState in_process_state = 6;
 
 }
 
