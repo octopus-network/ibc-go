@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -12,6 +13,8 @@ var _ types.MsgServer = Keeper{}
 
 // Transfer defines a rpc handler method for MsgTransfer.
 func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*types.MsgTransferResponse, error) {
+	fmt.Println("[msg_server]************************* grpc server receive the  Transfer begin ***************************")
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	sender, err := sdk.AccAddressFromBech32(msg.Sender)
@@ -40,5 +43,7 @@ func (k Keeper) Transfer(goCtx context.Context, msg *types.MsgTransfer) (*types.
 		),
 	})
 
+	fmt.Println("[msg_server]************************* grpc server receive the  CreateClient end ***************************")
 	return &types.MsgTransferResponse{Sequence: sequence}, nil
+
 }

@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"strconv"
+	"fmt"
 	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -125,6 +126,11 @@ func (k Keeper) SendPacket(
 	nextSequenceSend++
 	k.SetNextSequenceSend(ctx, packet.GetSourcePort(), packet.GetSourceChannel(), nextSequenceSend)
 	k.SetPacketCommitment(ctx, packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence(), commitment)
+
+	fmt.Println("[ics20] SendTransfer callback nextSequenceSend : ")
+	fmt.Println(nextSequenceSend)
+	fmt.Println("[ics20] SendTransfer callback commitment : ")
+	fmt.Println(commitment)
 
 	EmitSendPacketEvent(ctx, packet, channel, timeoutHeight)
 
@@ -315,6 +321,10 @@ func (k Keeper) WriteAcknowledgement(
 	packet exported.PacketI,
 	acknowledgement exported.Acknowledgement,
 ) error {
+	fmt.Println("[Grandpa]************************* acknowledged written ***************************")
+	fmt.Println(acknowledgement)
+	fmt.Println("[Grandpa]********************************************************************")
+
 	channel, found := k.GetChannel(ctx, packet.GetDestPort(), packet.GetDestChannel())
 	if !found {
 		return sdkerrors.Wrap(types.ErrChannelNotFound, packet.GetDestChannel())
@@ -368,6 +378,10 @@ func (k Keeper) WriteAcknowledgement(
 		"dst_channel", packet.GetDestChannel(),
 	)
 
+	fmt.Println("[Grandpa]************************* acknowledged written ***************************")
+	fmt.Println(acknowledgement)
+	fmt.Println("[Grandpa]********************************************************************")
+
 	EmitWriteAcknowledgementEvent(ctx, packet, channel, bz)
 
 	return nil
@@ -387,6 +401,9 @@ func (k Keeper) AcknowledgePacket(
 	proof []byte,
 	proofHeight exported.Height,
 ) error {
+	fmt.Println("[Grandpa] keeper AcknowledgePacket ")
+	fmt.Println(acknowledgement)
+
 	channel, found := k.GetChannel(ctx, packet.GetSourcePort(), packet.GetSourceChannel())
 	if !found {
 		return sdkerrors.Wrapf(
@@ -501,7 +518,8 @@ func (k Keeper) AcknowledgePacket(
 		"dst_port", packet.GetDestPort(),
 		"dst_channel", packet.GetDestChannel(),
 	)
-
+	fmt.Println("[Grandpa] keeper packet acknowledged ")
+	fmt.Println(packet)
 	// emit an event marking that we have processed the acknowledgement
 	EmitAcknowledgePacketEvent(ctx, packet, channel)
 

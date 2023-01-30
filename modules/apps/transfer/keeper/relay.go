@@ -86,6 +86,13 @@ func (k Keeper) sendTransfer(
 	timeoutTimestamp uint64,
 	memo string,
 ) (uint64, error) {
+	fmt.Println("[ics20] transfer relay SendTransfer sourcePort :", sourcePort)
+	fmt.Println("[ics20] transfer relay SendTransfer sourceChannel : ", sourceChannel)
+	fmt.Println("[ics20] transfer relay SendTransfer token : ", token)
+	fmt.Println("[ics20] transfer relay SendTransfer sender : ", sender.String())
+	fmt.Println("[ics20] transfer relay SendTransfer receiver : ", receiver)
+	fmt.Println("[ics20] transfer relay SendTransfer timeoutHeight : ", timeoutHeight)
+	fmt.Println("[ics20] transfer relay SendTransfer timeoutTimestamp : ", timeoutTimestamp)
 	if !k.GetSendEnabled(ctx) {
 		return 0, types.ErrSendDisabled
 	}
@@ -193,6 +200,8 @@ func (k Keeper) sendTransfer(
 		timeoutHeight,
 		timeoutTimestamp,
 	)
+	fmt.Println("[ics20] transfer relay SendTransfer packet : ")
+	fmt.Println(packet)
 
 	if err := k.ics4Wrapper.SendPacket(ctx, channelCap, packet); err != nil {
 		return 0, err
@@ -223,6 +232,9 @@ func (k Keeper) sendTransfer(
 // back tokens this chain originally transferred to it, the tokens are
 // unescrowed and sent to the receiving address.
 func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data types.FungibleTokenPacketData) error {
+	fmt.Println("[ics20] transfer relay OnRecvPacket packet ", packet)
+	fmt.Println("[ics20] transfer relay OnRecvPacket data :", data)
+
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
 		return err
@@ -234,6 +246,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 
 	// decode the receiver address
 	receiver, err := sdk.AccAddressFromBech32(data.Receiver)
+	fmt.Println("[ics20] transfer relay OnRecvPacket receiver :", receiver)
+
 	if err != nil {
 		return err
 	}
@@ -259,6 +273,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 
 	if types.ReceiverChainIsSource(packet.GetSourcePort(), packet.GetSourceChannel(), data.Denom) {
 		// sender chain is not the source, unescrow tokens
+		fmt.Println("[ics20] transfer relay OnRecvPacket sender chain is not the source, unescrow tokens")
 
 		// remove prefix added by sender chain
 		voucherPrefix := types.GetDenomPrefix(packet.GetSourcePort(), packet.GetSourceChannel())
@@ -273,14 +288,22 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		if denomTrace.Path != "" {
 			denom = denomTrace.IBCDenom()
 		}
+		fmt.Println("[ics20] transfer relay OnRecvPacket denomTrace")
+		fmt.Println(denomTrace)
+
 		token := sdk.NewCoin(denom, transferAmount)
 
+		fmt.Println("[ics20] transfer relay OnRecvPacket token")
+		fmt.Println(token)
 		if k.bankKeeper.BlockedAddr(receiver) {
 			return sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive funds", receiver)
 		}
 
 		// unescrow tokens
 		escrowAddress := types.GetEscrowAddress(packet.GetDestPort(), packet.GetDestChannel())
+		fmt.Println("[ics20] transfer relay OnRecvPacket escrowAddress")
+		fmt.Println(escrowAddress)
+
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, receiver, sdk.NewCoins(token)); err != nil {
 			// NOTE: this error is only expected to occur given an unexpected bug or a malicious
 			// counterparty module. The bug may occur in bank or any part of the code that allows
@@ -288,6 +311,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			// escrow address by allowing more tokens to be sent back then were escrowed.
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
+		fmt.Println("[ics20] transfer relay OnRecvPacket SendCoins success!")
 
 		defer func() {
 			if transferAmount.IsInt64() {
@@ -311,7 +335,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	}
 
 	// sender chain is the source, mint vouchers
-
+	fmt.Println("[ics20] transfer relay OnRecvPacket sender chain is the source, mint vouchers")
 	// since SendPacket did not prefix the denomination, we must prefix denomination here
 	sourcePrefix := types.GetDenomPrefix(packet.GetDestPort(), packet.GetDestChannel())
 	// NOTE: sourcePrefix contains the trailing "/"
@@ -319,6 +343,8 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 
 	// construct the denomination trace from the full raw denomination
 	denomTrace := types.ParseDenomTrace(prefixedDenom)
+	fmt.Println("[ics20] transfer relay OnRecvPacket denomTrace")
+	fmt.Println(denomTrace)
 
 	traceHash := denomTrace.Hash()
 	if !k.HasDenomTrace(ctx, traceHash) {
@@ -341,13 +367,14 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 	); err != nil {
 		return err
 	}
-
+	fmt.Println("[ics20] transfer relay OnRecvPacket MintCoins success!")
 	// send to receiver
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(
 		ctx, types.ModuleName, receiver, sdk.NewCoins(voucher),
 	); err != nil {
 		return err
 	}
+	fmt.Println("[ics20] transfer relay OnRecvPacket SendCoinsFromModuleToAccount success!")
 
 	defer func() {
 		if transferAmount.IsInt64() {
@@ -375,6 +402,13 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 // was a success then nothing occurs. If the acknowledgement failed, then
 // the sender is refunded their tokens using the refundPacketToken function.
 func (k Keeper) OnAcknowledgementPacket(ctx sdk.Context, packet channeltypes.Packet, data types.FungibleTokenPacketData, ack channeltypes.Acknowledgement) error {
+
+	fmt.Println("[ics20] transfer relayer OnAcknowledgementPacket packet")
+	fmt.Println(packet)
+	fmt.Println("[ics20] transfer relayer OnAcknowledgementPacket data")
+	fmt.Println(data)
+	fmt.Println("[ics20] transfer relayer OnAcknowledgementPacket ack")
+	fmt.Println(ack)
 	switch ack.Response.(type) {
 	case *channeltypes.Acknowledgement_Error:
 		return k.refundPacketToken(ctx, packet, data)
@@ -388,6 +422,11 @@ func (k Keeper) OnAcknowledgementPacket(ctx sdk.Context, packet channeltypes.Pac
 // OnTimeoutPacket refunds the sender since the original packet sent was
 // never received and has been timed out.
 func (k Keeper) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet, data types.FungibleTokenPacketData) error {
+	fmt.Println("[ics20] transfer relayer OnTimeoutPacket packet")
+	fmt.Println(packet)
+	fmt.Println("[ics20] transfer relayer OnTimeoutPacket data")
+	fmt.Println(data)
+
 	return k.refundPacketToken(ctx, packet, data)
 }
 
@@ -397,6 +436,10 @@ func (k Keeper) OnTimeoutPacket(ctx sdk.Context, packet channeltypes.Packet, dat
 // the sending address.
 func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, data types.FungibleTokenPacketData) error {
 	// NOTE: packet data type already checked in handler.go
+	fmt.Println("[ics20] transfer relayer refundPacketToken packet")
+	fmt.Println(packet)
+	fmt.Println("[ics20] transfer relayer refundPacketToken data")
+	fmt.Println(data)
 
 	// parse the denomination from the full denom path
 	trace := types.ParseDenomTrace(data.Denom)
@@ -410,6 +453,8 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 
 	// decode the sender address
 	sender, err := sdk.AccAddressFromBech32(data.Sender)
+	fmt.Println("[ics20] transfer relayer refundPacketToken sender")
+
 	if err != nil {
 		return err
 	}
@@ -434,10 +479,12 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	); err != nil {
 		return err
 	}
+	fmt.Println("[ics20] transfer relayer refundPacketToken mint vouchers back to sender success!")
 
 	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sender, sdk.NewCoins(token)); err != nil {
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
+	fmt.Println("[ics20] transfer relayer refundPacketToken SendCoinsFromModuleToAccount success!")
 
 	return nil
 }
