@@ -65,14 +65,16 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 
 	// Get consensus bytes from clientStore
 	tmConsensusState1, err := GetConsensusState(clientStore, cdc,
-		clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header1.BlockHeader.BlockNumber)))
+		// clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header1.BlockHeader.BlockNumber)))
+		clienttypes.NewHeight(0, uint64(0)))
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header1 at TrustedHeight: %s", tmMisbehaviour.Header1)
 	}
 
 	// Get consensus bytes from clientStore
 	tmConsensusState2, err := GetConsensusState(clientStore, cdc,
-		clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header2.BlockHeader.BlockNumber)))
+		// clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header2.BlockHeader.BlockNumber)))
+		clienttypes.NewHeight(0, uint64(0)))
 	if err != nil {
 		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header2 at TrustedHeight: %s", tmMisbehaviour.Header2)
 	}
@@ -83,17 +85,17 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	// misbehaviour.ValidateBasic by the client keeper and msg.ValidateBasic
 	// by the base application.
 	if err := checkMisbehaviourHeader(
-		&cs, tmConsensusState1, tmMisbehaviour.Header1, ctx.BlockTime(),
+		&cs, tmConsensusState1, &tmMisbehaviour.Header1, ctx.BlockTime(),
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "verifying Header1 in Misbehaviour failed")
 	}
 	if err := checkMisbehaviourHeader(
-		&cs, tmConsensusState2, tmMisbehaviour.Header2, ctx.BlockTime(),
+		&cs, tmConsensusState2, &tmMisbehaviour.Header2, ctx.BlockTime(),
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "verifying Header2 in Misbehaviour failed")
 	}
 
-	cs.FrozenHeight = FrozenHeight
+	cs.FrozenHeight = uint32(FrozenHeight.RevisionHeight)
 
 	fmt.Println("[Grandpa]************Grandpa client CheckMisbehaviourAndUpdateState end ****************")
 	return &cs, nil

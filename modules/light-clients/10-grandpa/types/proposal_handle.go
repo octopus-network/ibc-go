@@ -83,7 +83,7 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 
 	setConsensusMetadataWithValues(subjectClientStore, height, processedHeight, processedTime)
 
-	cs.BlockNumber = substituteClientState.BlockNumber
+	cs.LatestHeight = substituteClientState.LatestHeight
 	cs.ChainId = substituteClientState.ChainId
 
 	// no validation is necessary since the substitute is verified to be Active
@@ -96,12 +96,12 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 // except for frozen height, latest height, and chain-id.
 func IsMatchingClientState(subject, substitute ClientState) bool {
 	// zero out parameters which do not need to match
-	subject.BlockNumber = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	subject.FrozenHeight = clienttypes.ZeroHeight()
-	substitute.BlockNumber = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	substitute.FrozenHeight = clienttypes.ZeroHeight()
-	subject.ChainId = ""
-	substitute.ChainId = ""
+	subject.LatestHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	subject.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	substitute.LatestHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	substitute.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	subject.ChainId = 0
+	substitute.ChainId = 0
 
 	return reflect.DeepEqual(subject, substitute)
 }

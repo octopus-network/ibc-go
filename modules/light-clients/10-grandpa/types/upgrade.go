@@ -62,9 +62,9 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// All chain-chosen parameters come from committed client, all client-chosen parameters
 	// come from current client.
 	newClientState := NewClientState(
-		tmUpgradeClient.ChainId, tmUpgradeClient.BlockNumber,
-		tmUpgradeClient.FrozenHeight, tmUpgradeClient.BlockHeader,
-		*tmUpgradeClient.LatestCommitment, *tmUpgradeClient.ValidatorSet,
+		tmUpgradeClient.ChainId, tmUpgradeClient.ChainType, tmUpgradeClient.BeefyActivationBlock,
+		tmUpgradeClient.LatestBeefyHeight, tmUpgradeClient.MmrRootHash, tmUpgradeClient.LatestHeight,
+		tmUpgradeClient.FrozenHeight, tmUpgradeClient.AuthoritySet, tmUpgradeClient.NextAuthoritySet,
 	)
 
 	if err := newClientState.Validate(); err != nil {
@@ -79,17 +79,13 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// NOTE: We do not set processed time for this consensus state since this consensus state should not be used for packet verification
 	// as the root is empty. The next consensus state submitted using update will be usable for packet-verification.
 	newConsState := NewConsensusState(
-		tmUpgradeClient.BlockHeader.ParentHash,
-		tmUpgradeClient.BlockHeader.BlockNumber,
-		tmUpgradeClient.BlockHeader.StateRoot,
-		tmUpgradeClient.BlockHeader.ExtrinsicsRoot,
-		tmUpgradeClient.BlockHeader.Digest,
-		commitmenttypes.NewMerkleRoot([]byte(tmUpgradeClient.BlockHeader.ExtrinsicsRoot)),
+
+		[]byte{},
 		time.Unix(0, 0),
 	)
 
 	// set metadata for this consensus state
-	setConsensusMetadata(ctx, clientStore, clienttypes.NewHeight(0, uint64(tmUpgradeClient.BlockNumber)))
+	setConsensusMetadata(ctx, clientStore, clienttypes.NewHeight(0, uint64(tmUpgradeClient.LatestHeight)))
 	fmt.Println(proofUpgradeConsState)
 	fmt.Println("[Grandpa]************Grandpa client VerifyUpgradeAndUpdateState end ****************")
 

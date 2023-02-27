@@ -4,7 +4,6 @@ import (
 	time "time"
 
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 )
 
@@ -13,23 +12,14 @@ var _ exported.Header = &Header{}
 // ConsensusState returns the updated consensus state associated with the header
 func (h Header) ConsensusState() *ConsensusState {
 
+	// TODO: build consensue state
 	return &ConsensusState{
-		/// The parent hash.
-		ParentHash: h.BlockHeader.ParentHash,
-		/// The block number.
-		BlockNumber: h.BlockHeader.BlockNumber,
-		/// The state trie merkle root
-		StateRoot: h.BlockHeader.StateRoot,
-		/// The merkle root of the extrinsics.
-		ExtrinsicsRoot: h.BlockHeader.ExtrinsicsRoot,
-		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest:    h.BlockHeader.Digest,
-		Root:      commitmenttypes.NewMerkleRoot([]byte(h.BlockHeader.ExtrinsicsRoot)),
+		Root:      []byte{},
 		Timestamp: time.Unix(0, 0),
 	}
 }
 
-// ClientType defines that the Header is a Tendermint consensus algorithm
+// ClientType defines that the Header is a grandpa consensus algorithm
 func (h Header) ClientType() string {
 	return exported.Grandpa
 }
@@ -38,8 +28,8 @@ func (h Header) ClientType() string {
 // header is nil.
 // NOTE: the header.Header is checked to be non nil in ValidateBasic.
 func (h Header) GetHeight() exported.Height {
-
-	return clienttypes.NewHeight(0, uint64(h.BlockHeader.BlockNumber))
+	// TODO: get real height from header
+	return clienttypes.NewHeight(0, uint64(0))
 }
 
 // // GetTime returns the current block timestamp. It returns a zero time if

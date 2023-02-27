@@ -379,12 +379,21 @@ containerProtoGen=cosmos-sdk-proto-gen-$(containerProtoVer)
 containerProtoGenSwagger=cosmos-sdk-proto-gen-swagger-$(containerProtoVer)
 containerProtoFmt=cosmos-sdk-proto-fmt-$(containerProtoVer)
 
+proto-dev: proto-format proto-lint proto-gen-dev
 proto-all: proto-format proto-lint proto-gen
-
+# for CI or Production
 proto-gen:
 	@echo "Generating Protobuf files"
 	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoGen}$$"; then docker start -a $(containerProtoGen); else docker run --name $(containerProtoGen) -v $(CURDIR):/workspace --workdir /workspace $(containerProtoImage) \
 		sh ./scripts/protocgen.sh; fi
+# for local dev
+proto-gen-dev:
+	@echo "Generating Protobuf files"
+	@if docker ps -a --format '{{.Names}}' | grep -Eq "^${containerProtoGen}$$"; then docker start -a $(containerProtoGen); else docker run --name $(containerProtoGen) -v $(CURDIR):/workspace -v $$(dirname $(CURDIR))/beefy-go:/beefy-go --workdir /workspace $(containerProtoImage) \
+		sh ./scripts/protocgen.sh; fi
+
+proto-test:
+	@echo $$(dirname $(CURDIR))
 
 proto-format:
 	@echo "Formatting Protobuf files"

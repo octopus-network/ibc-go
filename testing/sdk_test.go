@@ -199,6 +199,7 @@ func (s *IntegrationTestSuite) TestLegacyRestErrMessages() {
 			s.Require().NoError(err)
 			var txRes sdk.TxResponse
 			s.Require().NoError(val.ClientCtx.JSONCodec.UnmarshalJSON(out.Bytes(), &txRes))
+			s.T().Logf("txRes: %+v", txRes)
 			s.Require().Equal(tc.code, txRes.Code)
 
 			s.Require().NoError(s.network.WaitForNextBlock())

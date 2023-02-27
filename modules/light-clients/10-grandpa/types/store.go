@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"strings"
+	time "time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
+	scale "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -41,6 +44,100 @@ var (
 	// KeyIteration stores the key mapping to consensus state key for efficient iteration
 	KeyIteration = []byte("/iterationKey")
 )
+
+//TODO: save all the consensue state at height,but just return only one
+func UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore, header exported.Header) error {
+	gpHeader, ok := header.(*Header)
+	if !ok {
+		return sdkerrors.Wrapf(clienttypes.ErrInvalidClientType, "expected type %T, got %T", &Header{}, gpHeader)
+	}
+
+	headerMessage := gpHeader.GetMessage()
+	switch headerMap := headerMessage.(type) {
+	case *Header_SolochainHeaderMap:
+		solochainHeaderMap := headerMap.SolochainHeaderMap.SolochainHeaderMap
+		for _, header := range solochainHeaderMap {
+			// revion number is used to store paraId
+			err := updateConsensuestate(clientStore, cdc, header.BlockHeader, header.Timestamp.Value)
+			if err != nil {
+				return err
+			}
+
+		}
+
+	case *Header_ParachainHeaderMap:
+		parachainHeaderMap := headerMap.ParachainHeaderMap.ParachainHeaderMap
+		for _, header := range parachainHeaderMap {
+
+			err := updateConsensuestate(clientStore, cdc, header.BlockHeader, header.Timestamp.Value)
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+
+	// if headerMessage, ok := gpHeader.GetMessage().(*Header_SolochainHeaderMap); ok {
+	// 	// return x.SolochainHeaderMap
+	// 	solochainHeaderMap := headerMessage.SolochainHeaderMap.SolochainHeaderMap
+	// 	for _, header := range solochainHeaderMap {
+	// 		// revion number is used to store paraId
+	// 		err := updateConsensuestate(clientStore, cdc, header.BlockHeader, header.Timestamp.Value)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+
+	// 	}
+	// }
+	// if headerMap, ok := gpHeader.GetMessage().(*Header_ParachainHeaderMap); ok {
+	// 	// return x.SolochainHeaderMap
+	// 	parachainHeaderMap := headerMap.ParachainHeaderMap.ParachainHeaderMap
+	// 	for _, header := range parachainHeaderMap {
+
+	// 		err := updateConsensuestate(clientStore, cdc, header.BlockHeader, header.Timestamp.Value)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
+
+	// TODO: pruning!
+	// setClientState(clientStore, cdc, &cs)
+	return sdkerrors.Wrapf(clienttypes.ErrFailedClientConsensusStateVerification, "update consensus state failed")
+
+}
+
+func updateConsensuestate(clientStore sdk.KVStore, cdc codec.BinaryCodec, header []byte, timestampValue []byte) error {
+	var decodeHeader types.Header
+	err := scale.Decode(header, &decodeHeader)
+	if err != nil {
+		return err
+	}
+
+	height := clienttypes.Height{
+
+		RevisionNumber: uint64(0),
+		RevisionHeight: uint64(decodeHeader.Number),
+	}
+
+	if consensusState, _ := GetConsensusState(clientStore, cdc, height); consensusState != nil {
+
+		return nil
+	}
+
+	var timestamp types.U64
+	err = scale.Decode(timestampValue, timestamp)
+	if err != nil {
+		return err
+	}
+
+	consensusState := &ConsensusState{
+		Timestamp: time.UnixMicro(int64(timestamp)),
+		Root:      decodeHeader.StateRoot[:],
+	}
+	SetConsensusState(clientStore, cdc, consensusState, height)
+	return nil
+}
 
 // SetConsensusState stores the consensus state at the given height.
 func SetConsensusState(clientStore sdk.KVStore, cdc codec.BinaryCodec, consensusState *ConsensusState, height exported.Height) {

@@ -12,25 +12,10 @@ const SentinelRoot = "sentinel_root"
 
 // NewConsensusState creates a new ConsensusState instance.
 func NewConsensusState(
-	parentHash []byte,
-	blockNumber uint32,
-	stateRoot []byte,
-	extrinsicsRoot []byte,
-	digest []byte,
-	root commitmenttypes.MerkleRoot,
+	root []byte,
 	timestamp time.Time,
 ) *ConsensusState {
 	return &ConsensusState{
-		/// The parent hash.
-		ParentHash: parentHash,
-		/// The block number.
-		BlockNumber: blockNumber,
-		/// The state trie merkle root
-		StateRoot: stateRoot,
-		/// The merkle root of the extrinsics.
-		ExtrinsicsRoot: extrinsicsRoot,
-		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest:    digest,
 		Root:      root,
 		Timestamp: timestamp,
 	}
@@ -43,14 +28,14 @@ func (ConsensusState) ClientType() string {
 
 // GetRoot returns the commitment Root for the specific
 func (cs ConsensusState) GetRoot() exported.Root {
-	// return commitmenttypes.NewMerkleRoot([]byte(SentinelRoot))
-	return cs.Root
+	return commitmenttypes.NewMerkleRoot([]byte(cs.Root))
+	// return cs.Root
 
 }
 
 // GetTimestamp returns block time in nanoseconds of the header that created consensus state
 func (cs ConsensusState) GetTimestamp() uint64 {
-	
+
 	return uint64(cs.Timestamp.UnixNano())
 
 }

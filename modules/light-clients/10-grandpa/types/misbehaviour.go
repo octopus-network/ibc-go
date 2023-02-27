@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
@@ -10,7 +9,6 @@ import (
 
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
-	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 )
 
@@ -21,11 +19,11 @@ var FrozenHeight = clienttypes.NewHeight(0, 1)
 
 // NewMisbehaviour creates a new Misbehaviour instance.
 func NewMisbehaviour(clientID string, header1, header2 *Header) *Misbehaviour {
-	cid, _ := strconv.Atoi(clientID)
+	// cid, _ := strconv.Atoi(clientID)
 	return &Misbehaviour{
-		ClientId: uint64(cid),
-		Header1:  header1,
-		Header2:  header2,
+		ClientId: clientID,
+		Header1:  *header1,
+		Header2:  *header2,
 	}
 }
 
@@ -36,7 +34,8 @@ func (misbehaviour Misbehaviour) ClientType() string {
 
 // GetClientID returns the ID of the client that committed a misbehaviour.
 func (misbehaviour Misbehaviour) GetClientID() string {
-	return strconv.Itoa(int(misbehaviour.ClientId))
+
+	return misbehaviour.ClientId
 }
 
 // GetTime returns the timestamp at which misbehaviour occurred. It uses the
@@ -54,41 +53,41 @@ func (misbehaviour Misbehaviour) GetTime() time.Time {
 // ValidateBasic implements Misbehaviour interface
 func (misbehaviour Misbehaviour) ValidateBasic() error {
 	fmt.Println("[Grandpa]************Grandpa client misbehaviour ValidateBasic begin ****************")
-	if misbehaviour.Header1 == nil {
-		return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header1 cannot be nil")
-	}
-	if misbehaviour.Header2 == nil {
-		return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header2 cannot be nil")
-	}
-	if misbehaviour.Header1.BlockHeader.BlockNumber == 0 {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header1 cannot have zero revision height")
-	}
-	if misbehaviour.Header2.BlockHeader.BlockNumber == 0 {
-		return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header2 cannot have zero revision height")
-	}
+	// if misbehaviour.Header1 == nil {
+	// 	return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header1 cannot be nil")
+	// }
+	// if misbehaviour.Header2 == nil {
+	// 	return sdkerrors.Wrap(ErrInvalidHeader, "misbehaviour Header2 cannot be nil")
+	// }
+	// if misbehaviour.Header1.BlockHeader.BlockNumber == 0 {
+	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header1 cannot have zero revision height")
+	// }
+	// if misbehaviour.Header2.BlockHeader.BlockNumber == 0 {
+	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "misbehaviour Header2 cannot have zero revision height")
+	// }
 
-	sid := strconv.Itoa(int(misbehaviour.ClientId))
-	if err := host.ClientIdentifierValidator(sid); err != nil {
-		return sdkerrors.Wrap(err, "misbehaviour client ID is invalid")
-	}
+	// sid := strconv.Itoa(int(misbehaviour.ClientId))
+	// if err := host.ClientIdentifierValidator(sid); err != nil {
+	// 	return sdkerrors.Wrap(err, "misbehaviour client ID is invalid")
+	// }
 
-	// ValidateBasic on both validators
-	if err := misbehaviour.Header1.ValidateBasic(); err != nil {
-		return sdkerrors.Wrap(
-			clienttypes.ErrInvalidMisbehaviour,
-			sdkerrors.Wrap(err, "header 1 failed validation").Error(),
-		)
-	}
-	if err := misbehaviour.Header2.ValidateBasic(); err != nil {
-		return sdkerrors.Wrap(
-			clienttypes.ErrInvalidMisbehaviour,
-			sdkerrors.Wrap(err, "header 2 failed validation").Error(),
-		)
-	}
-	// Ensure that Height1 is greater than or equal to Height2
-	if misbehaviour.Header1.GetHeight().LT(misbehaviour.Header2.GetHeight()) {
-		return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "Header1 height is less than Header2 height (%s < %s)", misbehaviour.Header1.GetHeight(), misbehaviour.Header2.GetHeight())
-	}
+	// // ValidateBasic on both validators
+	// if err := misbehaviour.Header1.ValidateBasic(); err != nil {
+	// 	return sdkerrors.Wrap(
+	// 		clienttypes.ErrInvalidMisbehaviour,
+	// 		sdkerrors.Wrap(err, "header 1 failed validation").Error(),
+	// 	)
+	// }
+	// if err := misbehaviour.Header2.ValidateBasic(); err != nil {
+	// 	return sdkerrors.Wrap(
+	// 		clienttypes.ErrInvalidMisbehaviour,
+	// 		sdkerrors.Wrap(err, "header 2 failed validation").Error(),
+	// 	)
+	// }
+	// // Ensure that Height1 is greater than or equal to Height2
+	// if misbehaviour.Header1.GetHeight().LT(misbehaviour.Header2.GetHeight()) {
+	// 	return sdkerrors.Wrapf(clienttypes.ErrInvalidMisbehaviour, "Header1 height is less than Header2 height (%s < %s)", misbehaviour.Header1.GetHeight(), misbehaviour.Header2.GetHeight())
+	// }
 	fmt.Println("[Grandpa]************Grandpa client misbehaviour ValidateBasic end ****************")
 	return nil
 }

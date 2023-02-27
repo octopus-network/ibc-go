@@ -159,6 +159,7 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	} else {
 
 		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
+		k.Logger(ctx).Debug("client frozen due to misbehaviour", "client-id", clientID)
 		fmt.Printf("[Grandpa][keeper_client] client frozen due to misbehaviour for client-id %s \n", clientID)
 
 		defer func() {

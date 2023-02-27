@@ -1,15 +1,17 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
-	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
+	"github.com/octopus-network/beefy-go/beefy"
 )
 
 // CheckHeaderAndUpdateState checks if the provided header is valid, and if valid it will:
@@ -50,96 +52,160 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	header exported.Header,
 ) (exported.ClientState, exported.ConsensusState, error) {
 	fmt.Println("[Grandpa]************Grandpa client CheckHeaderAndUpdateState begin ****************")
-	tmHeader, ok := header.(*Header)
+	gpHeader, ok := header.(*Header)
 	if !ok {
 		return nil, nil, sdkerrors.Wrapf(
 			clienttypes.ErrInvalidHeader, "expected type %T, got %T", &Header{}, header,
 		)
 	}
 
-	// // Check if the Client store already has a consensus state for the header's height
-	// // If the consensus state exists, and it matches the header then we return early
-	// // since header has already been submitted in a previous UpdateClient.
-	// var conflictingHeader bool
-	// prevConsState, _ := GetConsensusState(clientStore, cdc, header.GetHeight())
-	// if prevConsState != nil {
-	// 	// This header has already been submitted and the necessary state is already stored
-	// 	// in client store, thus we can return early without further validation.
-	// 	if reflect.DeepEqual(prevConsState, tmHeader.ConsensusState()) {
-	// 		return &cs, prevConsState, nil
-	// 	}
-	// 	// A consensus state already exists for this height, but it does not match the provided header.
-	// 	// Thus, we must check that this header is valid, and if so we will freeze the client.
-	// 	conflictingHeader = true
-	// }
+	beefyMMR := gpHeader.BeefyMmr
 
-	// // get consensus state from clientStore
-	// trustedConsState, err := GetConsensusState(clientStore, cdc, tmHeader.Height)
-	// if err != nil {
-	// 	return nil, nil, sdkerrors.Wrapf(
-	// 		err, "could not get consensus state from clientstore at TrustedHeight: %s", tmHeader.Height,
-	// 	)
-	// }
+	// step1:  verify signature
+	gsc := beefyMMR.SignedCommitment
+	beefyPalyloads := make([]types.PayloadItem, len(gsc.Commitment.Payloads))
 
-	// if err := checkValidity(&cs, trustedConsState, tmHeader, ctx.BlockTime()); err != nil {
-	// 	return nil, nil, err
-	// }
+	// convert payloads
+	for i, v := range gsc.Commitment.Payloads {
+		beefyPalyloads[i] = types.PayloadItem{
+			ID:   beefy.Bytes2(v.Id),
+			Data: v.Data,
+		}
+	}
+	// convert signature
+	beefySignatures := make([]beefy.Signature, len(gsc.Signatures))
+	for i, v := range gsc.Signatures {
+		beefySignatures[i] = beefy.Signature{
+			Index:     v.Index,
+			Signature: v.Signature,
+		}
+	}
 
-	// consState := tmHeader.ConsensusState()
-	// // Header is different from existing consensus state and also valid, so freeze the client and return
-	// if conflictingHeader {
-	// 	cs.FrozenHeight = FrozenHeight
-	// 	return &cs, consState, nil
-	// }
-	// Check that consensus state timestamps are monotonic
-	// prevCons, prevOk := GetPreviousConsensusState(clientStore, cdc, header.GetHeight())
-	// nextCons, nextOk := GetNextConsensusState(clientStore, cdc, header.GetHeight())
-	// // if previous consensus state exists, check consensus state time is greater than previous consensus state time
-	// // if previous consensus state is not before current consensus state, freeze the client and return.
-	// if prevOk && !prevCons.Timestamp.Before(consState.Timestamp) {
-	// 	cs.FrozenHeight = FrozenHeight
-	// 	return &cs, consState, nil
-	// }
-	// // if next consensus state exists, check consensus state time is less than next consensus state time
-	// // if next consensus state is not after current consensus state, freeze the client and return.
-	// if nextOk && !nextCons.Timestamp.After(consState.Timestamp) {
-	// 	cs.FrozenHeight = FrozenHeight
-	// 	return &cs, consState, nil
-	// }
+	// build beefy SignedCommitment
+	bsc := beefy.SignedCommitment{
+		Commitment: types.Commitment{
+			Payload:        beefyPalyloads,
+			BlockNumber:    gsc.Commitment.BlockNumber,
+			ValidatorSetID: gsc.Commitment.ValidatorSetId,
+		},
+		Signatures: beefySignatures,
+	}
+	// checking signatures Threshold
+	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(gsc.Signatures)) ||
+		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(gsc.Signatures)) {
 
-	// Check the earliest consensus state to see if it is expired, if so then set the prune height
-	// so that we can delete consensus state and all associated metadata.
-	// var (
-	// 	pruneHeight exported.Height
-	// 	pruneError  error
-	// )
-	// pruneCb := func(height exported.Height) bool {
-	// 	consState, err := GetConsensusState(clientStore, cdc, height)
-	// 	// this error should never occur
-	// 	if err != nil {
-	// 		pruneError = err
-	// 		return true
-	// 	}
-	// 	// if cs.IsExpired(consState.Timestamp, ctx.BlockTime()) {
-	// 	// 	pruneHeight = height
-	// 	// }
-	// 	return true
-	// }
-	// IterateConsensusStateAscending(clientStore, pruneCb)
-	// if pruneError != nil {
-	// 	return nil, nil, pruneError
-	// }
-	// // if pruneHeight is set, delete consensus state and metadata
-	// if pruneHeight != nil {
-	// 	deleteConsensusState(clientStore, pruneHeight)
-	// 	deleteConsensusMetadata(clientStore, pruneHeight)
-	// }
+		return nil, nil, sdkerrors.Wrap(errors.New(""), ErrInvalidValidatorSet.Error())
 
+	}
+
+	// verify signatures
+	switch gsc.Commitment.ValidatorSetId {
+	case cs.AuthoritySet.Id:
+		err := beefy.VerifySignature(bsc, uint64(cs.AuthoritySet.Len), beefy.Bytes32(cs.AuthoritySet.Root), beefyMMR.SignatureProofs)
+		if err != nil {
+			return nil, nil, sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+		}
+
+	case cs.NextAuthoritySet.Id:
+		err := beefy.VerifySignature(bsc, uint64(cs.NextAuthoritySet.Len), beefy.Bytes32(cs.NextAuthoritySet.Root), beefyMMR.SignatureProofs)
+		if err != nil {
+			return nil, nil, sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+		}
+
+	}
+	// step2: verify mmr
+	// convert mmrleaf
+	beefyMMRLeaves := make([]types.MMRLeaf, len(beefyMMR.MmrLeavesAndBatchProof.Leaves))
+	for i, v := range beefyMMR.MmrLeavesAndBatchProof.Leaves {
+		beefyMMRLeaves[i] = types.MMRLeaf{
+			Version: types.MMRLeafVersion(v.Version),
+			ParentNumberAndHash: types.ParentNumberAndHash{
+				ParentNumber: types.U32(v.ParentNumberAndHash.ParentNumber),
+				Hash:         types.NewHash(v.ParentNumberAndHash.ParentHash),
+			},
+			ParachainHeads: types.NewH256(v.ParachainHeads),
+		}
+	}
+	// convert mmr batch proof
+	beefyLeafIndexes := make([]types.U64, len(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes))
+	for i, v := range beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes {
+		beefyLeafIndexes[i] = types.NewU64(v)
+	}
+
+	beefyItems := make([]types.H256, len(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.Items))
+	for i, v := range beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.Items {
+		beefyItems[i] = types.NewH256(v)
+	}
+	beefyBatchProof := beefy.MMRBatchProof{
+		LeafIndex: beefyLeafIndexes,
+		LeafCount: types.NewU64(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.LeafCount),
+		Items:     beefyItems,
+	}
+	// verify mmr batch proof
+	if beefyMMR.SignedCommitment.Commitment.BlockNumber > cs.LatestBeefyHeight {
+		result, err := beefy.VerifyMMRBatchProof(beefyPalyloads, beefyMMR.MmrSize,
+			beefyMMRLeaves, beefyBatchProof)
+		if err != nil || !result {
+			return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr proof")
+		}
+	}
+
+	// step3: verify header
+	// headerMap := gpHeader.Message
+	switch cs.ChainType {
+	case beefy.SOLOCHAIN:
+
+		// convert pb leaf to substrate mmr leaf
+		beefySolochainHeaderMap := make(map[uint32]beefy.SolochainHeader)
+		headerMap := gpHeader.GetSolochainHeaderMap()
+		for num, header := range headerMap.SolochainHeaderMap {
+			beefySolochainHeaderMap[num] = beefy.SolochainHeader{
+				BlockHeader: header.BlockHeader,
+				Timestamp:   beefy.StateProof(header.Timestamp),
+			}
+		}
+		beefy.VerifySolochainHeader(beefyMMRLeaves, beefySolochainHeaderMap)
+		//TODO: update consensue state
+		
+		
+	case beefy.PARACHAIN:
+		
+		// convert pb leaf to substrate mmr leaf
+		beefyParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
+		headerMap := gpHeader.GetParachainHeaderMap()
+
+		for num, header := range headerMap.ParachainHeaderMap {
+
+			// convert proofs
+			// proofs := make([][]byte,len(header.Proofs))
+			// for i,v :=range header.Proofs{
+			// 	proofs[i]=v
+			// }
+
+			beefyParachainHeaderMap[num] = beefy.ParachainHeader{
+				ParaId:      header.ParachainId,
+				BlockHeader: header.BlockHeader,
+				Proof:       header.Proofs,
+				HeaderIndex: header.HeaderIndex,
+				HeaderCount: header.HeaderCount,
+				Timestamp:   beefy.StateProof(header.Timestamp),
+			}
+
+		}
+		beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
+		//TODO: update consensue state
+		//TODO: save all the consensue state at height,but just return only one
+	}
+
+	
+
+	//TODO:finally,build and return new client state ,new consensus state
 	// newClientState, newConsensusState := update(ctx, clientStore, &cs, tmHeader)
-	newClientState := NewClientState(cs.ChainId, cs.BlockNumber, cs.FrozenHeight, cs.BlockHeader, *cs.LatestCommitment, *cs.ValidatorSet)
+	newClientState := NewClientState(cs.ChainId, cs.ChainType, cs.BeefyActivationBlock, cs.LatestBeefyHeight,
+		cs.MmrRootHash, cs.LatestHeight, cs.FrozenHeight, cs.AuthoritySet, cs.NextAuthoritySet)
 	newConsensusState, _ := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
 	// set metadata for this consensus state
-	setConsensusMetadata(ctx, clientStore, tmHeader.GetHeight())
+	setConsensusMetadata(ctx, clientStore, gpHeader.GetHeight())
 	fmt.Println("[Grandpa] new client state")
 	fmt.Println(newClientState)
 	fmt.Println("[Grandpa] new client consensusState")
@@ -257,22 +323,13 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 	// }
 
 	// clientState.LatestHeight = height
-	clientState.BlockNumber = header.BlockHeader.BlockNumber
-	clientState.BlockHeader = header.BlockHeader
+	// clientState.BlockNumber = header.BlockHeader.BlockNumber
+	// clientState.BlockHeader = header.BlockHeader
 
 	consensusState := &ConsensusState{
 		/// The parent hash.
-		ParentHash: header.BlockHeader.ParentHash,
-		/// The block number.
-		BlockNumber: header.BlockHeader.BlockNumber,
-		/// The state trie merkle root
-		StateRoot: header.BlockHeader.StateRoot,
-		/// The merkle root of the extrinsics.
-		ExtrinsicsRoot: header.BlockHeader.ExtrinsicsRoot,
-		/// A chain-specific digest of data useful for light clients or referencing auxiliary data.
-		Digest: header.BlockHeader.Digest,
-		// Root:      commitmenttypes.NewMerkleRoot([]byte(header.String())),
-		Root: commitmenttypes.NewMerkleRoot([]byte(header.BlockHeader.ExtrinsicsRoot)),
+
+		Root: []byte{},
 		// Timestamp: time.Now(),
 		Timestamp: time.Unix(0, 0),
 	}
@@ -281,7 +338,8 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 	setConsensusMetadata(ctx, clientStore, header.GetHeight())
 
 	fmt.Printf("[Grandpa]new header is %s \n", header.String())
-	fmt.Printf("[Grandpa] new client state latestheight is %d \n", clientState.BlockNumber)
+	fmt.Printf("[Grandpa] new client state latestheight is %d \n", clientState.LatestHeight)
 
 	return clientState, consensusState
 }
+
