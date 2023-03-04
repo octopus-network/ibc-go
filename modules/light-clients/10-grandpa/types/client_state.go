@@ -17,17 +17,10 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
-
-	log "github.com/go-kit/log"
-	// "github.com/tendermint/tendermint/libs/log"
+	// log "github.com/go-kit/log"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
-
-// var logger = log.Logger.With("light-client/10-grandpa/client_state")
-var logger log.Logger
-
-// type StateProof [][]byte
 
 // NewClientState creates a new ClientState instance
 func NewClientState(
@@ -274,15 +267,10 @@ func (cs ClientState) VerifyClientState(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	// todo: this should be child trie proof verification
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
-	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client state")
-		logger.Log("unable to verify client state")
+		Logger.Error("unable to verify state proof")
+		return err
 	}
 
 	fmt.Println(clientState)
@@ -338,14 +326,10 @@ func (cs ClientState) VerifyClientConsensusState(
 	// }
 
 	// verify state proof
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
-	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
+		Logger.Error("unable to verify state proof")
+		return err
 	}
 
 	fmt.Println(consensusState)
@@ -393,16 +377,12 @@ func (cs ClientState) VerifyConnectionState(
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "connection state could not be scale encoded")
 	// }
-
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
+		Logger.Error("unable to verify state proof")
+		return err
 	}
 
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
-	}
 	return nil
 
 	//TODO: invoke the light client.VerifyStateProof()
@@ -454,14 +434,10 @@ func (cs ClientState) VerifyChannelState(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
-	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
+		Logger.Error("unable to verify state proof")
+		return err
 	}
 
 	fmt.Println(channel)
@@ -505,17 +481,12 @@ func (cs ClientState) VerifyPacketCommitment(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
+		Logger.Error("unable to verify state proof")
+		return err
 	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
-	}
-
 	fmt.Println(commitmentBytes)
 	fmt.Println("[Grandpa]************Grandpa client VerifyPacketCommitment end ****************")
 	return nil
@@ -556,16 +527,11 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
+		Logger.Error("unable to verify state proof")
+		return err
 	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
-	}
-
 	fmt.Println(acknowledgement)
 	fmt.Println("[Grandpa]************Grandpa client VerifyPacketAcknowledgement end ****************")
 	return nil
@@ -611,14 +577,10 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	// }
 
 	// TODO: use parity/trie proofOfNonExistence for receipt absence
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		logger.Log("error verifying proof: %v", err.Error())
-	}
-
-	if !isVerified {
-		// return sdkerrors.Wrap(err, "unable to verify client consensus state")
-		logger.Log("unable to verify client consensus state")
+		Logger.Error("unable to verify state proof")
+		return err
 	}
 	fmt.Println(sequence)
 	fmt.Println("[Grandpa]************Grandpa client VerifyPacketReceiptAbsence end ****************")
@@ -662,16 +624,11 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	// bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
 
 	// todo: this should be child trie proof verification
-	isVerified, err := beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
-
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		return sdkerrors.Wrap(err, "error verifying proof")
+		Logger.Error("unable to verify state proof")
+		return err
 	}
-
-	if !isVerified {
-		logger.Log("unable to verify client consensus state")
-	}
-
 	fmt.Println("[Grandpa]************nextSequenceRecv ****************")
 	fmt.Println("[Grandpa]************Grandpa client VerifyNextSequenceRecv end ****************")
 	return nil

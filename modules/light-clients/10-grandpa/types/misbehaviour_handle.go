@@ -27,7 +27,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 ) (exported.ClientState, error) {
 
 	fmt.Println("[Grandpa]************Grandpa client CheckMisbehaviourAndUpdateState begin ****************")
-	tmMisbehaviour, ok := misbehaviour.(*Misbehaviour)
+	gpMisbehaviour, ok := misbehaviour.(*Misbehaviour)
 	if !ok {
 		return nil, sdkerrors.Wrapf(clienttypes.ErrInvalidClientType, "expected type %T, got %T", misbehaviour, &Misbehaviour{})
 	}
@@ -68,7 +68,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 		// clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header1.BlockHeader.BlockNumber)))
 		clienttypes.NewHeight(0, uint64(0)))
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header1 at TrustedHeight: %s", tmMisbehaviour.Header1)
+		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header1 at TrustedHeight: %s", gpMisbehaviour.Header1.String())
 	}
 
 	// Get consensus bytes from clientStore
@@ -76,7 +76,7 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 		// clienttypes.NewHeight(0, uint64(tmMisbehaviour.Header2.BlockHeader.BlockNumber)))
 		clienttypes.NewHeight(0, uint64(0)))
 	if err != nil {
-		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header2 at TrustedHeight: %s", tmMisbehaviour.Header2)
+		return nil, sdkerrors.Wrapf(err, "could not get trusted consensus state from clientStore for Header2 at TrustedHeight: %s", gpMisbehaviour.Header2.String())
 	}
 
 	// Check the validity of the two conflicting headers against their respective
@@ -85,12 +85,12 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	// misbehaviour.ValidateBasic by the client keeper and msg.ValidateBasic
 	// by the base application.
 	if err := checkMisbehaviourHeader(
-		&cs, tmConsensusState1, &tmMisbehaviour.Header1, ctx.BlockTime(),
+		&cs, tmConsensusState1, &gpMisbehaviour.Header1, ctx.BlockTime(),
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "verifying Header1 in Misbehaviour failed")
 	}
 	if err := checkMisbehaviourHeader(
-		&cs, tmConsensusState2, &tmMisbehaviour.Header2, ctx.BlockTime(),
+		&cs, tmConsensusState2, &gpMisbehaviour.Header2, ctx.BlockTime(),
 	); err != nil {
 		return nil, sdkerrors.Wrap(err, "verifying Header2 in Misbehaviour failed")
 	}

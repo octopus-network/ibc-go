@@ -60,11 +60,8 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	}
 
 	beefyMMR := gpHeader.BeefyMmr
-
-	// step1:  verify signature
 	gsc := beefyMMR.SignedCommitment
 	beefyPalyloads := make([]types.PayloadItem, len(gsc.Commitment.Payloads))
-
 	// convert payloads
 	for i, v := range gsc.Commitment.Payloads {
 		beefyPalyloads[i] = types.PayloadItem{
@@ -90,29 +87,13 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 		},
 		Signatures: beefySignatures,
 	}
-	// checking signatures Threshold
-	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(gsc.Signatures)) ||
-		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(gsc.Signatures)) {
 
-		return nil, nil, sdkerrors.Wrap(errors.New(""), ErrInvalidValidatorSet.Error())
-
+	// step1:  verify signature
+	err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
+	if err != nil {
+		return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
 	}
 
-	// verify signatures
-	switch gsc.Commitment.ValidatorSetId {
-	case cs.AuthoritySet.Id:
-		err := beefy.VerifySignature(bsc, uint64(cs.AuthoritySet.Len), beefy.Bytes32(cs.AuthoritySet.Root), beefyMMR.SignatureProofs)
-		if err != nil {
-			return nil, nil, sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
-		}
-
-	case cs.NextAuthoritySet.Id:
-		err := beefy.VerifySignature(bsc, uint64(cs.NextAuthoritySet.Len), beefy.Bytes32(cs.NextAuthoritySet.Root), beefyMMR.SignatureProofs)
-		if err != nil {
-			return nil, nil, sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
-		}
-
-	}
 	// step2: verify mmr
 	// convert mmrleaf
 	beefyMMRLeaves := make([]types.MMRLeaf, len(beefyMMR.MmrLeavesAndBatchProof.Leaves))
@@ -141,21 +122,84 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 		LeafCount: types.NewU64(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof.LeafCount),
 		Items:     beefyItems,
 	}
-	// verify mmr batch proof
-	if beefyMMR.SignedCommitment.Commitment.BlockNumber > cs.LatestBeefyHeight {
-		result, err := beefy.VerifyMMRBatchProof(beefyPalyloads, beefyMMR.MmrSize,
-			beefyMMRLeaves, beefyBatchProof)
-		if err != nil || !result {
-			return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr proof")
-		}
+
+	// check mmr height
+	if beefyMMR.SignedCommitment.Commitment.BlockNumber <= cs.LatestBeefyHeight {
+		return nil, nil, sdkerrors.Wrap(err, "Commitment.BlockNumber < cs.LatestBeefyHeight")
+	}
+
+	//verify mmr proof
+	result, err := beefy.VerifyMMRBatchProof(beefyPalyloads, beefyMMR.MmrSize,
+		beefyMMRLeaves, beefyBatchProof)
+	if err != nil || !result {
+		return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr proof")
 	}
 
 	// step3: verify header
-	// headerMap := gpHeader.Message
-	switch cs.ChainType {
-	case beefy.SOLOCHAIN:
+	err = cs.VerifyHeader(*gpHeader, beefyMMRLeaves)
+	if err != nil {
+		return nil, nil, sdkerrors.Wrap(err, "failed to verify header")
+	}
 
-		// convert pb leaf to substrate mmr leaf
+	//TODO: update consensue state,save all the consensue state at height,but just return only one
+	UpdateConsensusStates(ctx, cdc, clientStore, header)
+
+	//TODO:finally,build and return new client state ,new consensus state
+	// newClientState, newConsensusState := update(ctx, clientStore, &cs, tmHeader)
+	newClientState := NewClientState(cs.ChainId, cs.ChainType, cs.BeefyActivationBlock, cs.LatestBeefyHeight,
+		cs.MmrRootHash, cs.LatestHeight, cs.FrozenHeight, cs.AuthoritySet, cs.NextAuthoritySet)
+	newConsensusState, _ := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
+	// set metadata for this consensus state
+	setConsensusMetadata(ctx, clientStore, gpHeader.GetHeight())
+	fmt.Println("[Grandpa] new client state")
+	fmt.Println(newClientState)
+	fmt.Println("[Grandpa] new client consensusState")
+	fmt.Println(newConsensusState)
+	fmt.Println("[Grandpa]************Grandpa client CheckHeaderAndUpdateState end ****************")
+	return newClientState, newConsensusState, nil
+}
+
+func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProofs [][]byte) error {
+
+	// checking signatures Threshold
+	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(bsc.Signatures)) ||
+		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(bsc.Signatures)) {
+
+		return sdkerrors.Wrap(errors.New(""), ErrInvalidValidatorSet.Error())
+
+	}
+
+	// verify signatures
+	switch bsc.Commitment.ValidatorSetID {
+	case cs.AuthoritySet.Id:
+		err := beefy.VerifySignature(bsc, uint64(cs.AuthoritySet.Len), beefy.Bytes32(cs.AuthoritySet.Root), SignatureProofs)
+		if err != nil {
+			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+		}
+		//TODO: update cs mmr root
+		// cs.MmrRootHash = bsc.Commitment.Payload[0].Data
+	case cs.NextAuthoritySet.Id:
+		err := beefy.VerifySignature(bsc, uint64(cs.NextAuthoritySet.Len), beefy.Bytes32(cs.NextAuthoritySet.Root), SignatureProofs)
+		if err != nil {
+			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+		}
+		//update cs current authority set and mmr root
+		// cs.AuthoritySet = cs.NextAuthoritySet
+		// cs.MmrRootHash = bsc.Commitment.Payload[0].Data
+		// update cs.NextAuthoritySet  via mmrleaf.NextAuthoritySet
+	}
+
+	return nil
+}
+
+// // verify mmr batch proof
+func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []types.MMRLeaf,
+) error {
+
+	switch cs.ChainType {
+	case beefy.CHAINTYPE_SOLOCHAIN:
+
+		// convert pb solochain header to beefy solochain header
 		beefySolochainHeaderMap := make(map[uint32]beefy.SolochainHeader)
 		headerMap := gpHeader.GetSolochainHeaderMap()
 		for num, header := range headerMap.SolochainHeaderMap {
@@ -164,12 +208,12 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
 		}
-		beefy.VerifySolochainHeader(beefyMMRLeaves, beefySolochainHeaderMap)
-		//TODO: update consensue state
-		
-		
-	case beefy.PARACHAIN:
-		
+		err := beefy.VerifySolochainHeader(beefyMMRLeaves, beefySolochainHeaderMap)
+		if err != nil {
+			return err
+		}
+	case beefy.CHAINTYPE_PARACHAIN:
+
 		// convert pb leaf to substrate mmr leaf
 		beefyParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
 		headerMap := gpHeader.GetParachainHeaderMap()
@@ -192,26 +236,12 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 			}
 
 		}
-		beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
-		//TODO: update consensue state
-		//TODO: save all the consensue state at height,but just return only one
+		err := beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
+		if err != nil {
+			return err
+		}
 	}
-
-	
-
-	//TODO:finally,build and return new client state ,new consensus state
-	// newClientState, newConsensusState := update(ctx, clientStore, &cs, tmHeader)
-	newClientState := NewClientState(cs.ChainId, cs.ChainType, cs.BeefyActivationBlock, cs.LatestBeefyHeight,
-		cs.MmrRootHash, cs.LatestHeight, cs.FrozenHeight, cs.AuthoritySet, cs.NextAuthoritySet)
-	newConsensusState, _ := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
-	// set metadata for this consensus state
-	setConsensusMetadata(ctx, clientStore, gpHeader.GetHeight())
-	fmt.Println("[Grandpa] new client state")
-	fmt.Println(newClientState)
-	fmt.Println("[Grandpa] new client consensusState")
-	fmt.Println(newConsensusState)
-	fmt.Println("[Grandpa]************Grandpa client CheckHeaderAndUpdateState end ****************")
-	return newClientState, newConsensusState, nil
+	return nil
 }
 
 // checkTrustedHeader checks that consensus state matches trusted fields of Header
@@ -342,4 +372,3 @@ func update(ctx sdk.Context, clientStore sdk.KVStore, clientState *ClientState, 
 
 	return clientState, consensusState
 }
-
