@@ -27,13 +27,14 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+require github.com/ComposableFi/go-merkle-trees v0.0.0-20220505132313-e976260288cc
+
 require (
 	filippo.io/edwards25519 v1.0.0-beta.2 // indirect
 	github.com/99designs/keyring v1.1.6 // indirect
 	github.com/ChainSafe/chaindb v0.1.5-0.20220708005902-df45dbc8e840 // indirect
 	github.com/ChainSafe/go-schnorrkel v1.0.1-0.20220711122024-027d287d27bf // indirect
 	github.com/ChainSafe/log15 v1.0.0 // indirect
-	github.com/ComposableFi/go-merkle-trees v0.0.0-20220505132313-e976260288cc // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/Workiva/go-datastructures v1.0.53 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -66,6 +67,7 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/go-kit/kit v0.12.0 // indirect
+	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
@@ -139,7 +141,6 @@ require (
 )
 
 require (
-	github.com/go-kit/log v0.2.1
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/octopus-network/beefy-go v0.0.0-20230212104519-5c71e53071e3
 )

@@ -1,20 +1,19 @@
 package types
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
 	// grandpa "github.com/cosmos/ibc-go/v3/modules/light-clients/10-grandpa"
 	"github.com/octopus-network/beefy-go/beefy"
 
-	scale "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
+	gsrpccodec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	connectiontypes "github.com/cosmos/ibc-go/v3/modules/core/03-connection/types"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
 	// log "github.com/go-kit/log"
@@ -24,8 +23,9 @@ var _ exported.ClientState = (*ClientState)(nil)
 
 // NewClientState creates a new ClientState instance
 func NewClientState(
-	chainId uint32,
 	chainType uint32,
+	chainId string,
+	parachainId uint32,
 	beefyActivationBlock uint32,
 	latestBeefyHeight uint32,
 	mmrRootHash []byte,
@@ -35,12 +35,13 @@ func NewClientState(
 	nextAuthoritySet BeefyAuthoritySet,
 ) *ClientState {
 	return &ClientState{
-		ChainId:              chainId,
 		ChainType:            chainType,
+		ChainId:              chainId,
+		ParachainId:          parachainId,
 		BeefyActivationBlock: beefyActivationBlock,
 		LatestBeefyHeight:    latestBeefyHeight,
 		MmrRootHash:          mmrRootHash,
-		LatestHeight:         latestHeight,
+		LatestChainHeight:    latestHeight,
 		FrozenHeight:         frozenHeight,
 		AuthoritySet:         authoritySet,
 		NextAuthoritySet:     nextAuthoritySet,
@@ -49,18 +50,23 @@ func NewClientState(
 
 // GetChainID returns the chain-id
 func (cs ClientState) GetChainID() string {
-	chainIDStr := strconv.Itoa(int(cs.ChainId))
-	return chainIDStr
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetChainID()")
+
+	return cs.ChainId
 }
 
 // ClientType is tendermint.
 func (cs ClientState) ClientType() string {
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.ClientType()")
+
 	return exported.Grandpa
 }
 
-// GetLatestHeight returns latest block height.
+// GetLatestHeight returns latest beefy height,note chain height.
 func (cs ClientState) GetLatestHeight() exported.Height {
-	// return cs.BlockNumber
+
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetLatestHeight()")
+
 	return clienttypes.Height{
 		RevisionNumber: 0,
 		RevisionHeight: uint64(cs.LatestBeefyHeight),
@@ -80,98 +86,31 @@ func (cs ClientState) Status(
 	clientStore sdk.KVStore,
 	cdc codec.BinaryCodec,
 ) exported.Status {
-	// if !cs.FrozenHeight.IsZero() {
-	// 	return exported.Frozen
-	// }
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Status()")
 
-	// // get latest consensus state from clientStore to check for expiry
-	// consState, err := GetConsensusState(clientStore, cdc, cs.GetLatestHeight())
-	// if err != nil {
-	// 	return exported.Unknown
-	// }
-
-	// if cs.IsExpired(consState.Timestamp, ctx.BlockTime()) {
-	// 	return exported.Expired
-	// }
 	if cs.FrozenHeight > 0 {
 		return exported.Frozen
 	}
 
-	fmt.Println("[Grandpa]************Grandpa Status****************")
-
 	return exported.Active
 }
 
+// TODO: check expired
 // IsExpired returns whether or not the client has passed the trusting period since the last
 // update (in which case no headers are considered valid).
 func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
-	// expirationTime := latestTimestamp.Add(cs.TrustingPeriod)
-	// return !expirationTime.After(now)
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.IsExpired()")
+
 	return false
 }
 
 // Validate performs a basic validation of the client state fields.
 func (cs ClientState) Validate() error {
-	fmt.Println("[Grandpa]************Grandpa validate****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Validate()")
 
-	if strings.TrimSpace(strconv.Itoa(int(cs.ChainId))) == "" {
-		return sdkerrors.Wrap(ErrInvalidChainID, "chain id cannot be empty string")
+	if cs.LatestBeefyHeight == 0 {
+		return ErrInvalidHeaderHeight
 	}
-
-	// NOTE: the value of tmtypes.MaxChainIDLen may change in the future.
-	// If this occurs, the code here must account for potential difference
-	// between the tendermint version being run by the counterparty chain
-	// and the tendermint version used by this light client.
-	// https://github.com/cosmos/ibc-go/issues/177
-	// if len(cs.ChainId) > tmtypes.MaxChainIDLen {
-	// 	return sdkerrors.Wrapf(ErrInvalidChainID, "chainID is too long; got: %d, max: %d", len(cs.ChainId), tmtypes.MaxChainIDLen)
-	// }
-
-	// if err := light.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
-	// 	return err
-	// }
-	// if cs.TrustingPeriod == 0 {
-	// 	return sdkerrors.Wrap(ErrInvalidTrustingPeriod, "trusting period cannot be zero")
-	// }
-	// if cs.UnbondingPeriod == 0 {
-	// 	return sdkerrors.Wrap(ErrInvalidUnbondingPeriod, "unbonding period cannot be zero")
-	// }
-	// if cs.MaxClockDrift == 0 {
-	// 	return sdkerrors.Wrap(ErrInvalidMaxClockDrift, "max clock drift cannot be zero")
-	// }
-
-	// the latest height revision number must match the chain id revision number
-	// if cs.LatestHeight.RevisionNumber != clienttypes.ParseChainID(cs.ChainId) {
-	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight,
-	// 		"latest height revision number must match chain id revision number (%d != %d)", cs.LatestHeight.RevisionNumber, clienttypes.ParseChainID(cs.ChainId))
-	// }
-	// if cs.LatestHeight.RevisionHeight == 0 {
-	// 	return sdkerrors.Wrapf(ErrInvalidHeaderHeight, "tendermint client's latest height revision height cannot be zero")
-	// }
-
-	// if cs.TrustingPeriod >= cs.UnbondingPeriod {
-	// 	return sdkerrors.Wrapf(
-	// 		ErrInvalidTrustingPeriod,
-	// 		"trusting period (%s) should be < unbonding period (%s)", cs.TrustingPeriod, cs.UnbondingPeriod,
-	// 	)
-	// }
-
-	// if cs.ProofSpecs == nil {
-	// 	return sdkerrors.Wrap(ErrInvalidProofSpecs, "proof specs cannot be nil for tm client")
-	// }
-	// for i, spec := range cs.ProofSpecs {
-	// 	if spec == nil {
-	// 		return sdkerrors.Wrapf(ErrInvalidProofSpecs, "proof spec cannot be nil at index: %d", i)
-	// 	}
-	// }
-	// // UpgradePath may be empty, but if it isn't, each key must be non-empty
-	// for i, k := range cs.UpgradePath {
-	// 	if strings.TrimSpace(k) == "" {
-	// 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "key in upgrade path at index %d cannot be empty", i)
-	// 	}
-	// }
-
-	fmt.Println(cs.String())
 
 	return nil
 }
@@ -179,7 +118,8 @@ func (cs ClientState) Validate() error {
 // GetProofSpecs returns the format the client expects for proof verification
 // as a string array specifying the proof type for each position in chained proof
 func (cs ClientState) GetProofSpecs() []*ics23.ProofSpec {
-	fmt.Println("[Grandpa]************Grandpa GetProofSpecs***************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetProofSpecs()")
+
 	//ps := []*ics23.ProofSpec{}
 	ps := commitmenttypes.GetSDKSpecs()
 	return ps
@@ -189,7 +129,8 @@ func (cs ClientState) GetProofSpecs() []*ics23.ProofSpec {
 // ZeroCustomFields returns a ClientState that is a copy of the current ClientState
 // with all client customizable fields zeroed out
 func (cs ClientState) ZeroCustomFields() exported.ClientState {
-	fmt.Println("[Grandpa]************Grandpa ZeroCustomFields***************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.ZeroCustomFields()")
+
 	// copy over all chain-specified fields
 	// and leave custom fields empty
 
@@ -199,7 +140,7 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 		BeefyActivationBlock: cs.BeefyActivationBlock,
 		LatestBeefyHeight:    cs.LatestBeefyHeight,
 		MmrRootHash:          cs.MmrRootHash,
-		LatestHeight:         cs.LatestHeight,
+		LatestChainHeight:    cs.LatestChainHeight,
 		FrozenHeight:         cs.FrozenHeight,
 		AuthoritySet:         cs.AuthoritySet,
 		NextAuthoritySet:     cs.NextAuthoritySet,
@@ -209,14 +150,20 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 // Initialize will check that initial consensus state is a Grandpa consensus state
 // and will store ProcessedTime for initial consensus state as ctx.BlockTime()
 func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientStore sdk.KVStore, consState exported.ConsensusState) error {
-	// ctx.Logger().Info("lightclient", "Grandpa", "caller", .DefaultCaller, "method", "Initialize")
+	ctx.Logger().Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Initialize()")
+
 	if _, ok := consState.(*ConsensusState); !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidConsensus, "invalid initial consensus state. expected type: %T, got: %T",
 			&ConsensusState{}, consState)
 	}
 	// set metadata for initial consensus state.
-	setConsensusMetadata(ctx, clientStore, cs.GetLatestHeight())
-	fmt.Println("[Grandpa]*********************Grandpa client state initialize end ****************************")
+	//Note,this height must be solochain or parachain height
+	latestChainHeigh := clienttypes.Height{
+		RevisionNumber: 0,
+		RevisionHeight: uint64(cs.LatestChainHeight),
+	}
+	setConsensusMetadata(ctx, clientStore, latestChainHeigh)
+
 	return nil
 }
 
@@ -231,7 +178,7 @@ func (cs ClientState) VerifyClientState(
 	proof []byte,
 	clientState exported.ClientState,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyClientState begin ****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientState()")
 
 	if clientState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "client state cannot be empty")
@@ -248,18 +195,8 @@ func (cs ClientState) VerifyClientState(
 	// 	return err
 	// }
 
-	//TODO: check why encode?
-	// csEncoded, err := scale.Encode(clientState)
-	// if err != nil {
-	// 	return sdkerrors.Wrap(err, "clientState could not be scale encoded")
-	// }
-
-	// TODO: build state proof
-	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
-	if err != nil {
-		return err
-	}
-	// TODO: build state key
+	// build state key,I think don`t build state key for substrate state proof
+	// just upload in proof
 	// key:=beefy.CreateStorageKeyPrefix(prefix, method string)
 	// the key is just the raw utf-8 bytes of the prefix + path
 	// key := []byte(strings.Join(path.GetKeyPath(), ""))
@@ -267,14 +204,26 @@ func (cs ClientState) VerifyClientState(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	encodedClientState, err := gsrpccodec.Encode(clientState)
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		return sdkerrors.Wrap(err, "clientState could not be scale encoded")
+	}
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyClientState()", "encodedClientState", encodedClientState)
+	// get state proof
+	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
+	if err != nil {
 		return err
 	}
 
-	fmt.Println(clientState)
-	fmt.Println("[Grandpa]************Grandpa client VerifyClientState end ****************")
+	// err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, encodedClientState)
+	if err != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyClientState()", "failure to verify state proof: ", err)
+		return err
+	}
+
 	return nil
 
 }
@@ -291,7 +240,7 @@ func (cs ClientState) VerifyClientConsensusState(
 	proof []byte,
 	consensusState exported.ConsensusState,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyClientConsensusState begin ****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientConsensusState()")
 
 	if consensusState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "consensus state cannot be empty")
@@ -302,11 +251,13 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
 	}
 
-	//TODO: why encode?
-	// csEncoded, err := scale.Encode(consensusState)
-	// if err != nil {
-	// 	return sdkerrors.Wrap(err, "consensusState could not be scale encoded")
-	// }
+	// encode consensue state
+	encodedConsensueState, err := gsrpccodec.Encode(consensusState)
+	if err != nil {
+		return sdkerrors.Wrap(err, "consensusState could not be scale encoded")
+	}
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyClientConsensusState()", "encodedConsensueState", encodedConsensueState)
 
 	// clientPrefixedPath := commitmenttypes.NewMerklePath(host.FullConsensusStatePath(counterpartyClientIdentifier, consensusHeight))
 	// path, err := commitmenttypes.ApplyPrefix(prefix, clientPrefixedPath)
@@ -314,26 +265,26 @@ func (cs ClientState) VerifyClientConsensusState(
 	// 	return err
 	// }
 
-	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
-	if err != nil {
-		return err
-	}
-
 	// the key is just the raw utf-8 bytes of the prefix + path
 	// key := []byte(strings.Join(path.GetKeyPath(), ""))
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	// verify state proof
-	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
-		Logger.Error("unable to verify state proof")
 		return err
 	}
 
-	fmt.Println(consensusState)
-	fmt.Println("[Grandpa]************Grandpa client VerifyClientConsensusState end ****************")
+	// verify state proof
+	// err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, encodedConsensueState)
+	if err != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyClientConsensusState()", "failure to verify state proof: ", err)
+		return err
+	}
+
 	return nil
 }
 
@@ -348,7 +299,7 @@ func (cs ClientState) VerifyConnectionState(
 	connectionID string,
 	connectionEnd exported.ConnectionI,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyConnectionState begin ****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyConnectionState()")
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -360,36 +311,36 @@ func (cs ClientState) VerifyConnectionState(
 	// if err != nil {
 	// 	return err
 	// }
-
-	// connection, ok := connectionEnd.(connectiontypes.ConnectionEnd)
-	// if !ok {
-	// 	return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid connection type %T", connectionEnd)
-	// }
-
 	// the key is just the raw utf-8 bytes of the prefix + path
 	// key := []byte(strings.Join(path.GetKeyPath(), ""))
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	//TODO: why encode?
-	// connEncoded, err := scale.Encode(connection)
-	// if err != nil {
-	// 	return sdkerrors.Wrap(err, "connection state could not be scale encoded")
-	// }
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	connection, ok := connectionEnd.(connectiontypes.ConnectionEnd)
+	if !ok {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid connection type %T", connectionEnd)
+	}
+
+	//encode connectionend
+	encodedConnEnd, err := gsrpccodec.Encode(connection)
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		return sdkerrors.Wrap(err, "connection state could not be scale encoded")
+	}
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyConnectionState()", "encodedConnEnd", encodedConnEnd)
+
+	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedConnEnd)
+
+	if err != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyConnectionState()", "failure to verify state proof: ", err)
 		return err
 	}
 
 	return nil
 
-	//TODO: invoke the light client.VerifyStateProof()
-	fmt.Println(connectionEnd)
-	fmt.Println("[Grandpa]************Grandpa client VerifyConnectionState end ****************")
-
-	return nil
 }
 
 // VerifyChannelState verifies a proof of the channel state of the specified
@@ -404,8 +355,8 @@ func (cs ClientState) VerifyChannelState(
 	channelID string,
 	channel exported.ChannelI,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyChannelState begin ****************")
-
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyChannelState()")
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
@@ -417,31 +368,34 @@ func (cs ClientState) VerifyChannelState(
 	// 	return err
 	// }
 
-	// channelEnd, ok := channel.(channeltypes.Channel)
-	// if !ok {
-	// 	return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid channel type %T", channel)
-	// }
-
-	//TODO: why encode?
-	// chanEncoded, err := scale.Encode(channelEnd)
-	// if err != nil {
-	// 	return sdkerrors.Wrap(err, "channel end could not be scale encoded")
-	// }
-
 	// the key is just the raw utf-8 bytes of the prefix + path
 	// key := []byte(strings.Join(path.GetKeyPath(), ""))
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
-	if err != nil {
-		Logger.Error("unable to verify state proof")
-		return err
+	channelEnd, ok := channel.(channeltypes.Channel)
+	if !ok {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid channel type %T", channel)
 	}
 
-	fmt.Println(channel)
-	fmt.Println("[Grandpa]************Grandpa client VerifyChannelState end ****************")
+	//encode channel end
+	encodedChanEnd, err := gsrpccodec.Encode(channelEnd)
+	if err != nil {
+		return sdkerrors.Wrap(err, "channel end could not be scale encoded")
+	}
+
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyChannelState()", "encodedChanEnd", encodedChanEnd)
+
+	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedChanEnd)
+	if err != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyChannelState()", "failure to verify state proof: ", err)
+
+		return err
+	}
 
 	return nil
 }
@@ -462,12 +416,24 @@ func (cs ClientState) VerifyPacketCommitment(
 	sequence uint64,
 	commitmentBytes []byte,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketCommitment begin ****************")
+
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyPacketCommitment()")
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
 	}
+
+	// check delay period has passed
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
+		return err
+	}
+
+	// check delay period has passed
+	// if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
+	// 	return err
+	// }
 
 	// commitmentPath := commitmenttypes.NewMerklePath(host.PacketCommitmentPath(portID, channelID, sequence))
 	// path, err := commitmenttypes.ApplyPrefix(prefix, commitmentPath)
@@ -481,14 +447,19 @@ func (cs ClientState) VerifyPacketCommitment(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	// TODO:confirm the commitmentBytes is scale encode?
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyChannelState()", "commitmentBytes", commitmentBytes)
+
+	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, commitmentBytes)
 
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyPacketCommitment()", "failure to verify state proof: ", err)
 		return err
 	}
-	fmt.Println(commitmentBytes)
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketCommitment end ****************")
+
 	return nil
 }
 
@@ -508,10 +479,16 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	sequence uint64,
 	acknowledgement []byte,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketAcknowledgement begin ****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyPacketAcknowledgement()")
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
+		return err
+	}
+
+	// check delay period has passed
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -527,16 +504,20 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	// acknowledgement
+	// TODO: confirm the acknowledgement is scale encode?
+
+	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, acknowledgement)
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyPacketAcknowledgement()", "failure to verify state proof: ", err)
 		return err
 	}
-	fmt.Println(acknowledgement)
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketAcknowledgement end ****************")
 	return nil
 }
 
+// TODO: confirm process
 // VerifyPacketReceiptAbsence verifies a proof of the absence of an
 // incoming packet receipt at the specified port, specified channel, and
 // specified sequence.
@@ -553,10 +534,14 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	channelID string,
 	sequence uint64,
 ) error {
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketReceiptAbsence begin ****************")
-
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyPacketReceiptAbsence()")
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
+		return err
+	}
+	// check delay period has passed
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
 	}
 
@@ -576,14 +561,13 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	// TODO: use parity/trie proofOfNonExistence for receipt absence
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyPacketReceiptAbsence()", "failure to verify state proof: ", err)
+
 		return err
 	}
-	fmt.Println(sequence)
-	fmt.Println("[Grandpa]************Grandpa client VerifyPacketReceiptAbsence end ****************")
 	return nil
 }
 
@@ -603,13 +587,17 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	nextSequenceRecv uint64,
 ) error {
 	// ctx.Logger().Info()
-	fmt.Println("[Grandpa]************Grandpa client VerifyNextSequenceRecv begin ****************")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyNextSequenceRecv()")
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
 	}
-
+	// check delay period has passed
+	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
+		return err
+	}
 	// nextSequenceRecvPath := commitmenttypes.NewMerklePath(host.NextSequenceRecvPath(portID, channelID))
 	// path, err := commitmenttypes.ApplyPrefix(prefix, nextSequenceRecvPath)
 	// if err != nil {
@@ -621,16 +609,20 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	// 	return sdkerrors.Wrap(err, "next sequence recv path could not be scale encoded")
 	// }
 
-	// bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
+	bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyNextSequenceRecv()", "nextSequenceRecv", bz)
 
-	// todo: this should be child trie proof verification
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, bz)
+
 	if err != nil {
-		Logger.Error("unable to verify state proof")
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyNextSequenceRecv()", "failure to verify state proof: ", err)
+
 		return err
 	}
-	fmt.Println("[Grandpa]************nextSequenceRecv ****************")
-	fmt.Println("[Grandpa]************Grandpa client VerifyNextSequenceRecv end ****************")
+
 	return nil
 }
 
@@ -638,29 +630,31 @@ func (cs ClientState) VerifyNextSequenceRecv(
 // since consensus state was submitted before allowing verification to continue.
 func verifyDelayPeriodPassed(ctx sdk.Context, store sdk.KVStore, proofHeight exported.Height, delayTimePeriod, delayBlockPeriod uint64) error {
 	// check that executing chain's timestamp has passed consensusState's processed time + delay time period
-	processedTime, ok := GetProcessedTime(store, proofHeight)
-	if !ok {
-		return sdkerrors.Wrapf(ErrProcessedTimeNotFound, "processed time not found for height: %s", proofHeight)
-	}
-	currentTimestamp := uint64(ctx.BlockTime().UnixNano())
-	validTime := processedTime + delayTimePeriod
-	// NOTE: delay time period is inclusive, so if currentTimestamp is validTime, then we return no error
-	if currentTimestamp < validTime {
-		return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until time: %d, current time: %d",
-			validTime, currentTimestamp)
-	}
-	// check that executing chain's height has passed consensusState's processed height + delay block period
-	processedHeight, ok := GetProcessedHeight(store, proofHeight)
-	if !ok {
-		return sdkerrors.Wrapf(ErrProcessedHeightNotFound, "processed height not found for height: %s", proofHeight)
-	}
-	currentHeight := clienttypes.GetSelfHeight(ctx)
-	validHeight := clienttypes.NewHeight(processedHeight.GetRevisionNumber(), processedHeight.GetRevisionHeight()+delayBlockPeriod)
-	// NOTE: delay block period is inclusive, so if currentHeight is validHeight, then we return no error
-	if currentHeight.LT(validHeight) {
-		return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until height: %s, current height: %s",
-			validHeight, currentHeight)
-	}
+	/*
+		processedTime, ok := GetProcessedTime(store, proofHeight)
+		if !ok {
+			return sdkerrors.Wrapf(ErrProcessedTimeNotFound, "processed time not found for height: %s", proofHeight)
+		}
+		currentTimestamp := uint64(ctx.BlockTime().UnixNano())
+		validTime := processedTime + delayTimePeriod
+		// NOTE: delay time period is inclusive, so if currentTimestamp is validTime, then we return no error
+		if currentTimestamp < validTime {
+			return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until time: %d, current time: %d",
+				validTime, currentTimestamp)
+		}
+		// check that executing chain's height has passed consensusState's processed height + delay block period
+		processedHeight, ok := GetProcessedHeight(store, proofHeight)
+		if !ok {
+			return sdkerrors.Wrapf(ErrProcessedHeightNotFound, "processed height not found for height: %s", proofHeight)
+		}
+		currentHeight := clienttypes.GetSelfHeight(ctx)
+		validHeight := clienttypes.NewHeight(processedHeight.GetRevisionNumber(), processedHeight.GetRevisionHeight()+delayBlockPeriod)
+		// NOTE: delay block period is inclusive, so if currentHeight is validHeight, then we return no error
+		if currentHeight.LT(validHeight) {
+			return sdkerrors.Wrapf(ErrDelayPeriodNotPassed, "cannot verify packet until height: %s, current height: %s",
+				validHeight, currentHeight)
+		}
+	*/
 	return nil
 }
 
@@ -698,10 +692,10 @@ func produceVerificationArgs(
 		return StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidPrefix, "invalid prefix type %T, expected *MerklePrefix", prefix)
 	}
 
-	//TODO: decode proof
-	err = scale.Decode(proof, &stateProof)
+	// Note: decode proof
+	err = gsrpccodec.Decode(proof, &stateProof)
 	if err != nil {
-		return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into BeefyProof struct")
+		return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
 	}
 
 	consensusState, err = GetConsensusState(store, cdc, height)

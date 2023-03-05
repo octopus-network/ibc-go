@@ -3410,12 +3410,13 @@ and a possible frozen height.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `chain_id` | [uint32](#uint32) |  | if chain_type is solochain,chain id is 0 if chain_type is parachain,chain id is parachain id |
-| `chain_type` | [uint32](#uint32) |  | chains type |
+| `chain_type` | [uint32](#uint32) |  | 0: solochain 1: parachain |
+| `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1 |
+| `parachain_id` | [uint32](#uint32) |  | parachain id is uint type |
 | `beefy_activation_block` | [uint32](#uint32) |  | block number that the beefy protocol was activated on the relay chain. This should be the first block in the merkle-mountain-range tree. |
-| `latest_beefy_height` | [uint32](#uint32) |  | block number for the latest mmr_root_hash |
+| `latest_beefy_height` | [uint32](#uint32) |  | the latest mmr_root_hash height |
 | `mmr_root_hash` | [bytes](#bytes) |  | Latest mmr root hash |
-| `latest_height` | [uint32](#uint32) |  | latest solochain or parachain height |
+| `latest_chain_height` | [uint32](#uint32) |  | latest solochain or parachain height |
 | `frozen_height` | [uint32](#uint32) |  | Block height when the client was frozen due to a misbehaviour |
 | `authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the current round |
 | `next_authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the next round |

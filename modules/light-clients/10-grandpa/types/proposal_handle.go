@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -28,7 +27,8 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 	ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore,
 	substituteClientStore sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
-	fmt.Println("[Grandpa]************Grandpa client CheckSubstituteAndUpdateState begin ****************")
+	ctx.Logger().Debug("LightClient:", "10-Grandpa", "method:", "CheckSubstituteAndUpdateState")
+
 	substituteClientState, ok := substituteClient.(*ClientState)
 	if !ok {
 		return nil, sdkerrors.Wrapf(
@@ -40,24 +40,10 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 		return nil, sdkerrors.Wrap(clienttypes.ErrInvalidSubstitute, "subject client state does not match substitute client state")
 	}
 
-	// switch cs.Status(ctx, subjectClientStore, cdc) {
-
-	// case exported.Frozen:
-	// 	if !cs.AllowUpdateAfterMisbehaviour {
-	// 		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unfrozen")
-	// 	}
-
-	// 	// unfreeze the client
-	// 	cs.FrozenHeight = clienttypes.ZeroHeight()
-
-	// case exported.Expired:
-	// 	if !cs.AllowUpdateAfterExpiry {
-	// 		return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client is not allowed to be unexpired")
-	// 	}
-
-	// default:
-	// 	return nil, sdkerrors.Wrap(clienttypes.ErrUpdateClientFailed, "client cannot be updated with proposal")
-	// }
+	if cs.Status(ctx, subjectClientStore, cdc) == exported.Frozen {
+		// unfreeze the client
+		cs.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionNumber)
+	}
 
 	// copy consensus states and processed time from substitute to subject
 	// starting from initial height and ending on the latest height (inclusive)
@@ -83,12 +69,12 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 
 	setConsensusMetadataWithValues(subjectClientStore, height, processedHeight, processedTime)
 
-	cs.LatestHeight = substituteClientState.LatestHeight
+	cs.LatestChainHeight = substituteClientState.LatestChainHeight
 	cs.ChainId = substituteClientState.ChainId
 
 	// no validation is necessary since the substitute is verified to be Active
 	// in 02-client.
-	fmt.Println("[Grandpa]************Grandpa client CheckSubstituteAndUpdateState end ****************")
+
 	return &cs, nil
 }
 
@@ -96,12 +82,12 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 // except for frozen height, latest height, and chain-id.
 func IsMatchingClientState(subject, substitute ClientState) bool {
 	// zero out parameters which do not need to match
-	subject.LatestHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	subject.LatestChainHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
 	subject.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	substitute.LatestHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	substitute.LatestChainHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
 	substitute.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	subject.ChainId = 0
-	substitute.ChainId = 0
+	subject.ChainId = ""
+	substitute.ChainId = ""
 
 	return reflect.DeepEqual(subject, substitute)
 }

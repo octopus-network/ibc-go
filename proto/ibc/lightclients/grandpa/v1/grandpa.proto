@@ -20,26 +20,28 @@ import "gogoproto/gogo.proto";
 message ClientState {
   option (gogoproto.goproto_getters) = false;
 
-  // if chain_type is solochain,chain id is 0
-  // if chain_type is parachain,chain id is parachain id
-  uint32 chain_id = 1;
-  // chains type
-  uint32 chain_type = 2;
+  // 0: solochain
+  // 1: parachain
+  uint32 chain_type = 1;
+  // chain_id string type, eg: ibc-1
+  string chain_id = 2;
+  // parachain id is uint type
+  uint32 parachain_id = 3;
   // block number that the beefy protocol was activated on the relay chain.
   // This should be the first block in the merkle-mountain-range tree.
-  uint32 beefy_activation_block = 3;
-  // block number for the latest mmr_root_hash
-  uint32 latest_beefy_height = 4;
+  uint32 beefy_activation_block = 4;
+  // the latest mmr_root_hash height
+  uint32 latest_beefy_height = 5;
   // Latest mmr root hash
-  bytes mmr_root_hash = 5;
+  bytes mmr_root_hash = 6;
   // latest solochain or parachain height
-  uint32 latest_height = 6;
+  uint32 latest_chain_height = 7;
   // Block height when the client was frozen due to a misbehaviour
-  uint32 frozen_height = 7;
+  uint32 frozen_height = 8;
   // authorities for the current round
-  BeefyAuthoritySet authority_set = 8 [(gogoproto.nullable) = false];
+  BeefyAuthoritySet authority_set = 9 [(gogoproto.nullable) = false];
   // authorities for the next round
-  BeefyAuthoritySet next_authority_set = 9 [(gogoproto.nullable) = false];
+  BeefyAuthoritySet next_authority_set = 10 [(gogoproto.nullable) = false];
 }
 
 // Beefy Authority Info

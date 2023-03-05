@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ComposableFi/go-merkle-trees/mmr"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/octopus-network/beefy-go/beefy"
@@ -67,7 +66,7 @@ type GrandpaTestSuite struct {
 
 func (suite *GrandpaTestSuite) initClientStates() {
 	cs1 := ibcgptypes.ClientState{
-		ChainId:              0,
+		ChainId:              "sub-0",
 		ChainType:            beefy.CHAINTYPE_SOLOCHAIN,
 		BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
 		LatestBeefyHeight:    108,
@@ -196,12 +195,13 @@ func TestSolochainLocalNet(t *testing.T) {
 				t.Logf("toBlockHash: %#x", latestSignedCommitmentBlockHash)
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              beefy.LOCAL_SOLOCHAIN_ID,
+					ChainId:              "barnacle-0",
 					ChainType:            beefy.CHAINTYPE_SOLOCHAIN,
+					ParachainId:          0,
 					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
 					LatestBeefyHeight:    latestSignedCommitmentBlockNumber,
 					MmrRootHash:          s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestHeight:         latestSignedCommitmentBlockNumber,
+					LatestChainHeight:    latestSignedCommitmentBlockNumber,
 					FrozenHeight:         0,
 					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
@@ -233,6 +233,7 @@ func TestSolochainLocalNet(t *testing.T) {
 			authorities, err := beefy.GetBeefyAuthorities(latestSignedCommitmentBlockHash, localSolochainEndpoint, "Authorities")
 			require.NoError(t, err)
 			bsc := beefy.ConvertCommitment(s.SignedCommitment)
+			t.Logf("bsc: %+v", bsc)
 			var authorityIdxes []uint64
 			for _, v := range bsc.Signatures {
 				idx := v.Index
@@ -246,203 +247,43 @@ func TestSolochainLocalNet(t *testing.T) {
 			// build mmr proofs for leaves containing target paraId
 			mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
 			require.NoError(t, err)
-
-			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), latestSignedCommitmentBlockNumber)
-			mmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-
-			result, err := beefy.VerifyMMRBatchProof(s.SignedCommitment.Commitment.Payload,
-				mmrSize, mmrBatchProof.Leaves, mmrBatchProof.Proof)
-			require.NoError(t, err)
-			require.True(t, result)
-
-			// convert payloads
-			gPalyloads := make([]ibcgptypes.PayloadItem, len(bsc.Commitment.Payload))
-			for i, v := range bsc.Commitment.Payload {
-				gPalyloads[i] = ibcgptypes.PayloadItem{
-					Id:   v.ID[:],
-					Data: v.Data,
-				}
-
-			}
-			t.Logf("bsc.Commitment.Payload: %+v", bsc.Commitment.Payload)
-			t.Logf("gpPalyloads: %+v", gPalyloads)
-
-			gCommitment := ibcgptypes.Commitment{
-				Payloads:       gPalyloads,
-				BlockNumber:    bsc.Commitment.BlockNumber,
-				ValidatorSetId: bsc.Commitment.ValidatorSetID,
-			}
-
-			gSignatures := make([]ibcgptypes.Signature, len(bsc.Signatures))
-			for i, v := range bsc.Signatures {
-				gSignatures[i] = ibcgptypes.Signature(v)
-			}
-
-			gsc := ibcgptypes.SignedCommitment{
-				Commitment: gCommitment,
-				Signatures: gSignatures,
-			}
-			// convert mmrleaf
-			var gMMRLeaves []ibcgptypes.MMRLeaf
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-			leafNum := len(mmrBatchProof.Leaves)
-			for i := 0; i < leafNum; i++ {
-				leaf := mmrBatchProof.Leaves[i]
-				parentNumAndHash := ibcgptypes.ParentNumberAndHash{
-					ParentNumber: uint32(leaf.ParentNumberAndHash.ParentNumber),
-					ParentHash:   []byte(leaf.ParentNumberAndHash.Hash[:]),
-				}
-				nextAuthoritySet := ibcgptypes.BeefyAuthoritySet{
-					Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
-					Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
-					Root: []byte(leaf.BeefyNextAuthoritySet.Root[:]),
-				}
-				parachainHeads := []byte(leaf.ParachainHeads[:])
-				gLeaf := ibcgptypes.MMRLeaf{
-					Version:               uint32(leaf.Version),
-					ParentNumberAndHash:   parentNumAndHash,
-					BeefyNextAuthoritySet: nextAuthoritySet,
-					ParachainHeads:        parachainHeads,
-				}
-				t.Logf("gLeaf: %+v", gLeaf)
-				gMMRLeaves = append(gMMRLeaves, gLeaf)
-			}
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-
-			// convert mmr batch proof
-			gLeafIndexes := make([]uint64, len(mmrBatchProof.Proof.LeafIndex))
-			for i, v := range mmrBatchProof.Proof.LeafIndex {
-				gLeafIndexes[i] = uint64(v)
-			}
-
-			gProofItems := [][]byte{}
-			t.Logf("gProofItems: %+v", gProofItems)
-			itemNum := len(mmrBatchProof.Proof.Items)
-			for i := 0; i < itemNum; i++ {
-				item := mmrBatchProof.Proof.Items[i][:]
-				t.Logf("item: %+v", item)
-				gProofItems = append(gProofItems, item)
-				// gProofItems[i] = item
-				t.Logf("gProofItems: %+v", gProofItems)
-			}
-			t.Logf("gProofItems: %+v", gProofItems)
-
-			gBatchProof := ibcgptypes.MMRBatchProof{
-				LeafIndexes: gLeafIndexes,
-				LeafCount:   uint64(mmrBatchProof.Proof.LeafCount),
-				Items:       gProofItems,
-			}
-
-			gMmrLevavesAndProof := ibcgptypes.MMRLeavesAndBatchProof{
-				Leaves:        gMMRLeaves,
-				MmrBatchProof: gBatchProof,
-			}
-
-			// build gBeefyMMR
-			gBeefyMMR := ibcgptypes.BeefyMMR{
-				SignedCommitment:       gsc,
-				SignatureProofs:        authorityProof,
-				MmrLeavesAndBatchProof: gMmrLevavesAndProof,
-				MmrSize:                mmrSize,
-			}
+			pbBeefyMMR := ibcgptypes.Convert2PBBeefyMMR(bsc, mmrBatchProof, authorityProof)
+			t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
 			// step3, build header proof
 			// build solochain header map
-			solochainHeaderMap, err := beefy.BuildSolochainHeaderMap(localSolochainEndpoint, mmrBatchProof.Proof.LeafIndex)
+			solochainHeaderMap, err := beefy.BuildSolochainHeaderMap(localSolochainEndpoint, mmrBatchProof.Proof.LeafIndexes)
 			require.NoError(t, err)
 			t.Logf("solochainHeaderMap: %+v", solochainHeaderMap)
 
-			// verify solochain and proof
-			t.Log("\n------------------ VerifySolochainHeader ----------------------------")
-			err = beefy.VerifySolochainHeader(mmrBatchProof.Leaves, solochainHeaderMap)
-			require.NoError(t, err)
-			t.Log("\n------------------ VerifySolochainHeader end ------------------------\n")
-
-			// convert beefy solochain header to pb solochain header
-			headerMap := make(map[uint32]ibcgptypes.SolochainHeader)
-			for num, header := range solochainHeaderMap {
-				headerMap[num] = ibcgptypes.SolochainHeader{
-					BlockHeader: header.BlockHeader,
-					Timestamp:   ibcgptypes.StateProof(header.Timestamp),
-				}
-			}
-
-			gSolochainHeaderMap := ibcgptypes.SolochainHeaderMap{
-				SolochainHeaderMap: headerMap,
-			}
-
-			t.Logf("gSolochainHeaderMap: %+v", gSolochainHeaderMap)
-
-			header_solochainMap := ibcgptypes.Header_SolochainHeaderMap{
-				SolochainHeaderMap: &gSolochainHeaderMap,
-			}
-
+			pbHeader_solochainMap := ibcgptypes.Convert2PBSolochainHeaderMap(solochainHeaderMap)
 			// build grandpa pb header
-			gheader := ibcgptypes.Header{
-				BeefyMmr: gBeefyMMR,
-				Message:  &header_solochainMap,
+			pbHeader := ibcgptypes.Header{
+				BeefyMmr: pbBeefyMMR,
+				Message:  &pbHeader_solochainMap,
 			}
-			t.Logf("gpheader: %+v", gheader)
+			t.Logf("pbHeader: %+v", pbHeader)
 
 			// mock gp header marshal and unmarshal
-			marshalGHeader, err := gheader.Marshal()
+			marshalPBHeader, err := pbHeader.Marshal()
 			require.NoError(t, err)
-			// t.Logf("marshal gHeader: %+v", marshalGHeader)
+			t.Logf("marshalPBHeader: %+v", marshalPBHeader)
 
-			t.Log("\n\n------------- mock verify on chain -------------\n")
-
+			t.Log("\n\n------------- mock verify on chain -------------")
 			// err = gheader.Unmarshal(marshalGHeader)
-			var unmarshalGPHeader ibcgptypes.Header
-			err = unmarshalGPHeader.Unmarshal(marshalGHeader)
+			var unmarshalPBHeader ibcgptypes.Header
+			err = unmarshalPBHeader.Unmarshal(marshalPBHeader)
 			require.NoError(t, err)
-			t.Logf("unmarshal gHeader: %+v", unmarshalGPHeader)
+			t.Logf("unmarshal gHeader: %+v", unmarshalPBHeader)
 
 			// step1:verify signature
 			// unmarshalBeefyMmr := unmarshalGPHeader.BeefyMmr
-			unmarshalBeefyMmr := gheader.BeefyMmr
-			t.Logf("gBeefyMMR: %+v", gBeefyMMR)
+			unmarshalBeefyMmr := pbHeader.BeefyMmr
+			// t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 			t.Logf("unmarshal BeefyMmr: %+v", unmarshalBeefyMmr)
 
-			unmarshalgsc := unmarshalBeefyMmr.SignedCommitment
-
-			rebuildPalyloads := make([]gsrpctypes.PayloadItem, len(unmarshalgsc.Commitment.Payloads))
-			// // step1:  verify signature
-			for i, v := range unmarshalgsc.Commitment.Payloads {
-				rebuildPalyloads[i] = gsrpctypes.PayloadItem{
-					ID:   beefy.Bytes2(v.Id),
-					Data: v.Data,
-				}
-			}
-			t.Logf("bsc.Commitment.Payload: %+v", bsc.Commitment.Payload)
-			t.Logf("gPalyloads: %+v", gPalyloads)
-			t.Logf("unmarshal payloads: %+v", unmarshalgsc.Commitment.Payloads)
-			t.Logf("rebuildPalyloads: %+v", rebuildPalyloads)
-
-			// convert signature
-			rebuildSignatures := make([]beefy.Signature, len(unmarshalgsc.Signatures))
-			for i, v := range unmarshalgsc.Signatures {
-				rebuildSignatures[i] = beefy.Signature{
-					Index:     v.Index,
-					Signature: v.Signature,
-				}
-			}
-			t.Logf("bsc.Signatures: %+v", bsc.Signatures)
-			t.Logf("gsc.Signatures: %+v", gsc.Signatures)
-			t.Logf("unmarshal Signatures: %+v", unmarshalgsc.Signatures)
-			t.Logf("rebuildSignatures: %+v", rebuildSignatures)
-
-			// build beefy SignedCommitment
-			rebuildBSC := beefy.SignedCommitment{
-				Commitment: gsrpctypes.Commitment{
-					Payload:        rebuildPalyloads,
-					BlockNumber:    unmarshalgsc.Commitment.BlockNumber,
-					ValidatorSetID: unmarshalgsc.Commitment.ValidatorSetId,
-				},
-				Signatures: rebuildSignatures,
-			}
-			t.Logf("bsc: %+v", bsc)
-			t.Logf("gsc: %+v", gsc)
-			t.Logf("unmarshalgsc: %+v", unmarshalgsc)
+			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
+			rebuildBSC := ibcgptypes.Convert2BeefySC(unmarshalPBSC)
 			t.Logf("rebuildBSC: %+v", rebuildBSC)
 
 			t.Log("\n------------------ VerifySignatures --------------------------")
@@ -451,67 +292,15 @@ func TestSolochainLocalNet(t *testing.T) {
 			t.Log("\n------------------ VerifySignatures end ----------------------\n")
 
 			// step2, verify mmr
-			// convert mmrleaf
-			unmarshalLeaves := unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves
-			rebuildMMRLeaves := make([]gsrpctypes.MMRLeaf, len(unmarshalLeaves))
-			for i, v := range unmarshalLeaves {
-				rebuildMMRLeaves[i] = gsrpctypes.MMRLeaf{
-					Version: gsrpctypes.MMRLeafVersion(v.Version),
-					ParentNumberAndHash: gsrpctypes.ParentNumberAndHash{
-						ParentNumber: gsrpctypes.U32(v.ParentNumberAndHash.ParentNumber),
-						Hash:         gsrpctypes.NewHash(v.ParentNumberAndHash.ParentHash),
-					},
-					BeefyNextAuthoritySet: gsrpctypes.BeefyNextAuthoritySet{
-						ID:   gsrpctypes.U64(v.BeefyNextAuthoritySet.Id),
-						Len:  gsrpctypes.U32(v.BeefyNextAuthoritySet.Len),
-						Root: gsrpctypes.NewH256(v.BeefyNextAuthoritySet.Root),
-					},
-					ParachainHeads: gsrpctypes.NewH256(v.ParachainHeads),
-				}
-			}
-			t.Logf("mmrBatchProof.Leaves: %+v", mmrBatchProof.Leaves)
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-			t.Logf("unmarshal mmr Leaves: %+v", unmarshalLeaves)
+			rebuildMMRLeaves := ibcgptypes.Convert2BeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			t.Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-
-			// convert mmr batch proof
-			unmarshaoLeafIndexes := unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes
-			rebuildLeafIndexes := make([]gsrpctypes.U64, len(unmarshaoLeafIndexes))
-			for i, v := range unmarshaoLeafIndexes {
-				rebuildLeafIndexes[i] = gsrpctypes.NewU64(v)
-			}
-			t.Logf("mmrBatchProof.Proof.LeafIndex: %+v", mmrBatchProof.Proof.LeafIndex)
-			t.Logf("gLeafIndexes: %+v", gLeafIndexes)
-			t.Logf("unmarshal leafIndexes: %+v", unmarshaoLeafIndexes)
-			t.Logf("rebuildLeafIndexes: %+v", rebuildLeafIndexes)
-
-			unmarshalItems := unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.Items
-			rebuildItems := make([]gsrpctypes.H256, len(unmarshalItems))
-			for i, v := range unmarshalItems {
-				rebuildItems[i] = gsrpctypes.NewH256(v)
-			}
-
-			t.Logf("mmrBatchProof.Proof.Items: %+v", mmrBatchProof.Proof.Items)
-			t.Logf("gItems: %+v", gProofItems)
-			t.Logf("unmarshal proof items: %+v", unmarshalItems)
-			t.Logf("rebuildItems: %+v", rebuildItems)
-
-			rebuildMmrBatchProof := beefy.MMRBatchProof{
-				LeafIndex: rebuildLeafIndexes,
-				LeafCount: gsrpctypes.NewU64(unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.LeafCount),
-				Items:     rebuildItems,
-			}
-
-			t.Logf("mmrBatchProof: %+v", mmrBatchProof.Proof)
-			t.Logf("gBatchProof: %+v", gBatchProof)
-			t.Logf("unmarshal BatchProof: %+v", unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof)
-			t.Logf("rebuildMmrBatchProof: %+v", rebuildMmrBatchProof)
-
+			rebuildMMRBatchProof := ibcgptypes.Convert2MMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			t.Logf("Convert2MMRBatchProof: %+v", rebuildMMRBatchProof)
 			// check mmr height
 			require.Less(t, clientState.LatestBeefyHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
 			t.Log("\n------------------ VerifyMMRBatchProof --------------------------")
-			result, err = beefy.VerifyMMRBatchProof(rebuildPalyloads,
-				unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, rebuildMmrBatchProof)
+			result, err := beefy.VerifyMMRBatchProof(rebuildBSC.Commitment.Payload,
+				unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, rebuildMMRBatchProof)
 			require.NoError(t, err)
 			require.True(t, result)
 			t.Log("\n------------------ VerifyMMRBatchProof end ----------------------\n")
@@ -519,33 +308,39 @@ func TestSolochainLocalNet(t *testing.T) {
 			// step3, verify header
 			// convert pb solochain header to beefy solochain header
 			rebuildSolochainHeaderMap := make(map[uint32]beefy.SolochainHeader)
-			unmarshalSolochainHeaderMap := unmarshalGPHeader.GetSolochainHeaderMap()
+			unmarshalSolochainHeaderMap := unmarshalPBHeader.GetSolochainHeaderMap()
 			for num, header := range unmarshalSolochainHeaderMap.SolochainHeaderMap {
 				rebuildSolochainHeaderMap[num] = beefy.SolochainHeader{
 					BlockHeader: header.BlockHeader,
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
 			}
-			t.Logf("solochainHeaderMap: %+v", solochainHeaderMap)
-			t.Logf("gSolochainHeaderMap: %+v", gSolochainHeaderMap)
+			// t.Logf("rebuildSolochainHeaderMap: %+v", rebuildSolochainHeaderMap)
 			t.Logf("unmarshal solochainHeaderMap: %+v", *unmarshalSolochainHeaderMap)
-			t.Logf("rebuildSolochainHeaderMap: %+v", rebuildSolochainHeaderMap)
+
 			t.Log("\n------------------ VerifySolochainHeader --------------------------")
-			err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
+			// err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
+			// require.NoError(t, err)
+			err = clientState.VerifyHeader(unmarshalPBHeader, rebuildMMRLeaves)
 			require.NoError(t, err)
 			t.Log("\n------------------ VerifySolochainHeader end ----------------------\n")
 
 			// step4, update client state
+			// update client height
 			clientState.LatestBeefyHeight = latestSignedCommitmentBlockNumber
-			clientState.LatestHeight = latestSignedCommitmentBlockNumber
-			clientState.MmrRootHash = unmarshalgsc.Commitment.Payloads[0].Data
+			clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
+			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
 			// find latest next authority set from mmrleaves
 			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
 			var latestAuthoritySetId uint64
-			for _, leaf := range unmarshalLeaves {
-				if latestAuthoritySetId < leaf.BeefyNextAuthoritySet.Id {
-					latestAuthoritySetId = leaf.BeefyNextAuthoritySet.Id
-					latestNextAuthoritySet = &leaf.BeefyNextAuthoritySet
+			for _, leaf := range rebuildMMRLeaves {
+				if latestAuthoritySetId < uint64(leaf.BeefyNextAuthoritySet.ID) {
+					latestAuthoritySetId = uint64(leaf.BeefyNextAuthoritySet.ID)
+					latestNextAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
+						Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
+						Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
+						Root: leaf.BeefyNextAuthoritySet.Root[:],
+					}
 				}
 
 			}
@@ -557,8 +352,10 @@ func TestSolochainLocalNet(t *testing.T) {
 				clientState.AuthoritySet = *latestNextAuthoritySet
 				t.Logf("update clientState.AuthoritySet : %+v", clientState.AuthoritySet)
 			}
+
 			// step5,update consensue state
-			for num, header := range unmarshalSolochainHeaderMap.SolochainHeaderMap {
+			var latestHeight uint32
+			for _, header := range unmarshalSolochainHeaderMap.SolochainHeaderMap {
 				var decodeHeader gsrpctypes.Header
 				err = gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 				require.NoError(t, err)
@@ -570,9 +367,14 @@ func TestSolochainLocalNet(t *testing.T) {
 					Timestamp: time.UnixMilli(int64(timestamp)),
 					Root:      decodeHeader.StateRoot[:],
 				}
-				consensusStateKVStore[num] = consensusState
+				consensusStateKVStore[uint32(decodeHeader.Number)] = consensusState
+
+				if latestHeight < uint32(decodeHeader.Number) {
+					latestHeight = uint32(decodeHeader.Number)
+				}
 			}
 			t.Logf("latest consensusStateKVStore: %+v", consensusStateKVStore)
+			t.Logf("latest height and consensus state: %d,%+v", latestHeight, consensusStateKVStore[latestHeight])
 
 			// step6, mock to build and verify state proof
 			for num, consnesue := range consensusStateKVStore {
@@ -587,18 +389,20 @@ func TestSolochainLocalNet(t *testing.T) {
 				}
 				t.Logf("timestampProof proofs: %+v", proofs)
 				paraTimestampStoragekey := beefy.CreateStorageKeyPrefix("Timestamp", "Now")
-				t.Logf("paraTimestampStoragekey: %#x", paraTimestampStoragekey)
+				t.Logf("timestampStoragekey: %#x", paraTimestampStoragekey)
 				timestampValue := consnesue.Timestamp.UnixMilli()
 				t.Logf("timestampValue: %d", timestampValue)
 				encodedTimeStampValue, err := gsrpccodec.Encode(timestampValue)
 				require.NoError(t, err)
 				t.Logf("encodedTimeStampValue: %+v", encodedTimeStampValue)
+				t.Log("\n------------------ VerifyStateProof --------------------------")
 				err = beefy.VerifyStateProof(proofs, consnesue.Root, paraTimestampStoragekey, encodedTimeStampValue)
 				require.NoError(t, err)
 				t.Log("beefy.VerifyStateProof(proof,root,key,value) result: True")
+				t.Log("\n------------------ VerifyStateProof end ----------------------\n")
 			}
-			received++
 
+			received++
 			if received >= 5 {
 				return
 			}
@@ -680,9 +484,9 @@ func TestParachainLocalNet(t *testing.T) {
 				changeSets, err := beefy.QueryParachainStorage(localRelayEndpoint, beefy.LOCAL_PARACHAIN_ID, fromBlockHash, latestSignedCommitmentBlockHash)
 				require.NoError(t, err)
 				t.Logf("changeSet len: %d", len(changeSets))
-				var latestHeight uint32
+				var latestChainHeight uint32
 				if len(changeSets) == 0 {
-					latestHeight = 0
+					latestChainHeight = 0
 				} else {
 					var includedParachainHeights []int
 					for _, changeSet := range changeSets {
@@ -708,17 +512,18 @@ func TestParachainLocalNet(t *testing.T) {
 					// sort heights and find latest height
 					sort.Sort(sort.Reverse(sort.IntSlice(includedParachainHeights)))
 					t.Logf("sort.Reverse: %+v", includedParachainHeights)
-					latestHeight = uint32(includedParachainHeights[0])
-					t.Logf("latestHeight: %d", latestHeight)
+					latestChainHeight = uint32(includedParachainHeights[0])
+					t.Logf("latestHeight: %d", latestChainHeight)
 				}
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              beefy.LOCAL_PARACHAIN_ID,
+					ChainId:              "parachain-1",
 					ChainType:            beefy.CHAINTYPE_PARACHAIN,
+					ParachainId:          beefy.LOCAL_PARACHAIN_ID,
 					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
 					LatestBeefyHeight:    latestSignedCommitmentBlockNumber,
 					MmrRootHash:          s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestHeight:         latestHeight,
+					LatestChainHeight:    latestChainHeight,
 					FrozenHeight:         0,
 					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
@@ -780,207 +585,48 @@ func TestParachainLocalNet(t *testing.T) {
 			mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelayChainBlockHeights)
 			require.NoError(t, err)
 
-			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), latestSignedCommitmentBlockNumber)
-			mmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-
-			result, err := beefy.VerifyMMRBatchProof(s.SignedCommitment.Commitment.Payload,
-				mmrSize, mmrBatchProof.Leaves, mmrBatchProof.Proof)
-			require.NoError(t, err)
-			require.True(t, result)
-			t.Logf("beefy.VerifyMMRBatchProof(s.SignedCommitment.Commitment.Payload, mmrSize,mmrBatchProof.Leaves, mmrBatchProof.Proof) result: %+v", result)
-
-			// convert payloads
-			gPalyloads := make([]ibcgptypes.PayloadItem, len(bsc.Commitment.Payload))
-			for i, v := range bsc.Commitment.Payload {
-				gPalyloads[i] = ibcgptypes.PayloadItem{
-					Id:   v.ID[:],
-					Data: v.Data,
-				}
-
-			}
-
-			t.Logf("bsc.Commitment.Payload: %+v", bsc.Commitment.Payload)
-			t.Logf("gpPalyloads: %+v", gPalyloads)
-
-			gCommitment := ibcgptypes.Commitment{
-				Payloads:       gPalyloads,
-				BlockNumber:    bsc.Commitment.BlockNumber,
-				ValidatorSetId: bsc.Commitment.ValidatorSetID,
-			}
-
-			gSignatures := make([]ibcgptypes.Signature, len(bsc.Signatures))
-			for i, v := range bsc.Signatures {
-				gSignatures[i] = ibcgptypes.Signature(v)
-			}
-
-			gsc := ibcgptypes.SignedCommitment{
-				Commitment: gCommitment,
-				Signatures: gSignatures,
-			}
-			// convert mmrleaf
-			var gMMRLeaves []ibcgptypes.MMRLeaf
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-			leafNum := len(mmrBatchProof.Leaves)
-			for i := 0; i < leafNum; i++ {
-				leaf := mmrBatchProof.Leaves[i]
-				parentNumAndHash := ibcgptypes.ParentNumberAndHash{
-					ParentNumber: uint32(leaf.ParentNumberAndHash.ParentNumber),
-					ParentHash:   []byte(leaf.ParentNumberAndHash.Hash[:]),
-				}
-				nextAuthoritySet := ibcgptypes.BeefyAuthoritySet{
-					Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
-					Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
-					Root: []byte(leaf.BeefyNextAuthoritySet.Root[:]),
-				}
-				parachainHeads := []byte(leaf.ParachainHeads[:])
-				gLeaf := ibcgptypes.MMRLeaf{
-					Version:               uint32(leaf.Version),
-					ParentNumberAndHash:   parentNumAndHash,
-					BeefyNextAuthoritySet: nextAuthoritySet,
-					ParachainHeads:        parachainHeads,
-				}
-				t.Logf("gLeaf: %+v", gLeaf)
-				gMMRLeaves = append(gMMRLeaves, gLeaf)
-			}
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-
-			// convert mmr batch proof
-			gLeafIndexes := make([]uint64, len(mmrBatchProof.Proof.LeafIndex))
-			for i, v := range mmrBatchProof.Proof.LeafIndex {
-				gLeafIndexes[i] = uint64(v)
-			}
-
-			gProofItems := [][]byte{}
-			t.Logf("gProofItems: %+v", gProofItems)
-			itemNum := len(mmrBatchProof.Proof.Items)
-			for i := 0; i < itemNum; i++ {
-				item := mmrBatchProof.Proof.Items[i][:]
-				t.Logf("item: %+v", item)
-				gProofItems = append(gProofItems, item)
-				// gProofItems[i] = item
-				t.Logf("gProofItems: %+v", gProofItems)
-			}
-			t.Logf("gProofItems: %+v", gProofItems)
-
-			gBatchProof := ibcgptypes.MMRBatchProof{
-				LeafIndexes: gLeafIndexes,
-				LeafCount:   uint64(mmrBatchProof.Proof.LeafCount),
-				Items:       gProofItems,
-			}
-
-			gMmrLevavesAndProof := ibcgptypes.MMRLeavesAndBatchProof{
-				Leaves:        gMMRLeaves,
-				MmrBatchProof: gBatchProof,
-			}
-
-			// build gBeefyMMR
-			gBeefyMMR := ibcgptypes.BeefyMMR{
-				SignedCommitment:       gsc,
-				SignatureProofs:        authorityProof,
-				MmrLeavesAndBatchProof: gMmrLevavesAndProof,
-				MmrSize:                mmrSize,
-			}
+			pbBeefyMMR := ibcgptypes.Convert2PBBeefyMMR(bsc, mmrBatchProof, authorityProof)
+			t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
 			// TODO: step3, build header proof
 			// build parachain header proof and verify that proof
-			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, mmrBatchProof.Proof.LeafIndex, beefy.LOCAL_PARACHAIN_ID)
+			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, mmrBatchProof.Proof.LeafIndexes, beefy.LOCAL_PARACHAIN_ID)
 			require.NoError(t, err)
 			t.Logf("parachainHeaderMap: %+v", parachainHeaderMap)
 
-			t.Log("\n----------- VerifyParachainHeader -----------")
-			err = beefy.VerifyParachainHeader(mmrBatchProof.Leaves, parachainHeaderMap)
-			require.NoError(t, err)
-			t.Log("\n------------------------------------------\n")
-
 			// convert beefy parachain header to pb parachain header
-			headerMap := make(map[uint32]ibcgptypes.ParachainHeader)
-			for num, header := range parachainHeaderMap {
-				headerMap[num] = ibcgptypes.ParachainHeader{
-					ParachainId: header.ParaId,
-					BlockHeader: header.BlockHeader,
-					Proofs:      header.Proof,
-					HeaderIndex: header.HeaderIndex,
-					HeaderCount: header.HeaderCount,
-					Timestamp:   ibcgptypes.StateProof(header.Timestamp),
-				}
-			}
-
-			gParachainHeaderMap := ibcgptypes.ParachainHeaderMap{
-				ParachainHeaderMap: headerMap,
-			}
-
-			t.Logf("gParachainHeaderMap: %+v", gParachainHeaderMap)
-
-			header_parachainMap := ibcgptypes.Header_ParachainHeaderMap{
-				ParachainHeaderMap: &gParachainHeaderMap,
-			}
+			pbHeader_parachainMap := ibcgptypes.Convert2PBParachainHeaderMap(parachainHeaderMap)
+			t.Logf("pbHeader_parachainMap: %+v", pbHeader_parachainMap)
 
 			// build grandpa pb header
-			gheader := ibcgptypes.Header{
-				BeefyMmr: gBeefyMMR,
-				Message:  &header_parachainMap,
+			pbHeader := ibcgptypes.Header{
+				BeefyMmr: pbBeefyMMR,
+				Message:  &pbHeader_parachainMap,
 			}
-			t.Logf("gpheader: %+v", gheader)
+			t.Logf("gpheader: %+v", pbHeader)
 
 			// mock gp header marshal and unmarshal
-			marshalGHeader, err := gheader.Marshal()
+			marshalPBHeader, err := pbHeader.Marshal()
 			require.NoError(t, err)
 			// t.Logf("marshal gHeader: %+v", marshalGHeader)
 
 			t.Log("\n------------- mock verify on chain -------------\n")
 
 			// err = gheader.Unmarshal(marshalGHeader)
-			var unmarshalGPHeader ibcgptypes.Header
-			err = unmarshalGPHeader.Unmarshal(marshalGHeader)
+			var unmarshalPBHeader ibcgptypes.Header
+			err = unmarshalPBHeader.Unmarshal(marshalPBHeader)
 			require.NoError(t, err)
-			t.Logf("unmarshal gHeader: %+v", unmarshalGPHeader)
+			t.Logf("unmarshal gHeader: %+v", unmarshalPBHeader)
 
 			// verify signature
 			// unmarshalBeefyMmr := unmarshalGPHeader.BeefyMmr
-			unmarshalBeefyMmr := gheader.BeefyMmr
-			t.Logf("gBeefyMMR: %+v", gBeefyMMR)
+			unmarshalBeefyMmr := pbHeader.BeefyMmr
+			// t.Logf("gBeefyMMR: %+v", gBeefyMMR)
 			t.Logf("unmarshal BeefyMmr: %+v", unmarshalBeefyMmr)
 
-			unmarshalgsc := unmarshalBeefyMmr.SignedCommitment
+			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
 
-			rebuildPalyloads := make([]gsrpctypes.PayloadItem, len(unmarshalgsc.Commitment.Payloads))
-			// // step1:  verify signature
-			for i, v := range unmarshalgsc.Commitment.Payloads {
-				rebuildPalyloads[i] = gsrpctypes.PayloadItem{
-					ID:   beefy.Bytes2(v.Id),
-					Data: v.Data,
-				}
-			}
-			t.Logf("bsc.Commitment.Payload: %+v", bsc.Commitment.Payload)
-			t.Logf("gPalyloads: %+v", gPalyloads)
-			t.Logf("unmarshal payloads: %+v", unmarshalgsc.Commitment.Payloads)
-			t.Logf("rebuildPalyloads: %+v", rebuildPalyloads)
-
-			// convert signature
-			rebuildSignatures := make([]beefy.Signature, len(unmarshalgsc.Signatures))
-			for i, v := range unmarshalgsc.Signatures {
-				rebuildSignatures[i] = beefy.Signature{
-					Index:     v.Index,
-					Signature: v.Signature,
-				}
-			}
-			t.Logf("bsc.Signatures: %+v", bsc.Signatures)
-			t.Logf("gsc.Signatures: %+v", gsc.Signatures)
-			t.Logf("unmarshal Signatures: %+v", unmarshalgsc.Signatures)
-			t.Logf("rebuildSignatures: %+v", rebuildSignatures)
-
-			// build beefy SignedCommitment
-			rebuildBSC := beefy.SignedCommitment{
-				Commitment: gsrpctypes.Commitment{
-					Payload:        rebuildPalyloads,
-					BlockNumber:    unmarshalgsc.Commitment.BlockNumber,
-					ValidatorSetID: unmarshalgsc.Commitment.ValidatorSetId,
-				},
-				Signatures: rebuildSignatures,
-			}
-			t.Logf("bsc: %+v", bsc)
-			t.Logf("gsc: %+v", gsc)
-			t.Logf("unmarshalgsc: %+v", unmarshalgsc)
+			rebuildBSC := ibcgptypes.Convert2BeefySC(unmarshalPBSC)
 			t.Logf("rebuildBSC: %+v", rebuildBSC)
 
 			t.Log("----------- verify signature -----------")
@@ -989,69 +635,17 @@ func TestParachainLocalNet(t *testing.T) {
 			t.Log("----------------------------------------")
 
 			// step2, verify mmr
-			// convert mmrleaf
-			unmarshalLeaves := unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves
-			rebuildMMRLeaves := make([]gsrpctypes.MMRLeaf, len(unmarshalLeaves))
-			for i, v := range unmarshalLeaves {
-				rebuildMMRLeaves[i] = gsrpctypes.MMRLeaf{
-					Version: gsrpctypes.MMRLeafVersion(v.Version),
-					ParentNumberAndHash: gsrpctypes.ParentNumberAndHash{
-						ParentNumber: gsrpctypes.U32(v.ParentNumberAndHash.ParentNumber),
-						Hash:         gsrpctypes.NewHash(v.ParentNumberAndHash.ParentHash),
-					},
-					BeefyNextAuthoritySet: gsrpctypes.BeefyNextAuthoritySet{
-						ID:   gsrpctypes.U64(v.BeefyNextAuthoritySet.Id),
-						Len:  gsrpctypes.U32(v.BeefyNextAuthoritySet.Len),
-						Root: gsrpctypes.NewH256(v.BeefyNextAuthoritySet.Root),
-					},
-					ParachainHeads: gsrpctypes.NewH256(v.ParachainHeads),
-				}
-			}
-			t.Logf("mmrBatchProof.Leaves: %+v", mmrBatchProof.Leaves)
-			t.Logf("gMMRLeaves: %+v", gMMRLeaves)
-			t.Logf("unmarshal mmr Leaves: %+v", unmarshalLeaves)
+			rebuildMMRLeaves := ibcgptypes.Convert2BeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			t.Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-
-			// convert mmr batch proof
-			unmarshalLeafIndexes := unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes
-			rebuildLeafIndexes := make([]gsrpctypes.U64, len(unmarshalLeafIndexes))
-			for i, v := range unmarshalLeafIndexes {
-				rebuildLeafIndexes[i] = gsrpctypes.NewU64(v)
-			}
-			t.Logf("mmrBatchProof.Proof.LeafIndex: %+v", mmrBatchProof.Proof.LeafIndex)
-			t.Logf("gLeafIndexes: %+v", gLeafIndexes)
-			t.Logf("unmarshal leafIndexes: %+v", unmarshalLeafIndexes)
-			t.Logf("rebuildLeafIndexes: %+v", rebuildLeafIndexes)
-
-			unmarshalItmes := unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.Items
-			rebuildItems := make([]gsrpctypes.H256, len(unmarshalItmes))
-			for i, v := range unmarshalItmes {
-				rebuildItems[i] = gsrpctypes.NewH256(v)
-			}
-
-			t.Logf("mmrBatchProof.Proof.Items: %+v", mmrBatchProof.Proof.Items)
-			t.Logf("gItems: %+v", gProofItems)
-			t.Logf("unmarshal proof items: %+v", unmarshalItmes)
-			t.Logf("rebuildItems: %+v", rebuildItems)
-
-			rebuildMmrBatchProof := beefy.MMRBatchProof{
-				LeafIndex: rebuildLeafIndexes,
-				LeafCount: gsrpctypes.NewU64(unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof.LeafCount),
-				Items:     rebuildItems,
-			}
-
-			t.Logf("mmrBatchProof: %+v", mmrBatchProof.Proof)
-			t.Logf("gBatchProof: %+v", gBatchProof)
-			t.Logf("unmarshal BatchProof: %+v", unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof)
-			t.Logf("rebuildMmrBatchProof: %+v", rebuildMmrBatchProof)
+			beefyMmrBatchProof := ibcgptypes.Convert2MMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			t.Logf("Convert2MMRBatchProof: %+v", beefyMmrBatchProof)
 
 			// check mmr height
 			require.Less(t, clientState.LatestBeefyHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
 
 			t.Log("\n----------- verify mmr proof -----------")
-
-			result, err = beefy.VerifyMMRBatchProof(rebuildPalyloads,
-				unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, rebuildMmrBatchProof)
+			result, err := beefy.VerifyMMRBatchProof(rebuildBSC.Commitment.Payload,
+				unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, beefyMmrBatchProof)
 			require.NoError(t, err)
 			require.True(t, result)
 			t.Log("\n----------------------------------------\n")
@@ -1059,7 +653,7 @@ func TestParachainLocalNet(t *testing.T) {
 			// step3, verify header
 			// convert pb parachain header to beefy parachain header
 			rebuildParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
-			unmarshalParachainHeaderMap := unmarshalGPHeader.GetParachainHeaderMap()
+			unmarshalParachainHeaderMap := unmarshalPBHeader.GetParachainHeaderMap()
 			for num, header := range unmarshalParachainHeaderMap.ParachainHeaderMap {
 				rebuildParachainHeaderMap[num] = beefy.ParachainHeader{
 					ParaId:      header.ParachainId,
@@ -1070,26 +664,32 @@ func TestParachainLocalNet(t *testing.T) {
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
 			}
-			t.Logf("parachainHeaderMap: %+v", parachainHeaderMap)
-			t.Logf("gParachainHeaderMap: %+v", gParachainHeaderMap)
+			// t.Logf("parachainHeaderMap: %+v", parachainHeaderMap)
+			// t.Logf("gParachainHeaderMap: %+v", gParachainHeaderMap)
 			t.Logf("unmarshal parachainHeaderMap: %+v", *unmarshalParachainHeaderMap)
-			t.Logf("rebuildSolochainHeaderMap: %+v", rebuildParachainHeaderMap)
+			// t.Logf("rebuildSolochainHeaderMap: %+v", rebuildParachainHeaderMap)
 			t.Log("\n----------- VerifyParachainHeader -----------")
-			err = beefy.VerifyParachainHeader(rebuildMMRLeaves, rebuildParachainHeaderMap)
+			// err = beefy.VerifyParachainHeader(rebuildMMRLeaves, rebuildParachainHeaderMap)
+			// require.NoError(t, err)
+			err = clientState.VerifyHeader(unmarshalPBHeader, rebuildMMRLeaves)
 			require.NoError(t, err)
 			t.Log("\n--------------------------------------------\n")
 
 			// step4, update client state
 			clientState.LatestBeefyHeight = latestSignedCommitmentBlockNumber
-			clientState.LatestHeight = latestSignedCommitmentBlockNumber
-			clientState.MmrRootHash = unmarshalgsc.Commitment.Payloads[0].Data
+			clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
+			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
 			// find latest next authority set from mmrleaves
 			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
 			var latestAuthoritySetId uint64
-			for _, leaf := range unmarshalLeaves {
-				if latestAuthoritySetId < leaf.BeefyNextAuthoritySet.Id {
-					latestAuthoritySetId = leaf.BeefyNextAuthoritySet.Id
-					latestNextAuthoritySet = &leaf.BeefyNextAuthoritySet
+			for _, leaf := range rebuildMMRLeaves {
+				if latestAuthoritySetId < uint64(leaf.BeefyNextAuthoritySet.ID) {
+					latestAuthoritySetId = uint64(leaf.BeefyNextAuthoritySet.ID)
+					latestNextAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
+						Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
+						Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
+						Root: leaf.BeefyNextAuthoritySet.Root[:],
+					}
 				}
 
 			}
@@ -1102,6 +702,8 @@ func TestParachainLocalNet(t *testing.T) {
 				t.Logf("update clientState.AuthoritySet : %+v", clientState.AuthoritySet)
 			}
 			// step5,update consensue state
+
+			var latestHeight uint32
 			for _, header := range unmarshalParachainHeaderMap.ParachainHeaderMap {
 				var decodeHeader gsrpctypes.Header
 				err = gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
@@ -1116,8 +718,12 @@ func TestParachainLocalNet(t *testing.T) {
 				}
 				// note: the block number must be parachain header blocknumber,not relaychain header block number
 				consensusStateKVStore[uint32(decodeHeader.Number)] = consensusState
+				if latestHeight < uint32(decodeHeader.Number) {
+					latestHeight = uint32(decodeHeader.Number)
+				}
 			}
 			t.Logf("latest consensusStateKVStore: %+v", consensusStateKVStore)
+			t.Logf("latest height and consensus state: %d,%+v", latestHeight, consensusStateKVStore[latestHeight])
 
 			// step6, mock to build and verify state proof
 			for num, consnesue := range consensusStateKVStore {
@@ -1145,12 +751,10 @@ func TestParachainLocalNet(t *testing.T) {
 				require.NoError(t, err)
 				t.Log("beefy.VerifyStateProof(proof,root,key,value) result: True")
 				t.Log("\n--------------------------------------------------")
-
 			}
 
 			received++
-
-			if received >= 2 {
+			if received >= 5 {
 				return
 			}
 		case <-timeout:
