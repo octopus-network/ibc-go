@@ -4,7 +4,6 @@ import (
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
-	// grandpa "github.com/cosmos/ibc-go/v3/modules/light-clients/10-grandpa"
 	"github.com/octopus-network/beefy-go/beefy"
 
 	gsrpccodec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
@@ -16,7 +15,6 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v3/modules/core/exported"
-	// log "github.com/go-kit/log"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -62,14 +60,15 @@ func (cs ClientState) ClientType() string {
 	return exported.Grandpa
 }
 
+// TODO: which height?
 // GetLatestHeight returns latest beefy height,note chain height.
 func (cs ClientState) GetLatestHeight() exported.Height {
-
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetLatestHeight()")
 
 	return clienttypes.Height{
 		RevisionNumber: 0,
-		RevisionHeight: uint64(cs.LatestBeefyHeight),
+		// RevisionHeight: uint64(cs.LatestBeefyHeight),
+		RevisionHeight: uint64(cs.LatestChainHeight),
 	}
 }
 
@@ -178,7 +177,8 @@ func (cs ClientState) VerifyClientState(
 	proof []byte,
 	clientState exported.ClientState,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientState()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientState()",
+		"height", height, "prefix", prefix, "counterpartyClientIdentifier", "proof", "clientState", clientState)
 
 	if clientState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "client state cannot be empty")
@@ -240,8 +240,9 @@ func (cs ClientState) VerifyClientConsensusState(
 	proof []byte,
 	consensusState exported.ConsensusState,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientConsensusState()")
-
+	// Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientConsensusState()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyClientConsensusState()",
+		"height", height, "consensusHeight", consensusHeight, "prefix", prefix, "counterpartyClientIdentifier", "proof", "consensusState", consensusState)
 	if consensusState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "consensus state cannot be empty")
 	}
@@ -299,7 +300,10 @@ func (cs ClientState) VerifyConnectionState(
 	connectionID string,
 	connectionEnd exported.ConnectionI,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyConnectionState()")
+	// Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyConnectionState()")
+
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyConnectionState()",
+		"height", height, "prefix", prefix, "proof", proof, "connectionID", connectionID, "connectionEnd", connectionEnd)
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -355,8 +359,9 @@ func (cs ClientState) VerifyChannelState(
 	channelID string,
 	channel exported.ChannelI,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyChannelState()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyChannelState()",
+		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID, "channel", channel)
+
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
@@ -416,9 +421,10 @@ func (cs ClientState) VerifyPacketCommitment(
 	sequence uint64,
 	commitmentBytes []byte,
 ) error {
-
-	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyPacketCommitment()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyPacketCommitment()",
+		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID,
+		"delayTimePeriod", delayTimePeriod, "delayBlockPeriod", delayBlockPeriod, "sequence", sequence,
+		"commitmentBytes", commitmentBytes)
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -479,8 +485,10 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 	sequence uint64,
 	acknowledgement []byte,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyPacketAcknowledgement()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyPacketAcknowledgement()",
+		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID,
+		"delayTimePeriod", delayTimePeriod, "delayBlockPeriod", delayBlockPeriod, "sequence", sequence,
+		"acknowledgement", acknowledgement)
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -534,8 +542,10 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	channelID string,
 	sequence uint64,
 ) error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyPacketReceiptAbsence()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyPacketReceiptAbsence()",
+		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID,
+		"delayTimePeriod", delayTimePeriod, "delayBlockPeriod", delayBlockPeriod, "sequence", sequence)
+
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
@@ -586,14 +596,15 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	channelID string,
 	nextSequenceRecv uint64,
 ) error {
-	// ctx.Logger().Info()
-	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyNextSequenceRecv()")
+	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.VerifyNextSequenceRecv()",
+		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID,
+		"delayTimePeriod", delayTimePeriod, "delayBlockPeriod", delayBlockPeriod, "	nextSequenceRecv", nextSequenceRecv)
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
 	}
+
 	// check delay period has passed
 	if err := verifyDelayPeriodPassed(ctx, store, height, delayTimePeriod, delayBlockPeriod); err != nil {
 		return err
@@ -611,7 +622,7 @@ func (cs ClientState) VerifyNextSequenceRecv(
 
 	bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
 	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyNextSequenceRecv()", "nextSequenceRecv", bz)
+		"ClientState.VerifyNextSequenceRecv()", "sdk.Uint64ToBigEndian(nextSequenceRecv)", bz)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, bz)

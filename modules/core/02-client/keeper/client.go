@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"encoding/hex"
-	"fmt"
 
 	"github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -55,11 +54,8 @@ func (k Keeper) CreateClient(
 
 	EmitCreateClientEvent(ctx, clientID, clientState)
 
-	fmt.Printf("[Grandpa] client created for client-id %s at height %s \n", clientID, clientState.GetLatestHeight().String())
-	fmt.Println("[Grandpa] create client state")
-	fmt.Println(clientState)
-	fmt.Println("[Grandpa] create client consensusState")
-	fmt.Println(consensusState)
+	k.Logger(ctx).Debug("create client ID: ", clientID, "client state height: ", clientState.GetLatestHeight())
+
 	return clientID, nil
 }
 
@@ -70,20 +66,6 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	if !found {
 		return sdkerrors.Wrapf(types.ErrClientNotFound, "cannot update client with ID %s", clientID)
 	}
-	// TODO: mock for grandpa and remove the validates!
-	// if clientState.ClientType() == exported.Grandpa {
-	// 	fmt.Println("[Grandpa][keeper_client] received update client header :")
-	// 	fmt.Println(header)
-
-	// 	fmt.Println("[Grandpa][keeper_client] lastest client state in cosmos app chain :")
-	// 	fmt.Println(clientState)
-
-	// 	consensusState, _ := k.GetLatestClientConsensusState(ctx, clientID)
-	// 	fmt.Println("[Grandpa][keeper_client] lastest consensus state in cosmos app chain :")
-	// 	fmt.Println(consensusState)
-	// 	fmt.Println("[Grandpa][keeper_client] just mock grandpa light client and return without real update")
-	// 	return nil
-	// }
 
 	clientStore := k.ClientStore(ctx, clientID)
 
@@ -94,21 +76,11 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	// Any writes made in CheckHeaderAndUpdateState are persisted on both valid updates and misbehaviour updates.
 	// Light client implementations are responsible for writing the correct metadata (if any) in either case.
 	newClientState, newConsensusState, err := clientState.CheckHeaderAndUpdateState(ctx, k.cdc, clientStore, header)
-
 	if err != nil {
 		return sdkerrors.Wrapf(err, "cannot update client with ID %s", clientID)
 	}
 
-	//TODO: print the states and remove this code after testing
-	fmt.Println("[Grandpa][keeper_client] lastest client state:")
-	fmt.Println(clientState)
-	fmt.Println("[Grandpa][keeper_client] new client state:")
-	fmt.Println(newClientState)
-	consensusState, _ := k.GetLatestClientConsensusState(ctx, clientID)
-	fmt.Println("[Grandpa][keeper_client] lastest consensus state:")
-	fmt.Println(consensusState)
-	fmt.Println("[Grandpa][keeper_client] new consensus state:")
-	fmt.Println(newConsensusState)
+	k.Logger(ctx).Debug("newClientState: ", newClientState, "newConsensusState: ", newConsensusState)
 
 	// emit the full header in events
 	var (
@@ -140,7 +112,6 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 		}
 
 		k.Logger(ctx).Info("client state updated", "client-id", clientID, "height", consensusHeight.String())
-		fmt.Printf("[Grandpa][keeper_client] client state updated for client-id %s at height %s \n", clientID, consensusHeight.String())
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(
@@ -159,8 +130,6 @@ func (k Keeper) UpdateClient(ctx sdk.Context, clientID string, header exported.H
 	} else {
 
 		k.Logger(ctx).Info("client frozen due to misbehaviour", "client-id", clientID)
-		k.Logger(ctx).Debug("client frozen due to misbehaviour", "client-id", clientID)
-		fmt.Printf("[Grandpa][keeper_client] client frozen due to misbehaviour for client-id %s \n", clientID)
 
 		defer func() {
 			telemetry.IncrCounterWithLabels(

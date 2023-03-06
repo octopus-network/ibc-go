@@ -195,7 +195,7 @@ func TestSolochainLocalNet(t *testing.T) {
 				t.Logf("toBlockHash: %#x", latestSignedCommitmentBlockHash)
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              "barnacle-0",
+					ChainId:              "solosub-0",
 					ChainType:            beefy.CHAINTYPE_SOLOCHAIN,
 					ParachainId:          0,
 					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
@@ -247,7 +247,7 @@ func TestSolochainLocalNet(t *testing.T) {
 			// build mmr proofs for leaves containing target paraId
 			mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
 			require.NoError(t, err)
-			pbBeefyMMR := ibcgptypes.Convert2PBBeefyMMR(bsc, mmrBatchProof, authorityProof)
+			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
 			t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
 			// step3, build header proof
@@ -256,7 +256,7 @@ func TestSolochainLocalNet(t *testing.T) {
 			require.NoError(t, err)
 			t.Logf("solochainHeaderMap: %+v", solochainHeaderMap)
 
-			pbHeader_solochainMap := ibcgptypes.Convert2PBSolochainHeaderMap(solochainHeaderMap)
+			pbHeader_solochainMap := ibcgptypes.ToPBSolochainHeaderMap(solochainHeaderMap)
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
 				BeefyMmr: pbBeefyMMR,
@@ -283,7 +283,7 @@ func TestSolochainLocalNet(t *testing.T) {
 			t.Logf("unmarshal BeefyMmr: %+v", unmarshalBeefyMmr)
 
 			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
-			rebuildBSC := ibcgptypes.Convert2BeefySC(unmarshalPBSC)
+			rebuildBSC := ibcgptypes.ToBeefySC(unmarshalPBSC)
 			t.Logf("rebuildBSC: %+v", rebuildBSC)
 
 			t.Log("\n------------------ VerifySignatures --------------------------")
@@ -292,9 +292,9 @@ func TestSolochainLocalNet(t *testing.T) {
 			t.Log("\n------------------ VerifySignatures end ----------------------\n")
 
 			// step2, verify mmr
-			rebuildMMRLeaves := ibcgptypes.Convert2BeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
+			rebuildMMRLeaves := ibcgptypes.ToBeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			t.Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-			rebuildMMRBatchProof := ibcgptypes.Convert2MMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			rebuildMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
 			t.Logf("Convert2MMRBatchProof: %+v", rebuildMMRBatchProof)
 			// check mmr height
 			require.Less(t, clientState.LatestBeefyHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
@@ -488,7 +488,7 @@ func TestParachainLocalNet(t *testing.T) {
 				if len(changeSets) == 0 {
 					latestChainHeight = 0
 				} else {
-					var includedParachainHeights []int
+					var packedParachainHeights []int
 					for _, changeSet := range changeSets {
 						for _, change := range changeSet.Changes {
 							t.Logf("change.StorageKey: %#x", change.StorageKey)
@@ -503,16 +503,16 @@ func TestParachainLocalNet(t *testing.T) {
 								// second decode header
 								err = gsrpccodec.Decode(bz, &parachainheader)
 								require.NoError(t, err)
-								includedParachainHeights = append(includedParachainHeights, int(parachainheader.Number))
+								packedParachainHeights = append(packedParachainHeights, int(parachainheader.Number))
 							}
 						}
 
 					}
-					t.Logf("raw includedParachainHeights: %+v", includedParachainHeights)
+					t.Logf("raw packedParachainHeights: %+v", packedParachainHeights)
 					// sort heights and find latest height
-					sort.Sort(sort.Reverse(sort.IntSlice(includedParachainHeights)))
-					t.Logf("sort.Reverse: %+v", includedParachainHeights)
-					latestChainHeight = uint32(includedParachainHeights[0])
+					sort.Sort(sort.Reverse(sort.IntSlice(packedParachainHeights)))
+					t.Logf("sort.Reverse: %+v", packedParachainHeights)
+					latestChainHeight = uint32(packedParachainHeights[0])
 					t.Logf("latestHeight: %d", latestChainHeight)
 				}
 
@@ -572,30 +572,29 @@ func TestParachainLocalNet(t *testing.T) {
 			changeSets, err := beefy.QueryParachainStorage(localRelayEndpoint, beefy.LOCAL_PARACHAIN_ID, fromBlockHash, latestSignedCommitmentBlockHash)
 			require.NoError(t, err)
 
-			var targetRelayChainBlockHeights []uint64
+			var targetRelaychainBlockHeights []uint64
 			for _, changeSet := range changeSets {
 				relayHeader, err := localRelayEndpoint.RPC.Chain.GetHeader(changeSet.Block)
 				require.NoError(t, err)
-
-				targetRelayChainBlockHeights = append(targetRelayChainBlockHeights, uint64(relayHeader.Number))
-
+				targetRelaychainBlockHeights = append(targetRelaychainBlockHeights, uint64(relayHeader.Number))
 			}
 
 			// build mmr proofs for leaves containing target paraId
-			mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelayChainBlockHeights)
+			mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelaychainBlockHeights)
 			require.NoError(t, err)
 
-			pbBeefyMMR := ibcgptypes.Convert2PBBeefyMMR(bsc, mmrBatchProof, authorityProof)
+			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
 			t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
-			// TODO: step3, build header proof
+			// step3, build header proof
 			// build parachain header proof and verify that proof
-			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, mmrBatchProof.Proof.LeafIndexes, beefy.LOCAL_PARACHAIN_ID)
+			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, localParachainEndpoint,
+				mmrBatchProof.Proof.LeafIndexes, beefy.LOCAL_PARACHAIN_ID)
 			require.NoError(t, err)
 			t.Logf("parachainHeaderMap: %+v", parachainHeaderMap)
 
 			// convert beefy parachain header to pb parachain header
-			pbHeader_parachainMap := ibcgptypes.Convert2PBParachainHeaderMap(parachainHeaderMap)
+			pbHeader_parachainMap := ibcgptypes.ToPBParachainHeaderMap(parachainHeaderMap)
 			t.Logf("pbHeader_parachainMap: %+v", pbHeader_parachainMap)
 
 			// build grandpa pb header
@@ -626,7 +625,7 @@ func TestParachainLocalNet(t *testing.T) {
 
 			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
 
-			rebuildBSC := ibcgptypes.Convert2BeefySC(unmarshalPBSC)
+			rebuildBSC := ibcgptypes.ToBeefySC(unmarshalPBSC)
 			t.Logf("rebuildBSC: %+v", rebuildBSC)
 
 			t.Log("----------- verify signature -----------")
@@ -635,9 +634,9 @@ func TestParachainLocalNet(t *testing.T) {
 			t.Log("----------------------------------------")
 
 			// step2, verify mmr
-			rebuildMMRLeaves := ibcgptypes.Convert2BeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
+			rebuildMMRLeaves := ibcgptypes.ToBeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			t.Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-			beefyMmrBatchProof := ibcgptypes.Convert2MMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			beefyMmrBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
 			t.Logf("Convert2MMRBatchProof: %+v", beefyMmrBatchProof)
 
 			// check mmr height

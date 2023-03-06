@@ -14,7 +14,7 @@ import (
 // var logger = log.Logger.With("light-client/10-grandpa/client_state")
 var Logger = log.NewTMLogger(os.Stderr)
 
-func Convert2PBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.GenerateMmrBatchProofResponse, authorityProof [][]byte) BeefyMMR {
+func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.GenerateMmrBatchProofResponse, authorityProof [][]byte) BeefyMMR {
 
 	// bsc := beefy.ConvertCommitment(sc)
 	pbPalyloads := make([]PayloadItem, len(bsc.Commitment.Payload))
@@ -103,7 +103,7 @@ func Convert2PBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.Generate
 	return pbBeefyMMR
 }
 
-func Convert2BeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
+func ToBeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
 	beefyPalyloads := make([]gsrpctypes.PayloadItem, len(pbsc.Commitment.Payloads))
 	// // step1:  verify signature
 	for i, v := range pbsc.Commitment.Payloads {
@@ -133,7 +133,7 @@ func Convert2BeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
 	return bsc
 }
 
-func Convert2BeefyMMRLeaves(pbMMRLeaves []MMRLeaf) []gsrpctypes.MMRLeaf {
+func ToBeefyMMRLeaves(pbMMRLeaves []MMRLeaf) []gsrpctypes.MMRLeaf {
 
 	beefyMMRLeaves := make([]gsrpctypes.MMRLeaf, len(pbMMRLeaves))
 	for i, v := range pbMMRLeaves {
@@ -155,7 +155,7 @@ func Convert2BeefyMMRLeaves(pbMMRLeaves []MMRLeaf) []gsrpctypes.MMRLeaf {
 	return beefyMMRLeaves
 }
 
-func Convert2MMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBatchProof {
+func ToMMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBatchProof {
 	pbLeafIndexes := mmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes
 	leafIndexes := make([]gsrpctypes.U64, len(pbLeafIndexes))
 	for i, v := range pbLeafIndexes {
@@ -178,7 +178,7 @@ func Convert2MMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.
 
 }
 
-func Convert2PBSolochainHeaderMap(solochainHeaderMap map[uint32]beefy.SolochainHeader) Header_SolochainHeaderMap {
+func ToPBSolochainHeaderMap(solochainHeaderMap map[uint32]beefy.SolochainHeader) Header_SolochainHeaderMap {
 
 	headerMap := make(map[uint32]SolochainHeader)
 	for num, header := range solochainHeaderMap {
@@ -199,7 +199,7 @@ func Convert2PBSolochainHeaderMap(solochainHeaderMap map[uint32]beefy.SolochainH
 
 }
 
-func Convert2PBParachainHeaderMap(parachainHeaderMap map[uint32]beefy.ParachainHeader) Header_ParachainHeaderMap {
+func ToPBParachainHeaderMap(parachainHeaderMap map[uint32]beefy.ParachainHeader) Header_ParachainHeaderMap {
 
 	headerMap := make(map[uint32]ParachainHeader)
 	for num, header := range parachainHeaderMap {

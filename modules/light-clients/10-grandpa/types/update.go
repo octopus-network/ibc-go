@@ -37,7 +37,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 
 	// step1:  verify signature
 	// convert signedcommitment
-	bsc := Convert2BeefySC(beefyMMR.SignedCommitment)
+	bsc := ToBeefySC(beefyMMR.SignedCommitment)
 	err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
@@ -45,9 +45,9 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 
 	// step2: verify mmr
 	// convert mmrleaf
-	beefyMMRLeaves := Convert2BeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
+	beefyMMRLeaves := ToBeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
 	// convert mmr proof
-	beefyBatchProof := Convert2MMRBatchProof(beefyMMR.MmrLeavesAndBatchProof)
+	beefyBatchProof := ToMMRBatchProof(beefyMMR.MmrLeavesAndBatchProof)
 	// verify mmr
 	err = cs.VerifyMMR(bsc, beefyMMR.MmrSize, beefyMMRLeaves, beefyBatchProof)
 	if err != nil {
@@ -97,7 +97,6 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 		if err != nil {
 			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
 		}
-
 	}
 
 	return nil
@@ -189,7 +188,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	}
 
-	newClientState := NewClientState(cs.ChainType,cs.ChainId,cs.ParachainId, cs.BeefyActivationBlock,
+	newClientState := NewClientState(cs.ChainType, cs.ChainId, cs.ParachainId, cs.BeefyActivationBlock,
 		latestBeefyHeight, mmrRoot, latestChainHeight, cs.FrozenHeight,
 		*latestNextAuthoritySet, cs.NextAuthoritySet)
 
@@ -197,7 +196,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 }
 
-//TODO: save all the consensue state at height,but just return only one
+//TODO: save all the consensue state at height,but just return latest block header 
 func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore, header *Header) (*ConsensusState, error) {
 
 	var newConsensueState *ConsensusState
@@ -207,7 +206,6 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SOLOCHAIN:
 		solochainHeaderMap := header.GetSolochainHeaderMap().SolochainHeaderMap
-
 		for _, header := range solochainHeaderMap {
 			var decodeHeader gsrpctypes.Header
 			err := gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
@@ -223,6 +221,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			if err != nil {
 				return nil, sdkerrors.Wrapf(clienttypes.ErrFailedClientConsensusStateVerification, "update consensus state failed")
 			}
+			//find latest header and timestmap
 			if latestChainHeight < uint32(decodeHeader.Number) {
 				latestChainHeight = uint32(decodeHeader.Number)
 				latestBlockHeader = &decodeHeader
@@ -230,21 +229,8 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			}
 		}
 
-		//find latest header and build new consensue state
-		newConsensueState = NewConsensusState(latestBlockHeader.StateRoot[:], time.UnixMilli(int64(latestTimestamp)))
-
-		// set metadata for this consensus
-		latestHeigh := clienttypes.Height{
-			RevisionNumber: 0,
-			RevisionHeight: uint64(latestChainHeight),
-		}
-		setConsensusMetadata(ctx, clientStore, latestHeigh)
-
 	case beefy.CHAINTYPE_PARACHAIN:
 		parachainHeaderMap := header.GetParachainHeaderMap().ParachainHeaderMap
-		// var latestHeight uint32
-		// var latestHeader *gsrpctypes.Header
-		// var latestTimestamp uint64
 		for _, header := range parachainHeaderMap {
 			var decodeHeader gsrpctypes.Header
 			err := gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
@@ -260,7 +246,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			if err != nil {
 				return nil, sdkerrors.Wrapf(clienttypes.ErrFailedClientConsensusStateVerification, "update consensus state failed")
 			}
-
+			//find latest header and timestmap
 			if latestChainHeight < uint32(decodeHeader.Number) {
 				latestChainHeight = uint32(decodeHeader.Number)
 				latestBlockHeader = &decodeHeader
@@ -268,17 +254,17 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			}
 
 		}
-		//find latest header and build new consensue state
-		newConsensueState = NewConsensusState(latestBlockHeader.StateRoot[:], time.UnixMilli(int64(latestTimestamp)))
-
-		// set metadata for this consensus
-		latestHeigh := clienttypes.Height{
-			RevisionNumber: 0,
-			RevisionHeight: uint64(latestChainHeight),
-		}
-		setConsensusMetadata(ctx, clientStore, latestHeigh)
 	}
 
+	// TODO: asset blockheader and timestamp is not nil
+	newConsensueState = NewConsensusState(latestBlockHeader.StateRoot[:], time.UnixMilli(int64(latestTimestamp)))
+
+	// set metadata for this consensus
+	latestHeigh := clienttypes.Height{
+		RevisionNumber: 0,
+		RevisionHeight: uint64(latestChainHeight),
+	}
+	setConsensusMetadata(ctx, clientStore, latestHeigh)
 	// TODO: consider to pruning!
 	//
 	return newConsensueState, nil
