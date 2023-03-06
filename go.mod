@@ -101,7 +101,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/octopus-network/trie-go v0.0.0-20221230093729-96aa0e04d07b // indirect
+	github.com/octopus-network/trie-go v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
@@ -142,7 +142,7 @@ require (
 
 require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
-	github.com/octopus-network/beefy-go v0.0.0-20230212104519-5c71e53071e3
+	github.com/octopus-network/beefy-go v0.1.0
 )
 
 // replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.45.10
@@ -154,4 +154,4 @@ replace github.com/vedhavyas/go-subkey => github.com/vedhavyas/go-subkey v1.0.2
 replace github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 
 // require(github.com/octopus-network/beefy-go)
-replace github.com/octopus-network/beefy-go => ../beefy-go
+// replace github.com/octopus-network/beefy-go => ../beefy-go
