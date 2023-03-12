@@ -30,10 +30,9 @@ func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateCl
 
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
-	fmt.Println(clientState.String())
+
 	consensusState, err := clienttypes.UnpackConsensusState(msg.ConsensusState)
 	if err != nil {
 		return nil, err

@@ -14,7 +14,7 @@ import (
 // var logger = log.Logger.With("light-client/10-grandpa/client_state")
 var Logger = log.NewTMLogger(os.Stderr)
 
-func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.GenerateMmrBatchProofResponse, authorityProof [][]byte) BeefyMMR {
+func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp, authorityProof [][]byte) BeefyMMR {
 
 	// bsc := beefy.ConvertCommitment(sc)
 	pbPalyloads := make([]PayloadItem, len(bsc.Commitment.Payload))

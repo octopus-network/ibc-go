@@ -243,9 +243,12 @@ func TestSolochainLocalNet(t *testing.T) {
 			require.NoError(t, err)
 
 			// step2,build beefy mmr
-			targetHeights := []uint64{uint64(latestSignedCommitmentBlockNumber - 1)}
+			targetHeights := []uint32{uint32(latestSignedCommitmentBlockNumber - 1)}
 			// build mmr proofs for leaves containing target paraId
-			mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
+			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
+			mmrBatchProof, err := beefy.BuildMMRProofs(localSolochainEndpoint, targetHeights,
+				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
+				gsrpctypes.NewOptionHashEmpty())
 			require.NoError(t, err)
 			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
 			t.Logf("pbBeefyMMR: %+v", pbBeefyMMR)
@@ -428,13 +431,14 @@ func TestParachainLocalNet(t *testing.T) {
 		"justifications",
 		ch)
 	require.NoError(t, err)
-	t.Logf("subscribed to %s\n", beefy.LOCAL_RELAY_ENDPPOIT)
+	t.Logf("subscribed to relaychain %s\n", beefy.LOCAL_RELAY_ENDPPOIT)
 	defer sub.Unsubscribe()
 
 	localParachainEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_PARACHAIN_ENDPOINT)
 	if err != nil {
 		t.Logf("Connecting err: %v", err)
 	}
+	t.Logf("subscribed to parachain %s\n", beefy.LOCAL_RELAY_ENDPPOIT)
 
 	timeout := time.After(24 * time.Hour)
 	received := 0
@@ -572,15 +576,18 @@ func TestParachainLocalNet(t *testing.T) {
 			changeSets, err := beefy.QueryParachainStorage(localRelayEndpoint, beefy.LOCAL_PARACHAIN_ID, fromBlockHash, latestSignedCommitmentBlockHash)
 			require.NoError(t, err)
 
-			var targetRelaychainBlockHeights []uint64
+			var targetRelaychainBlockHeights []uint32
 			for _, changeSet := range changeSets {
 				relayHeader, err := localRelayEndpoint.RPC.Chain.GetHeader(changeSet.Block)
 				require.NoError(t, err)
-				targetRelaychainBlockHeights = append(targetRelaychainBlockHeights, uint64(relayHeader.Number))
+				targetRelaychainBlockHeights = append(targetRelaychainBlockHeights, uint32(relayHeader.Number))
 			}
 
 			// build mmr proofs for leaves containing target paraId
-			mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelaychainBlockHeights)
+			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelaychainBlockHeights)
+			mmrBatchProof, err := beefy.BuildMMRProofs(localRelayEndpoint, targetRelaychainBlockHeights,
+				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
+				gsrpctypes.NewOptionHashEmpty())
 			require.NoError(t, err)
 
 			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
