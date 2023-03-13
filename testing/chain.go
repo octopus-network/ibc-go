@@ -444,7 +444,9 @@ func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {
 
 // CreateTMClientHeader creates a TM header to update the TM client. Args are passed in to allow
 // caller flexibility to use params that differ from the chain.
-func (chain *TestChain) CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, nextVals, tmTrustedVals *tmtypes.ValidatorSet, signers map[string]tmtypes.PrivValidator) *ibctmtypes.Header {
+func (chain *TestChain) CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, 
+	timestamp time.Time, tmValSet, nextVals, tmTrustedVals *tmtypes.ValidatorSet, 
+	signers map[string]tmtypes.PrivValidator) *ibctmtypes.Header {
 	var (
 		valSet      *tmproto.ValidatorSet
 		trustedVals *tmproto.ValidatorSet
