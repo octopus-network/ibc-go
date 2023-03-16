@@ -3,14 +3,13 @@ package types_test
 import (
 	"time"
 
-	ics23 "github.com/confio/ics23/go"
-
 	clienttypes "github.com/cosmos/ibc-go/v5/modules/core/02-client/types"
 	channeltypes "github.com/cosmos/ibc-go/v5/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v5/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v5/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
 	"github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
+	ibcgptypes "github.com/cosmos/ibc-go/v5/modules/light-clients/10-grandpa/types"
 	ibctesting "github.com/cosmos/ibc-go/v5/testing"
 	ibcmock "github.com/cosmos/ibc-go/v5/testing/mock"
 )
@@ -67,98 +66,37 @@ func (suite *GrandpaTestSuite) TestStatus() {
 		suite.Require().Equal(tc.expStatus, status)
 
 	}
+
 }
 
 func (suite *GrandpaTestSuite) TestValidate() {
+	var clientState *ibcgptypes.ClientState
 	testCases := []struct {
-		name        string
-		clientState *types.ClientState
-		expPass     bool
+		name     string
+		malleate func()
+		expPass  bool
 	}{
-		{
-			name:        "valid client",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     true,
+		{"valid client",
+			func() {
+				clientState = &gpClientState
+			}, true,
 		},
-		{
-			name:        "valid client with nil upgrade path",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), nil, false, false),
-			expPass:     true,
-		},
-		{
-			name:        "invalid chainID",
-			clientState: types.NewClientState("  ", types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			// NOTE: if this test fails, the code must account for the change in chainID length across tendermint versions!
-			// Do not only fix the test, fix the code!
-			// https://github.com/cosmos/ibc-go/issues/177
-			name:        "valid chainID - chainID validation failed for chainID of length 50! ",
-			clientState: types.NewClientState(fiftyCharChainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     true,
-		},
-		{
-			// NOTE: if this test fails, the code must account for the change in chainID length across tendermint versions!
-			// Do not only fix the test, fix the code!
-			// https://github.com/cosmos/ibc-go/issues/177
-			name:        "invalid chainID - chainID validation did not fail for chainID of length 51! ",
-			clientState: types.NewClientState(fiftyOneCharChainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid trust level",
-			clientState: types.NewClientState(chainID, types.Fraction{Numerator: 0, Denominator: 1}, trustingPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid trusting period",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, 0, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid unbonding period",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, 0, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid max clock drift",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, 0, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid revision number",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, clienttypes.NewHeight(1, 1), commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "invalid revision height",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, trustingPeriod, ubdPeriod, maxClockDrift, clienttypes.ZeroHeight(), commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "trusting period not less than unbonding period",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, ubdPeriod, ubdPeriod, maxClockDrift, height, commitmenttypes.GetSDKSpecs(), upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "proof specs is nil",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, ubdPeriod, ubdPeriod, maxClockDrift, height, nil, upgradePath, false, false),
-			expPass:     false,
-		},
-		{
-			name:        "proof specs contains nil",
-			clientState: types.NewClientState(chainID, types.DefaultTrustLevel, ubdPeriod, ubdPeriod, maxClockDrift, height, []*ics23.ProofSpec{ics23.TendermintSpec, nil}, upgradePath, false, false),
-			expPass:     false,
+		{"beefy height must > zero",
+			func() {
+				gpClientState.LatestBeefyHeight = 0
+				clientState = &gpClientState
+			}, false,
 		},
 	}
 
-	for _, tc := range testCases {
-		err := tc.clientState.Validate()
+	for i, tc := range testCases {
+		tc.malleate()
+		err := clientState.Validate()
 		if tc.expPass {
-			suite.Require().NoError(err, tc.name)
+			suite.Require().NoError(err, "valid test case %d failed: %s", i, tc.name)
 		} else {
-			suite.Require().Error(err, tc.name)
+			suite.Require().Error(err, "invalid test case %d passed: %s", i, tc.name)
+			suite.Suite.T().Logf("clientState.Validate() err: %+v", err)
 		}
 	}
 }

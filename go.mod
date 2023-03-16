@@ -181,6 +181,7 @@ replace (
 require (
 	github.com/ComposableFi/go-merkle-trees v0.0.0-20220505132313-e976260288cc
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.10
+	github.com/dablelv/go-huge-util v0.0.33
 	github.com/octopus-network/beefy-go v0.2.0
 )
 

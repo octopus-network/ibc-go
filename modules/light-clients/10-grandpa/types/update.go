@@ -186,9 +186,10 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	}
 
-	newClientState := NewClientState(cs.ChainType, cs.ChainId, cs.ParachainId, cs.BeefyActivationBlock,
-		latestBeefyHeight, mmrRoot, latestChainHeight, cs.FrozenHeight,
-		*latestNextAuthoritySet, cs.NextAuthoritySet)
+	newClientState := NewClientState(cs.ChainType, cs.ChainId, 
+		cs.ParachainId, cs.BeefyActivationBlock,
+		latestBeefyHeight, mmrRoot, latestChainHeight, 
+		cs.FrozenHeight,*latestNextAuthoritySet, cs.NextAuthoritySet)
 
 	return newClientState, nil
 
@@ -199,7 +200,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 
 	var newConsensueState *ConsensusState
 	var latestChainHeight uint32
-	var latestBlockHeader *gsrpctypes.Header
+	var latestBlockHeader gsrpctypes.Header
 	var latestTimestamp uint64
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SOLOCHAIN:
@@ -222,7 +223,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			//find latest header and timestmap
 			if latestChainHeight < uint32(decodeHeader.Number) {
 				latestChainHeight = uint32(decodeHeader.Number)
-				latestBlockHeader = &decodeHeader
+				latestBlockHeader = decodeHeader
 				latestTimestamp = uint64(decodeTimestamp)
 			}
 		}
@@ -247,7 +248,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 			//find latest header and timestmap
 			if latestChainHeight < uint32(decodeHeader.Number) {
 				latestChainHeight = uint32(decodeHeader.Number)
-				latestBlockHeader = &decodeHeader
+				latestBlockHeader = decodeHeader
 				latestTimestamp = uint64(decodeTimestamp)
 			}
 

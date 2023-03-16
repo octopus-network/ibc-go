@@ -44,8 +44,14 @@ func (h Header) GetHeight() exported.Height {
 	// }
 
 	// use the beefy height as header height
-	latestBeefyHeight := h.BeefyMmr.SignedCommitment.Commitment.BlockNumber
-	return clienttypes.NewHeight(0, uint64(latestBeefyHeight))
+	// latestBeefyHeight := h.BeefyMmr.SignedCommitment.Commitment.BlockNumber
+	//get latest header and time
+	latestHeader, _, err := getLastestBlockHeader(h)
+	if err != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:", "GetHeight error: ", err)
+		return nil
+	}
+	return clienttypes.NewHeight(0, uint64(latestHeader.Number))
 	// revision := clienttypes.ParseChainID(h.Header.ChainID)
 	// return clienttypes.NewHeight(revision, uint64(h.Header.Height))
 }
@@ -59,6 +65,7 @@ func (h Header) GetTime() time.Time {
 	// }
 	//get latest header and time
 	_, latestTime, err := getLastestBlockHeader(h)
+	Logger.Debug("latestTime:", latestTime)
 	if err != nil {
 		Logger.Error("LightClient:", "10-Grandpa", "method:", "getLastestHeader error: ", err)
 		return time.Unix(0, 0)
@@ -68,10 +75,11 @@ func (h Header) GetTime() time.Time {
 }
 
 func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
-	var latestHeader *gsrpctypes.Header
+	var latestHeader gsrpctypes.Header
 	var latestTimestamp time.Time
 	var latestHeight uint32
 	headerMessage := h.GetMessage()
+
 	switch headerMap := headerMessage.(type) {
 	case *Header_SolochainHeaderMap:
 		solochainHeaderMap := headerMap.SolochainHeaderMap.SolochainHeaderMap
@@ -81,25 +89,28 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			}
 		}
 		solochainHeader := solochainHeaderMap[latestHeight]
-		var decodeHeader gsrpctypes.Header
-		err := gsrpccodec.Decode(solochainHeader.BlockHeader, &decodeHeader)
+
+		// var decodeHeader gsrpctypes.Header
+		err := gsrpccodec.Decode(solochainHeader.BlockHeader, &latestHeader)
 		if err != nil {
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode header error")
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode header error")
 		}
+		Logger.Debug("decodeHeader.Number:", latestHeader.Number)
 
 		// verify timestamp and get it
 		err = beefy.VerifyStateProof(solochainHeader.Timestamp.Proofs,
-			decodeHeader.StateRoot[:], solochainHeader.Timestamp.Key,
+			latestHeader.StateRoot[:], solochainHeader.Timestamp.Key,
 			solochainHeader.Timestamp.Value)
 		if err != nil {
 			Logger.Error("LightClient:", "10-Grandpa", "method:", "VerifyStateProof error: ", err)
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
 		}
 		//decode
 		var decodeTimestamp gsrpctypes.U64
 		err = gsrpccodec.Decode(solochainHeader.Timestamp.Value, &decodeTimestamp)
 		if err != nil {
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
+			Logger.Error("decode timestamp error:", err)
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
 
@@ -111,31 +122,32 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			}
 		}
 		parachainHeader := parachainHeaderMap[latestHeight]
-		var decodeHeader gsrpctypes.Header
-		err := gsrpccodec.Decode(parachainHeader.BlockHeader, &decodeHeader)
+		// var decodeHeader gsrpctypes.Header
+		err := gsrpccodec.Decode(parachainHeader.BlockHeader, &latestHeader)
 		if err != nil {
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode header error")
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode header error")
 		}
 
 		// verify timestamp and get it
 		err = beefy.VerifyStateProof(parachainHeader.Timestamp.Proofs,
-			decodeHeader.StateRoot[:], parachainHeader.Timestamp.Key,
+			latestHeader.StateRoot[:], parachainHeader.Timestamp.Key,
 			parachainHeader.Timestamp.Value)
 		if err != nil {
 			Logger.Error("LightClient:", "10-Grandpa", "method:", "VerifyStateProof error: ", err)
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
 		}
 		//decode
 		var decodeTimestamp gsrpctypes.U64
 		err = gsrpccodec.Decode(parachainHeader.Timestamp.Value, &decodeTimestamp)
 		if err != nil {
-			return *latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
+			Logger.Error("decode timestamp error:", err)
+			return latestHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
 
 	}
 
-	return *latestHeader, latestTimestamp, nil
+	return latestHeader, latestTimestamp, nil
 }
 
 // ValidateBasic calls the header ValidateBasic function and checks
@@ -145,9 +157,10 @@ func (h Header) ValidateBasic() error {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "Grandpa header cannot be nil")
 	}
 
-	// if h.BeefyMmr.SignedCommitment.Commitment.BlockNumber == 0 {
-	// 	return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "latest beefy mmr height cannot be nil")
-	// }
+	if reflect.DeepEqual(h.BeefyMmr, BeefyMMR{}) {
+		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "beefy mmr cannot be nil")
+	}
+
 	if h.Message == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "Header Message cannot be nil")
 	}

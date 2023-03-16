@@ -3,73 +3,64 @@ package types_test
 import (
 	"time"
 
-	tmprotocrypto "github.com/tendermint/tendermint/proto/tendermint/crypto"
-
-	clienttypes "github.com/cosmos/ibc-go/v5/modules/core/02-client/types"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
-	"github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
+	ibcgptypes "github.com/cosmos/ibc-go/v5/modules/light-clients/10-grandpa/types"
 )
 
 func (suite *GrandpaTestSuite) TestGetHeight() {
-	header := suite.chainA.LastHeader
-	suite.Require().NotEqual(uint64(0), header.GetHeight())
+	// header := suite.chainA.LastHeader
+	height := gpHeader.GetHeight()
+	suite.Suite.T().Logf("gpHeader.GetHeight(): %+v", gpHeader.GetHeight())
+	suite.Require().NotEqual(uint64(0), height)
 }
 
 func (suite *GrandpaTestSuite) TestGetTime() {
-	header := suite.chainA.LastHeader
-	suite.Require().NotEqual(time.Time{}, header.GetTime())
+	// header := suite.chainA.LastHeader
+	headerTime := gpHeader.GetTime()
+	suite.Suite.T().Logf("gpHeader.GetTime(): %+v", headerTime)
+	suite.Require().NotEqual(time.Time{}, headerTime)
 }
 
 func (suite *GrandpaTestSuite) TestHeaderValidateBasic() {
-	var header *types.Header
+	var header *ibcgptypes.Header
 	testCases := []struct {
 		name     string
 		malleate func()
 		expPass  bool
 	}{
-		{"valid header", func() {}, true},
+		{"valid header", func() {
+			header = &gpHeader
+		}, true},
 		{"header is nil", func() {
-			header.Header = nil
+			header = &ibcgptypes.Header{}
 		}, false},
-		{"signed header is nil", func() {
-			header.SignedHeader = nil
+		{"beefy mmr is nil", func() {
+
+			header = &ibcgptypes.Header{
+				BeefyMmr: ibcgptypes.BeefyMMR{},
+				Message:  gpHeader.Message,
+			}
 		}, false},
-		{"SignedHeaderFromProto failed", func() {
-			header.SignedHeader.Commit.Height = -1
-		}, false},
-		{"signed header failed tendermint ValidateBasic", func() {
-			header = suite.chainA.LastHeader
-			header.SignedHeader.Commit = nil
-		}, false},
-		{"trusted height is equal to header height", func() {
-			header.TrustedHeight = header.GetHeight().(clienttypes.Height)
-		}, false},
-		{"validator set nil", func() {
-			header.ValidatorSet = nil
-		}, false},
-		{"ValidatorSetFromProto failed", func() {
-			header.ValidatorSet.Validators[0].PubKey = tmprotocrypto.PublicKey{}
-		}, false},
-		{"header validator hash does not equal hash of validator set", func() {
-			// use chainB's randomly generated validator set
-			header.ValidatorSet = suite.chainB.LastHeader.ValidatorSet
+		{"header message is nil", func() {
+			header = &ibcgptypes.Header{
+				BeefyMmr: gpHeader.BeefyMmr,
+				Message:  nil,
+			}
 		}, false},
 	}
 
-	suite.Require().Equal(exported.Tendermint, suite.header.ClientType())
+	suite.Require().Equal(exported.Grandpa, gpHeader.ClientType())
 
 	for _, tc := range testCases {
 		tc := tc
 
 		suite.Run(tc.name, func() {
+			suite.Suite.T().Logf("tc.name: %s", tc.name)
 			suite.SetupTest()
 
-			header = suite.chainA.LastHeader // must be explicitly changed in malleate
-
 			tc.malleate()
-
 			err := header.ValidateBasic()
-
+			suite.Suite.T().Logf("header.ValidateBasic() err: %+v", err)
 			if tc.expPass {
 				suite.Require().NoError(err)
 			} else {

@@ -5,67 +5,35 @@ import (
 
 	commitmenttypes "github.com/cosmos/ibc-go/v5/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
-	"github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
+	ibcgptypes "github.com/cosmos/ibc-go/v5/modules/light-clients/10-grandpa/types"
 )
 
 func (suite *GrandpaTestSuite) TestConsensusStateValidateBasic() {
 	testCases := []struct {
 		msg            string
-		consensusState *types.ConsensusState
+		consensusState *ibcgptypes.ConsensusState
 		expectPass     bool
 	}{
 		{
 			"success",
-			&types.ConsensusState{
-				Timestamp:          suite.now,
-				Root:               commitmenttypes.NewMerkleRoot([]byte("app_hash")),
-				NextValidatorsHash: suite.valsHash,
-			},
+			&consensusState,
 			true,
 		},
-		{
-			"success with sentinel",
-			&types.ConsensusState{
-				Timestamp:          suite.now,
-				Root:               commitmenttypes.NewMerkleRoot([]byte(types.SentinelRoot)),
-				NextValidatorsHash: suite.valsHash,
-			},
-			true,
-		},
+
 		{
 			"root is nil",
-			&types.ConsensusState{
-				Timestamp:          suite.now,
-				Root:               commitmenttypes.MerkleRoot{},
-				NextValidatorsHash: suite.valsHash,
-			},
-			false,
-		},
-		{
-			"root is empty",
-			&types.ConsensusState{
-				Timestamp:          suite.now,
-				Root:               commitmenttypes.MerkleRoot{},
-				NextValidatorsHash: suite.valsHash,
-			},
-			false,
-		},
-		{
-			"nextvalshash is invalid",
-			&types.ConsensusState{
-				Timestamp:          suite.now,
-				Root:               commitmenttypes.NewMerkleRoot([]byte("app_hash")),
-				NextValidatorsHash: []byte("hi"),
+			&ibcgptypes.ConsensusState{
+				Timestamp: consensusState.Timestamp,
+				Root:      []byte{},
 			},
 			false,
 		},
 
 		{
 			"timestamp is zero",
-			&types.ConsensusState{
-				Timestamp:          time.Time{},
-				Root:               commitmenttypes.NewMerkleRoot([]byte("app_hash")),
-				NextValidatorsHash: suite.valsHash,
+			&ibcgptypes.ConsensusState{
+				Timestamp: time.Time{},
+				Root:      consensusState.Root,
 			},
 			false,
 		},
@@ -75,8 +43,11 @@ func (suite *GrandpaTestSuite) TestConsensusStateValidateBasic() {
 		tc := tc
 
 		// check just to increase coverage
-		suite.Require().Equal(exported.Tendermint, tc.consensusState.ClientType())
-		suite.Require().Equal(tc.consensusState.GetRoot(), tc.consensusState.Root)
+		suite.Require().Equal(exported.Grandpa, tc.consensusState.ClientType())
+
+		// Note: consensusState.GetRoot() != consensusState.Root, it`s different type
+		suite.Require().NotEqual(tc.consensusState.GetRoot(), tc.consensusState.Root)
+		suite.Require().Equal(tc.consensusState.GetRoot(), commitmenttypes.NewMerkleRoot([]byte(tc.consensusState.Root)))
 
 		err := tc.consensusState.ValidateBasic()
 		if tc.expectPass {

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"time"
 
 	ics23 "github.com/confio/ics23/go"
@@ -15,6 +16,8 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v5/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v5/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v5/modules/core/exported"
+	ibctmtypes "github.com/cosmos/ibc-go/v5/modules/light-clients/07-tendermint/types"
+	trieproof "github.com/octopus-network/trie-go/trie/proof"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -60,8 +63,7 @@ func (cs ClientState) ClientType() string {
 	return exported.Grandpa
 }
 
-// TODO: which height?
-// GetLatestHeight returns latest beefy height,note chain height.
+// TODO: which height? latest beefy height or latest chain height.
 func (cs ClientState) GetLatestHeight() exported.Height {
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetLatestHeight()")
 
@@ -108,7 +110,8 @@ func (cs ClientState) Validate() error {
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Validate()")
 
 	if cs.LatestBeefyHeight == 0 {
-		return ErrInvalidHeaderHeight
+
+		return sdkerrors.Wrap(ErrInvalidHeaderHeight, "beefy height cannot be zero")
 	}
 
 	return nil
@@ -184,7 +187,8 @@ func (cs ClientState) VerifyClientState(
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "client state cannot be empty")
 	}
 
-	_, ok := clientState.(*ClientState)
+	// asset tendermint clientstate
+	_, ok := clientState.(*ibctmtypes.ClientState)
 	if !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
 	}
@@ -247,7 +251,8 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "consensus state cannot be empty")
 	}
 
-	_, ok := consensusState.(*ConsensusState)
+	// asset tendermint consensuse state
+	_, ok := consensusState.(*ibctmtypes.ConsensusState)
 	if !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
 	}
@@ -454,11 +459,16 @@ func (cs ClientState) VerifyPacketCommitment(
 	// }
 
 	// TODO:confirm the commitmentBytes is scale encode?
+	encodedCZ, err := gsrpccodec.Encode(commitmentBytes)
+	if err != nil {
+		return sdkerrors.Wrap(err, "commitmentBytes could not be scale encoded")
+	}
+
 	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyChannelState()", "commitmentBytes", commitmentBytes)
+		"ClientState.VerifyPacketCommitment()", "encoded commitmentBytes", encodedCZ)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, commitmentBytes)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedCZ)
 
 	if err != nil {
 		Logger.Error("LightClient:", "10-Grandpa", "method:",
@@ -514,9 +524,16 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 
 	// acknowledgement
 	// TODO: confirm the acknowledgement is scale encode?
+	encodedAck, err := gsrpccodec.Encode(acknowledgement)
+	if err != nil {
+		return sdkerrors.Wrap(err, "acknowledgement could not be scale encoded")
+	}
+
+	Logger.Debug("LightClient:", "10-Grandpa", "method:",
+		"ClientState.VerifyPacketAcknowledgement()", "encoded acknowledgement", encodedAck)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, acknowledgement)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedAck)
 	if err != nil {
 		Logger.Error("LightClient:", "10-Grandpa", "method:",
 			"ClientState.VerifyPacketAcknowledgement()", "failure to verify state proof: ", err)
@@ -571,13 +588,25 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
 
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
+	// TODO: asset stateProof.Key == beefy.CreateStorageKeyPrefix(path,method)
+
+	// build trie proof tree
+	trie, err := trieproof.BuildTrie(stateProof.Proofs, consensusState.Root)
 	if err != nil {
 		Logger.Error("LightClient:", "10-Grandpa", "method:",
-			"ClientState.VerifyPacketReceiptAbsence()", "failure to verify state proof: ", err)
+			"ClientState.VerifyPacketReceiptAbsence()", "failure to build trie proof: ", err)
 
 		return err
 	}
+	// find value
+	value := trie.Get(stateProof.Key)
+	if value != nil {
+		Logger.Error("LightClient:", "10-Grandpa", "method:",
+			"ClientState.VerifyPacketReceiptAbsence()", "found value : ", value)
+
+		return sdkerrors.Wrap(errors.New("VerifyPacketReceiptAbsence error "), "found value")
+	}
+
 	return nil
 }
 
@@ -619,13 +648,18 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "next sequence recv path could not be scale encoded")
 	// }
-
-	bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
+	// TODO: confirm the nextSequenceRecv is scale encode or Uint64ToBigEndian?
+	// bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
+	//encode channel end
+	encodedNextSequenceRecv, err := gsrpccodec.Encode(nextSequenceRecv)
+	if err != nil {
+		return sdkerrors.Wrap(err, "channel end could not be scale encoded")
+	}
 	Logger.Debug("LightClient:", "10-Grandpa", "method:",
-		"ClientState.VerifyNextSequenceRecv()", "sdk.Uint64ToBigEndian(nextSequenceRecv)", bz)
+		"ClientState.VerifyNextSequenceRecv()", "sdk.Uint64ToBigEndian(nextSequenceRecv)", encodedNextSequenceRecv)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
-	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, bz)
+	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedNextSequenceRecv)
 
 	if err != nil {
 		Logger.Error("LightClient:", "10-Grandpa", "method:",
@@ -704,7 +738,8 @@ func produceVerificationArgs(
 	}
 
 	// Note: decode proof
-	err = gsrpccodec.Decode(proof, &stateProof)
+	// err = gsrpccodec.Decode(proof, &stateProof)
+	err = cdc.Unmarshal(proof, &stateProof)
 	if err != nil {
 		return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
 	}
