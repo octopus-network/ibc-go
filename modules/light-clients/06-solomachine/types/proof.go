@@ -217,7 +217,6 @@ func ConnectionStateSignBytes(
 		Data:        dataBz,
 	}
 
-	fmt.Println(path.String(), connectionEnd)
 	fmt.Println(signBytes)
 	return cdc.Marshal(signBytes)
 }
@@ -241,6 +240,7 @@ func ConnectionStateDataBytes(
 		Path:       []byte(path.String()),
 		Connection: &connection,
 	}
+	fmt.Println(data)
 
 	dataBz, err := cdc.Marshal(data)
 	if err != nil {
