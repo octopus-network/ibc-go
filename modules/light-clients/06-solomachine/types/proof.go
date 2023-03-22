@@ -117,6 +117,7 @@ func ClientStateSignBytes(
 		Data:        dataBz,
 	}
 
+	fmt.Println(signBytes)
 	return cdc.Marshal(signBytes)
 }
 
@@ -136,6 +137,7 @@ func ClientStateDataBytes(
 		Path:        []byte(path.String()),
 		ClientState: any,
 	}
+	fmt.Println(data)
 
 	dataBz, err := cdc.Marshal(data)
 	if err != nil {
@@ -166,6 +168,7 @@ func ConsensusStateSignBytes(
 		DataType:    CONSENSUS,
 		Data:        dataBz,
 	}
+	fmt.Println(signBytes)
 
 	return cdc.Marshal(signBytes)
 }
@@ -186,6 +189,7 @@ func ConsensusStateDataBytes(
 		Path:           []byte(path.String()),
 		ConsensusState: any,
 	}
+	fmt.Println(data)
 
 	dataBz, err := cdc.Marshal(data)
 	if err != nil {
