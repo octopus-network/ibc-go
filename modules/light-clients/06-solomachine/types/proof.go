@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	"github.com/cosmos/cosmos-sdk/crypto/types/multisig"
@@ -216,6 +217,8 @@ func ConnectionStateSignBytes(
 		Data:        dataBz,
 	}
 
+	fmt.Println(path, connectionEnd)
+	fmt.Println(signBytes)
 	return cdc.Marshal(signBytes)
 }
 
