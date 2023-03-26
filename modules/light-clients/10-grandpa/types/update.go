@@ -124,16 +124,16 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 	case beefy.CHAINTYPE_SOLOCHAIN:
 		Logger.Debug("verify solochain header")
 
-		headerMap := gpHeader.GetSolochainHeaderMap()
+		headerMap := gpHeader.GetSubchainHeaderMap()
 		// convert pb solochain header to beefy solochain header
-		beefySolochainHeaderMap := make(map[uint32]beefy.SolochainHeader)
-		for num, header := range headerMap.SolochainHeaderMap {
-			beefySolochainHeaderMap[num] = beefy.SolochainHeader{
+		beefySubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
+		for num, header := range headerMap.SubchainHeaderMap {
+			beefySubchainHeaderMap[num] = beefy.SubchainHeader{
 				BlockHeader: header.BlockHeader,
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
 		}
-		err := beefy.VerifySolochainHeader(beefyMMRLeaves, beefySolochainHeaderMap)
+		err := beefy.VerifySubchainHeader(beefyMMRLeaves, beefySubchainHeaderMap)
 		if err != nil {
 			return err
 		}
@@ -186,10 +186,10 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	}
 
-	newClientState := NewClientState(cs.ChainType, cs.ChainId, 
+	newClientState := NewClientState(cs.ChainType, cs.ChainId,
 		cs.ParachainId, cs.BeefyActivationBlock,
-		latestBeefyHeight, mmrRoot, latestChainHeight, 
-		cs.FrozenHeight,*latestNextAuthoritySet, cs.NextAuthoritySet)
+		latestBeefyHeight, mmrRoot, latestChainHeight,
+		cs.FrozenHeight, *latestNextAuthoritySet, cs.NextAuthoritySet)
 
 	return newClientState, nil
 
@@ -204,8 +204,8 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 	var latestTimestamp uint64
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SOLOCHAIN:
-		solochainHeaderMap := header.GetSolochainHeaderMap().SolochainHeaderMap
-		for _, header := range solochainHeaderMap {
+		subchainHeaderMap := header.GetSubchainHeaderMap().SubchainHeaderMap
+		for _, header := range subchainHeaderMap {
 			var decodeHeader gsrpctypes.Header
 			err := gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 			if err != nil {

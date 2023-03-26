@@ -9,7 +9,7 @@ import "gogoproto/gogo.proto";
 
 // chain type
 // enum ChainType {
-//   // solochain
+//   // subchain
 //   CHAIN_TYPE_SOLOCHAIN_UNSPECIFIED = 0;
 //   // parachain
 //   CHAIN_TYPE_PARACHAIN = 1;
@@ -20,7 +20,7 @@ import "gogoproto/gogo.proto";
 message ClientState {
   option (gogoproto.goproto_getters) = false;
 
-  // 0: solochain
+  // 0: subchain
   // 1: parachain
   uint32 chain_type = 1;
   // chain_id string type, eg: ibc-1
@@ -34,7 +34,7 @@ message ClientState {
   uint32 latest_beefy_height = 5;
   // Latest mmr root hash
   bytes mmr_root_hash = 6;
-  // latest solochain or parachain height
+  // latest subchain or parachain height
   uint32 latest_chain_height = 7;
   // Block height when the client was frozen due to a misbehaviour
   uint32 frozen_height = 8;
@@ -165,18 +165,18 @@ message ConsensusState {
   bytes root = 2;
 }
 
-// solochain header map
-message SolochainHeaderMap {
+// subchain header map
+message SubchainHeaderMap {
   // LatestMMR latest_mmr = 1;
   // map<blocknumber,scale-encoded blockheader>
-  map<uint32, SolochainHeader> solochain_header_map = 1 [(gogoproto.nullable) = false];
+  map<uint32, SubchainHeader> subchain_header_map = 1 [(gogoproto.nullable) = false];
   // map<uint32,Timestamp> timestamp_map=2;
 }
 
-// solochain header
-message SolochainHeader {
+// subchain header
+message SubchainHeader {
   option (gogoproto.goproto_getters) = false;
-  // scale-encoded solochain header bytes
+  // scale-encoded subchain header bytes
   bytes block_header = 1;
   // timestamp and proof
   StateProof timestamp = 2 [(gogoproto.nullable) = false];
@@ -223,8 +223,8 @@ message Header {
   BeefyMMR beefy_mmr = 1 [(gogoproto.nullable) = false];
   // only one header
   oneof message {
-    // solochain headers and their proofs
-    SolochainHeaderMap solochain_header_map = 2;
+    // subchain headers and their proofs
+    SubchainHeaderMap subchain_header_map = 2;
     // parachain headers and their proofs
     ParachainHeaderMap parachain_header_map = 3;
   }

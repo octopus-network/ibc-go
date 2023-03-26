@@ -178,24 +178,24 @@ func ToMMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBat
 
 }
 
-func ToPBSolochainHeaderMap(solochainHeaderMap map[uint32]beefy.SolochainHeader) Header_SolochainHeaderMap {
+func ToPBSolochainHeaderMap(subchainHeaderMap map[uint32]beefy.SubchainHeader) Header_SubchainHeaderMap {
 
-	headerMap := make(map[uint32]SolochainHeader)
-	for num, header := range solochainHeaderMap {
-		headerMap[num] = SolochainHeader{
+	headerMap := make(map[uint32]SubchainHeader)
+	for num, header := range subchainHeaderMap {
+		headerMap[num] = SubchainHeader{
 			BlockHeader: header.BlockHeader,
 			Timestamp:   StateProof(header.Timestamp),
 		}
 	}
 
-	pbSolochainHeaderMap := SolochainHeaderMap{
-		SolochainHeaderMap: headerMap,
+	pbSubchainHeaderMap := SubchainHeaderMap{
+		SubchainHeaderMap: headerMap,
 	}
 
-	header_solochainMap := Header_SolochainHeaderMap{
-		SolochainHeaderMap: &pbSolochainHeaderMap,
+	header_subchainMap := Header_SubchainHeaderMap{
+		SubchainHeaderMap: &pbSubchainHeaderMap,
 	}
-	return header_solochainMap
+	return header_subchainMap
 
 }
 

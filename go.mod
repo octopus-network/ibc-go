@@ -125,7 +125,6 @@ require (
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/octopus-network/trie-go v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
@@ -182,7 +181,8 @@ require (
 	github.com/ComposableFi/go-merkle-trees v0.0.0-20220505132313-e976260288cc
 	github.com/centrifuge/go-substrate-rpc-client/v4 v4.0.10
 	github.com/dablelv/go-huge-util v0.0.33
-	github.com/octopus-network/beefy-go v0.2.0
+	github.com/octopus-network/beefy-go v0.3.0
+	github.com/octopus-network/trie-go v0.1.0
 )
 
 replace github.com/vedhavyas/go-subkey => github.com/vedhavyas/go-subkey v1.0.2

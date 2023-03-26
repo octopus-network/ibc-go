@@ -456,14 +456,14 @@ func (suite *GrandpaTestSuite) TestPruneConsensusState() {
 	suite.Require().Equal(expectedConsKey, consKey, "iteration key incorrectly pruned")
 }
 
-func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
-	suite.Suite.T().Skip("need to setup relaychain or solochain")
-	localSolochainEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_RELAY_ENDPPOIT)
+func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
+	// suite.Suite.T().Skip("need to setup relaychain or subchain")
+	localSubchainEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_RELAY_ENDPPOIT)
 	if err != nil {
 		suite.Suite.T().Logf("Connecting err: %v", err)
 	}
 	ch := make(chan interface{})
-	sub, err := localSolochainEndpoint.Client.Subscribe(
+	sub, err := localSubchainEndpoint.Client.Subscribe(
 		context.Background(),
 		"beefy",
 		"subscribeJustifications",
@@ -496,7 +496,7 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			// suite.Suite.T().Logf("decoded msg: %#v\n", s)
 			latestSignedCommitmentBlockNumber := s.SignedCommitment.Commitment.BlockNumber
 			// suite.Suite.T().Logf("blockNumber: %d\n", latestBlockNumber)
-			latestSignedCommitmentBlockHash, err := localSolochainEndpoint.RPC.Chain.GetBlockHash(uint64(latestSignedCommitmentBlockNumber))
+			latestSignedCommitmentBlockHash, err := localSubchainEndpoint.RPC.Chain.GetBlockHash(uint64(latestSignedCommitmentBlockNumber))
 			suite.Require().NoError(err)
 			suite.Suite.T().Logf("latestSignedCommitmentBlockNumber: %d latestSignedCommitmentBlockHash: %#x",
 				latestSignedCommitmentBlockNumber, latestSignedCommitmentBlockHash)
@@ -505,24 +505,24 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			if clientState == nil {
 				//  init client state
 				suite.Suite.T().Log("clientState == nil, need to init !")
-				authoritySet, err := beefy.GetBeefyAuthoritySet(latestSignedCommitmentBlockHash, localSolochainEndpoint, "BeefyAuthorities")
+				authoritySet, err := beefy.GetBeefyAuthoritySet(latestSignedCommitmentBlockHash, localSubchainEndpoint, "BeefyAuthorities")
 				suite.Require().NoError(err)
 				suite.Suite.T().Logf("current authority set: %+v", authoritySet)
-				nextAuthoritySet, err := beefy.GetBeefyAuthoritySet(latestSignedCommitmentBlockHash, localSolochainEndpoint, "BeefyNextAuthorities")
+				nextAuthoritySet, err := beefy.GetBeefyAuthoritySet(latestSignedCommitmentBlockHash, localSubchainEndpoint, "BeefyNextAuthorities")
 				suite.Require().NoError(err)
 				suite.Suite.T().Logf("next authority set: %+v", nextAuthoritySet)
-				// get the parachain or solochain latest height
+				// get the parachain or subchain latest height
 				// the height must be inclueded into relay chain, if not exist ,the height is zero
 				fromBlockNumber := latestSignedCommitmentBlockNumber - 7 // for test
 				suite.Suite.T().Logf("fromBlockNumber: %d toBlockNumber: %d", fromBlockNumber, latestSignedCommitmentBlockNumber)
 
-				fromBlockHash, err := localSolochainEndpoint.RPC.Chain.GetBlockHash(uint64(fromBlockNumber))
+				fromBlockHash, err := localSubchainEndpoint.RPC.Chain.GetBlockHash(uint64(fromBlockNumber))
 				suite.Require().NoError(err)
 				suite.Suite.T().Logf("fromBlockHash: %#x ", fromBlockHash)
 				suite.Suite.T().Logf("toBlockHash: %#x", latestSignedCommitmentBlockHash)
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              "solosub-0",
+					ChainId:              "subsub-0",
 					ChainType:            beefy.CHAINTYPE_SOLOCHAIN,
 					ParachainId:          0,
 					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
@@ -557,7 +557,7 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			}
 
 			// step1,build authourities proof for current beefy signatures
-			authorities, err := beefy.GetBeefyAuthorities(latestSignedCommitmentBlockHash, localSolochainEndpoint, "Authorities")
+			authorities, err := beefy.GetBeefyAuthorities(latestSignedCommitmentBlockHash, localSubchainEndpoint, "Authorities")
 			suite.Require().NoError(err)
 			bsc := beefy.ConvertCommitment(s.SignedCommitment)
 			suite.Suite.T().Logf("bsc: %+v", bsc)
@@ -573,7 +573,7 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			targetHeights := []uint32{uint32(latestSignedCommitmentBlockNumber - 1)}
 			// build mmr proofs for leaves containing target paraId
 			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
-			mmrBatchProof, err := beefy.BuildMMRProofs(localSolochainEndpoint, targetHeights,
+			mmrBatchProof, err := beefy.BuildMMRProofs(localSubchainEndpoint, targetHeights,
 				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
 				gsrpctypes.NewOptionHashEmpty())
 			suite.Require().NoError(err)
@@ -581,17 +581,17 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			suite.Suite.T().Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
 			// step3, build header proof
-			// build solochain header map
-			solochainHeaderMap, err := beefy.BuildSolochainHeaderMap(localSolochainEndpoint, mmrBatchProof.Proof.LeafIndexes)
+			// build subchain header map
+			subchainHeaderMap, err := beefy.BuildSubchainHeaderMap(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes)
 			suite.Require().NoError(err)
-			suite.Suite.T().Logf("solochainHeaderMap: %+v", solochainHeaderMap)
-			suite.Suite.T().Logf("solochainHeaderMap: %#v", solochainHeaderMap)
+			suite.Suite.T().Logf("subchainHeaderMap: %+v", subchainHeaderMap)
+			suite.Suite.T().Logf("subchainHeaderMap: %#v", subchainHeaderMap)
 
-			pbHeader_solochainMap := ibcgptypes.ToPBSolochainHeaderMap(solochainHeaderMap)
+			pbHeader_subchainMap := ibcgptypes.ToPBSolochainHeaderMap(subchainHeaderMap)
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
 				BeefyMmr: pbBeefyMMR,
-				Message:  &pbHeader_solochainMap,
+				Message:  &pbHeader_subchainMap,
 			}
 			suite.Suite.T().Logf("pbHeader: %+v", pbHeader)
 			suite.Suite.T().Logf("pbHeader: %#v", pbHeader)
@@ -642,17 +642,17 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 			suite.Suite.T().Log("\n------------------ VerifyMMRBatchProof end ----------------------\n")
 
 			// step3, verify header
-			// convert pb solochain header to beefy solochain header
-			rebuildSolochainHeaderMap := make(map[uint32]beefy.SolochainHeader)
-			unmarshalSolochainHeaderMap := unmarshalPBHeader.GetSolochainHeaderMap()
-			for num, header := range unmarshalSolochainHeaderMap.SolochainHeaderMap {
-				rebuildSolochainHeaderMap[num] = beefy.SolochainHeader{
+			// convert pb subchain header to beefy subchain header
+			rebuildSubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
+			unmarshalSubchainHeaderMap := unmarshalPBHeader.GetSubchainHeaderMap()
+			for num, header := range unmarshalSubchainHeaderMap.GetSubchainHeaderMap(){
+				rebuildSubchainHeaderMap[num] = beefy.SubchainHeader{
 					BlockHeader: header.BlockHeader,
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
 			}
 			// suite.Suite.T().Logf("rebuildSolochainHeaderMap: %+v", rebuildSolochainHeaderMap)
-			suite.Suite.T().Logf("unmarshal solochainHeaderMap: %+v", *unmarshalSolochainHeaderMap)
+			suite.Suite.T().Logf("unmarshal subchainHeaderMap: %+v", *unmarshalSubchainHeaderMap)
 
 			suite.Suite.T().Log("\n------------------ VerifySolochainHeader --------------------------")
 			// err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
@@ -693,7 +693,7 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 
 			// step5,update consensue state
 			var latestHeight uint32
-			for _, header := range unmarshalSolochainHeaderMap.SolochainHeaderMap {
+			for _, header := range unmarshalSubchainHeaderMap.SubchainHeaderMap {
 				var decodeHeader gsrpctypes.Header
 				err = gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 				suite.Require().NoError(err)
@@ -716,9 +716,9 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 
 			// step6, mock to build and verify state proof
 			for num, consnesue := range consensusStateKVStore {
-				targetBlockHash, err := localSolochainEndpoint.RPC.Chain.GetBlockHash(uint64(num))
+				targetBlockHash, err := localSubchainEndpoint.RPC.Chain.GetBlockHash(uint64(num))
 				suite.Require().NoError(err)
-				timestampProof, err := beefy.GetTimestampProof(localSolochainEndpoint, targetBlockHash)
+				timestampProof, err := beefy.GetTimestampProof(localSubchainEndpoint, targetBlockHash)
 				suite.Require().NoError(err)
 
 				proofs := make([][]byte, len(timestampProof.Proof))
@@ -752,7 +752,7 @@ func (suite *GrandpaTestSuite) TestSolochainLocalNet() {
 }
 
 func (suite *GrandpaTestSuite) TestParachainLocalNet() {
-	suite.Suite.T().Skip("need setup relay chain and parachain")
+	// suite.Suite.T().Skip("need setup relay chain and parachain")
 	localRelayEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_RELAY_ENDPPOIT)
 	if err != nil {
 		suite.Suite.T().Logf("Connecting err: %v", err)
