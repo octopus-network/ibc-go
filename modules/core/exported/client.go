@@ -23,6 +23,9 @@ const (
 	// for the localhost client.
 	Localhost string = "09-localhost"
 
+	// grandpa is used to indicate that the client uses the Grandpa Consensus Algorithm.
+	Grandpa string = "10-grandpa"
+
 	// Active is a status type of a client. An active client is allowed to be used.
 	Active Status = "Active"
 
