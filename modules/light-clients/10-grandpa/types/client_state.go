@@ -27,25 +27,25 @@ func NewClientState(
 	chainType uint32,
 	chainId string,
 	parachainId uint32,
-	beefyActivationBlock uint32,
-	latestBeefyHeight uint32,
+	beefyActivationHeight uint32,
+	latestBeefyHeight clienttypes.Height,
 	mmrRootHash []byte,
-	latestHeight uint32,
-	frozenHeight uint32,
+	latestHeight clienttypes.Height,
+	frozenHeight clienttypes.Height,
 	authoritySet BeefyAuthoritySet,
 	nextAuthoritySet BeefyAuthoritySet,
 ) *ClientState {
 	return &ClientState{
-		ChainType:            chainType,
-		ChainId:              chainId,
-		ParachainId:          parachainId,
-		BeefyActivationBlock: beefyActivationBlock,
-		LatestBeefyHeight:    latestBeefyHeight,
-		MmrRootHash:          mmrRootHash,
-		LatestChainHeight:    latestHeight,
-		FrozenHeight:         frozenHeight,
-		AuthoritySet:         authoritySet,
-		NextAuthoritySet:     nextAuthoritySet,
+		ChainType:             chainType,
+		ChainId:               chainId,
+		ParachainId:           parachainId,
+		BeefyActivationHeight: beefyActivationHeight,
+		LatestBeefyHeight:     latestBeefyHeight,
+		MmrRootHash:           mmrRootHash,
+		LatestChainHeight:     latestHeight,
+		FrozenHeight:          frozenHeight,
+		AuthoritySet:          authoritySet,
+		NextAuthoritySet:      nextAuthoritySet,
 	}
 }
 
@@ -67,11 +67,7 @@ func (cs ClientState) ClientType() string {
 func (cs ClientState) GetLatestHeight() exported.Height {
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.GetLatestHeight()")
 
-	return clienttypes.Height{
-		RevisionNumber: 0,
-		// RevisionHeight: uint64(cs.LatestBeefyHeight),
-		RevisionHeight: uint64(cs.LatestChainHeight),
-	}
+	return cs.LatestChainHeight
 }
 
 // Status returns the status of the Grandpa client.
@@ -89,7 +85,7 @@ func (cs ClientState) Status(
 ) exported.Status {
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Status()")
 
-	if cs.FrozenHeight > 0 {
+	if !cs.FrozenHeight.IsZero() {
 		return exported.Frozen
 	}
 
@@ -109,7 +105,7 @@ func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
 func (cs ClientState) Validate() error {
 	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.Validate()")
 
-	if cs.LatestBeefyHeight == 0 {
+	if cs.LatestBeefyHeight.RevisionHeight == 0 {
 
 		return sdkerrors.Wrap(ErrInvalidHeaderHeight, "beefy height cannot be zero")
 	}
@@ -137,15 +133,15 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 	// and leave custom fields empty
 
 	return &ClientState{
-		ChainId:              cs.ChainId,
-		ChainType:            cs.ChainType,
-		BeefyActivationBlock: cs.BeefyActivationBlock,
-		LatestBeefyHeight:    cs.LatestBeefyHeight,
-		MmrRootHash:          cs.MmrRootHash,
-		LatestChainHeight:    cs.LatestChainHeight,
-		FrozenHeight:         cs.FrozenHeight,
-		AuthoritySet:         cs.AuthoritySet,
-		NextAuthoritySet:     cs.NextAuthoritySet,
+		ChainId:               cs.ChainId,
+		ChainType:             cs.ChainType,
+		BeefyActivationHeight: cs.BeefyActivationHeight,
+		LatestBeefyHeight:     cs.LatestBeefyHeight,
+		MmrRootHash:           cs.MmrRootHash,
+		LatestChainHeight:     cs.LatestChainHeight,
+		FrozenHeight:          cs.FrozenHeight,
+		AuthoritySet:          cs.AuthoritySet,
+		NextAuthoritySet:      cs.NextAuthoritySet,
 	}
 }
 
@@ -160,10 +156,7 @@ func (cs ClientState) Initialize(ctx sdk.Context, _ codec.BinaryCodec, clientSto
 	}
 	// set metadata for initial consensus state.
 	//Note,this height must be solochain or parachain height
-	latestChainHeigh := clienttypes.Height{
-		RevisionNumber: 0,
-		RevisionHeight: uint64(cs.LatestChainHeight),
-	}
+	latestChainHeigh := cs.GetLatestHeight()
 	setConsensusMetadata(ctx, clientStore, latestChainHeigh)
 
 	return nil

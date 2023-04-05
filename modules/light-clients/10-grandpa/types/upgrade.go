@@ -62,7 +62,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// All chain-chosen parameters come from committed client, all client-chosen parameters
 	// come from current client.
 	newClientState := NewClientState(
-		gpUpgradeClient.ChainType, gpUpgradeClient.ChainId, gpUpgradeClient.ParachainId, gpUpgradeClient.BeefyActivationBlock,
+		gpUpgradeClient.ChainType, gpUpgradeClient.ChainId, gpUpgradeClient.ParachainId, gpUpgradeClient.BeefyActivationHeight,
 		gpUpgradeClient.LatestBeefyHeight, gpUpgradeClient.MmrRootHash, gpUpgradeClient.LatestChainHeight,
 		gpUpgradeClient.FrozenHeight, gpUpgradeClient.AuthoritySet, gpUpgradeClient.NextAuthoritySet,
 	)
@@ -85,7 +85,7 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	)
 
 	// set metadata for this consensus state
-	setConsensusMetadata(ctx, clientStore, clienttypes.NewHeight(0, uint64(gpUpgradeClient.LatestChainHeight)))
+	setConsensusMetadata(ctx, clientStore, gpUpgradeClient.LatestChainHeight)
 
 	return newClientState, newConsState, nil
 }

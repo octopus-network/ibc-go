@@ -104,7 +104,7 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 func (cs ClientState) VerifyMMR(bsc beefy.SignedCommitment, mmrSize uint64,
 	beefyMMRLeaves []gsrpctypes.MMRLeaf, mmrBatchProof beefy.MMRBatchProof) error {
 	// check mmr height
-	if bsc.Commitment.BlockNumber <= cs.LatestBeefyHeight {
+	if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
 		return sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
 	}
 
@@ -167,7 +167,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 	ctx.Logger().Debug("update client state")
 	// var newClientState *ClientState
 
-	latestBeefyHeight := commitment.BlockNumber
+	latestBeefyHeight := clienttypes.NewHeight(clienttypes.ParseChainID(cs.ChainId), uint64(commitment.BlockNumber))
 	latestChainHeight := latestBeefyHeight
 	mmrRoot := commitment.Payloads[0].Data
 
@@ -187,7 +187,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 	}
 
 	newClientState := NewClientState(cs.ChainType, cs.ChainId,
-		cs.ParachainId, cs.BeefyActivationBlock,
+		cs.ParachainId, cs.BeefyActivationHeight,
 		latestBeefyHeight, mmrRoot, latestChainHeight,
 		cs.FrozenHeight, *latestNextAuthoritySet, cs.NextAuthoritySet)
 

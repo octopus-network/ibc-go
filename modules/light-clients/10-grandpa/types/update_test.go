@@ -522,14 +522,14 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 				suite.Suite.T().Logf("toBlockHash: %#x", latestSignedCommitmentBlockHash)
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              "subsub-0",
-					ChainType:            beefy.CHAINTYPE_SOLOCHAIN,
-					ParachainId:          0,
-					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
-					LatestBeefyHeight:    latestSignedCommitmentBlockNumber,
-					MmrRootHash:          s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestChainHeight:    latestSignedCommitmentBlockNumber,
-					FrozenHeight:         0,
+					ChainId:               "sub-0",
+					ChainType:             beefy.CHAINTYPE_SOLOCHAIN,
+					ParachainId:           0,
+					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
+					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
+					MmrRootHash:           s.SignedCommitment.Commitment.Payload[0].Data,
+					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
+					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), 0),
 					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
 						Len:  uint32(authoritySet.Len),
@@ -663,8 +663,8 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 			// step4, update client state
 			// update client height
-			clientState.LatestBeefyHeight = latestSignedCommitmentBlockNumber
-			clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
+			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
 			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
 			// find latest next authority set from mmrleaves
 			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
@@ -856,14 +856,14 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 				}
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:              "parachain-1",
-					ChainType:            beefy.CHAINTYPE_PARACHAIN,
-					ParachainId:          beefy.LOCAL_PARACHAIN_ID,
-					BeefyActivationBlock: beefy.BEEFY_ACTIVATION_BLOCK,
-					LatestBeefyHeight:    latestSignedCommitmentBlockNumber,
-					MmrRootHash:          s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestChainHeight:    latestChainHeight,
-					FrozenHeight:         0,
+					ChainId:               "parachain-1",
+					ChainType:             beefy.CHAINTYPE_PARACHAIN,
+					ParachainId:           beefy.LOCAL_PARACHAIN_ID,
+					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
+					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), uint64(latestSignedCommitmentBlockNumber)),
+					MmrRootHash:           s.SignedCommitment.Commitment.Payload[0].Data,
+					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), uint64(latestChainHeight)),
+					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), 0),
 					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
 						Len:  uint32(authoritySet.Len),
@@ -903,7 +903,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			suite.Require().NoError(err)
 
 			// step2,build beefy mmr
-			fromBlockNumber := clientState.LatestBeefyHeight + 1
+			fromBlockNumber := clientState.LatestBeefyHeight.RevisionHeight + 1
 
 			fromBlockHash, err := localRelayEndpoint.RPC.Chain.GetBlockHash(uint64(fromBlockNumber))
 			suite.Require().NoError(err)
@@ -1018,8 +1018,8 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			suite.Suite.T().Log("\n--------------------------------------------\n")
 
 			// step4, update client state
-			clientState.LatestBeefyHeight = latestSignedCommitmentBlockNumber
-			clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
+			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			// clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
 			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
 			// find latest next authority set from mmrleaves
 			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
@@ -1069,6 +1069,9 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			}
 			suite.Suite.T().Logf("latest consensusStateKVStore: %+v", consensusStateKVStore)
 			suite.Suite.T().Logf("latest height and consensus state: %d,%+v", latestHeight, consensusStateKVStore[latestHeight])
+
+			// update client state latest chain height
+			clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(clientState.ChainId), uint64(latestHeight))
 
 			// step6, mock to build and verify state proof
 			for num, consnesue := range consensusStateKVStore {

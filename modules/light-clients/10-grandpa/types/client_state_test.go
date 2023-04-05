@@ -77,7 +77,7 @@ func (suite *GrandpaTestSuite) TestValidate() {
 		},
 		{"beefy height must > zero",
 			func() {
-				gpClientState.LatestBeefyHeight = 0
+				gpClientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 0)
 				clientState = &gpClientState
 			}, false,
 		},

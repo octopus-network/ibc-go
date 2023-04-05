@@ -3,19 +3,20 @@ package types_test
 import (
 	time "time"
 
+	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
 	ibcgptypes "github.com/cosmos/ibc-go/v6/modules/light-clients/10-grandpa/types"
 	"github.com/dablelv/go-huge-util/conv"
 )
 
 var gpClientState = ibcgptypes.ClientState{
-	ChainType:            0,
-	ChainId:              "solosub-0",
-	ParachainId:          0,
-	BeefyActivationBlock: 0,
-	LatestBeefyHeight:    15228,
-	MmrRootHash:          conv.SplitStrToSlice[byte]("131 79 104 195 33 161 208 242 156 164 3 120 80 122 102 198 67 105 240 96 40 47 16 197 136 94 190 101 145 9 176 52", " "),
-	LatestChainHeight:    15228,
-	FrozenHeight:         0,
+	ChainType:             0,
+	ChainId:               chainID,
+	ParachainId:           0,
+	BeefyActivationHeight: 0,
+	LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
+	MmrRootHash:           conv.SplitStrToSlice[byte]("131 79 104 195 33 161 208 242 156 164 3 120 80 122 102 198 67 105 240 96 40 47 16 197 136 94 190 101 145 9 176 52", " "),
+	LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
+	FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 0),
 	AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 		Id:   1522,
 		Len:  5,

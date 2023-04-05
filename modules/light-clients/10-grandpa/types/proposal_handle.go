@@ -42,7 +42,7 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 
 	if cs.Status(ctx, subjectClientStore, cdc) == exported.Frozen {
 		// unfreeze the client
-		cs.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionNumber)
+		cs.FrozenHeight = clienttypes.ZeroHeight()
 	}
 
 	// copy consensus states and processed time from substitute to subject
@@ -82,10 +82,10 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 // except for frozen height, latest height, and chain-id.
 func IsMatchingClientState(subject, substitute ClientState) bool {
 	// zero out parameters which do not need to match
-	subject.LatestChainHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	subject.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	substitute.LatestChainHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
-	substitute.FrozenHeight = uint32(clienttypes.ZeroHeight().RevisionHeight)
+	subject.LatestChainHeight = clienttypes.ZeroHeight()
+	subject.FrozenHeight = clienttypes.ZeroHeight()
+	substitute.LatestChainHeight = clienttypes.ZeroHeight()
+	substitute.FrozenHeight = clienttypes.ZeroHeight()
 	subject.ChainId = ""
 	substitute.ChainId = ""
 

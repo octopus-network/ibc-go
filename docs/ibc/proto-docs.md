@@ -307,6 +307,29 @@
 - [ibc/core/types/v1/genesis.proto](#ibc/core/types/v1/genesis.proto)
     - [GenesisState](#ibc.core.types.v1.GenesisState)
   
+- [ibc/lightclients/grandpa/v1/grandpa.proto](#ibc/lightclients/grandpa/v1/grandpa.proto)
+    - [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet)
+    - [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR)
+    - [ClientState](#ibc.lightclients.grandpa.v1.ClientState)
+    - [Commitment](#ibc.lightclients.grandpa.v1.Commitment)
+    - [ConsensusState](#ibc.lightclients.grandpa.v1.ConsensusState)
+    - [Header](#ibc.lightclients.grandpa.v1.Header)
+    - [MMRBatchProof](#ibc.lightclients.grandpa.v1.MMRBatchProof)
+    - [MMRLeaf](#ibc.lightclients.grandpa.v1.MMRLeaf)
+    - [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof)
+    - [Misbehaviour](#ibc.lightclients.grandpa.v1.Misbehaviour)
+    - [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader)
+    - [ParachainHeaderMap](#ibc.lightclients.grandpa.v1.ParachainHeaderMap)
+    - [ParachainHeaderMap.ParachainHeaderMapEntry](#ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry)
+    - [ParentNumberAndHash](#ibc.lightclients.grandpa.v1.ParentNumberAndHash)
+    - [PayloadItem](#ibc.lightclients.grandpa.v1.PayloadItem)
+    - [Signature](#ibc.lightclients.grandpa.v1.Signature)
+    - [SignedCommitment](#ibc.lightclients.grandpa.v1.SignedCommitment)
+    - [StateProof](#ibc.lightclients.grandpa.v1.StateProof)
+    - [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader)
+    - [SubchainHeaderMap](#ibc.lightclients.grandpa.v1.SubchainHeaderMap)
+    - [SubchainHeaderMap.SubchainHeaderMapEntry](#ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry)
+  
 - [ibc/lightclients/localhost/v1/localhost.proto](#ibc/lightclients/localhost/v1/localhost.proto)
     - [ClientState](#ibc.lightclients.localhost.v1.ClientState)
   
@@ -4482,6 +4505,386 @@ GenesisState defines the ibc module's genesis state.
 | `client_genesis` | [ibc.core.client.v1.GenesisState](#ibc.core.client.v1.GenesisState) |  | ICS002 - Clients genesis state |
 | `connection_genesis` | [ibc.core.connection.v1.GenesisState](#ibc.core.connection.v1.GenesisState) |  | ICS003 - Connections genesis state |
 | `channel_genesis` | [ibc.core.channel.v1.GenesisState](#ibc.core.channel.v1.GenesisState) |  | ICS004 - Channel genesis state |
+
+
+
+
+
+ <!-- end messages -->
+
+ <!-- end enums -->
+
+ <!-- end HasExtensions -->
+
+ <!-- end services -->
+
+
+
+<a name="ibc/lightclients/grandpa/v1/grandpa.proto"></a>
+<p align="right"><a href="#top">Top</a></p>
+
+## ibc/lightclients/grandpa/v1/grandpa.proto
+
+
+
+<a name="ibc.lightclients.grandpa.v1.BeefyAuthoritySet"></a>
+
+### BeefyAuthoritySet
+Beefy Authority Info
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `id` | [uint64](#uint64) |  | Id of the authority set, it should be strictly increasing |
+| `len` | [uint32](#uint32) |  | Number of validators in the set. |
+| `root` | [bytes](#bytes) |  | Merkle Root Hash build from BEEFY uncompressed AuthorityIds. |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.BeefyMMR"></a>
+
+### BeefyMMR
+mmr data
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `signed_commitment` | [SignedCommitment](#ibc.lightclients.grandpa.v1.SignedCommitment) |  | signed commitment data |
+| `signature_proofs` | [bytes](#bytes) | repeated | build merkle tree based on all the signature in signed commitment and generate the signature proof |
+| `mmr_leaves_and_batch_proof` | [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof) |  | mmr proof |
+| `mmr_size` | [uint64](#uint64) |  | size of the mmr for the given proof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ClientState"></a>
+
+### ClientState
+ClientState from Beefy tracks the current validator set, latest height,
+and a possible frozen height.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `chain_type` | [uint32](#uint32) |  | 0: subchain 1: parachain |
+| `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1 |
+| `parachain_id` | [uint32](#uint32) |  | parachain id is uint type |
+| `beefy_activation_height` | [uint32](#uint32) |  | block number that the beefy protocol was activated on the relay chain. This should be the first block in the merkle-mountain-range tree. |
+| `latest_beefy_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | the latest mmr_root_hash height |
+| `mmr_root_hash` | [bytes](#bytes) |  | Latest mmr root hash |
+| `latest_chain_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | latest subchain or parachain height |
+| `frozen_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | Block height when the client was frozen due to a misbehaviour |
+| `authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the current round |
+| `next_authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the next round |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.Commitment"></a>
+
+### Commitment
+Commitment message signed by beefy validators
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `payloads` | [PayloadItem](#ibc.lightclients.grandpa.v1.PayloadItem) | repeated | array of payload items signed by Beefy validators |
+| `block_number` | [uint32](#uint32) |  | block number for this commitment |
+| `validator_set_id` | [uint64](#uint64) |  | validator set that signed this commitment |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ConsensusState"></a>
+
+### ConsensusState
+ConsensusState
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `timestamp` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  | timestamp that corresponds to the block height in which the ConsensusState was stored. |
+| `root` | [bytes](#bytes) |  | parachain header.state_root that used to verify chain storage proof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.Header"></a>
+
+### Header
+header wrapper
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) |  | the latest mmr data |
+| `subchain_header_map` | [SubchainHeaderMap](#ibc.lightclients.grandpa.v1.SubchainHeaderMap) |  | subchain headers and their proofs |
+| `parachain_header_map` | [ParachainHeaderMap](#ibc.lightclients.grandpa.v1.ParachainHeaderMap) |  | parachain headers and their proofs |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.MMRBatchProof"></a>
+
+### MMRBatchProof
+mmr batch proof
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `leaf_indexes` | [uint64](#uint64) | repeated | The index of the leaf the proof is for. |
+| `leaf_count` | [uint64](#uint64) |  | Number of leaves in MMR, when the proof was generated. |
+| `items` | [bytes](#bytes) | repeated | Proof elements (hashes of siblings of inner nodes on the path to the leaf). |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.MMRLeaf"></a>
+
+### MMRLeaf
+MmrLeaf leaf data
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `version` | [uint32](#uint32) |  | leaf version |
+| `parent_number_and_hash` | [ParentNumberAndHash](#ibc.lightclients.grandpa.v1.ParentNumberAndHash) |  | parent block for this leaf uint32 parent_number = 2; // parent hash for this leaf bytes parent_hash = 3; parent number and hash |
+| `beefy_next_authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | beefy next authority set. |
+| `parachain_heads` | [bytes](#bytes) |  | merkle root hash of parachain heads included in the leaf. |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof"></a>
+
+### MMRLeavesAndBatchProof
+mmr leaves and proofs
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `leaves` | [MMRLeaf](#ibc.lightclients.grandpa.v1.MMRLeaf) | repeated | mmr leaves |
+| `mmr_batch_proof` | [MMRBatchProof](#ibc.lightclients.grandpa.v1.MMRBatchProof) |  | mmr batch proof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.Misbehaviour"></a>
+
+### Misbehaviour
+Misbehaviour is a wrapper over two conflicting Headers
+that implements Misbehaviour interface expected by ICS-02
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `client_id` | [string](#string) |  |  |
+| `header_1` | [Header](#ibc.lightclients.grandpa.v1.Header) |  |  |
+| `header_2` | [Header](#ibc.lightclients.grandpa.v1.Header) |  |  |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ParachainHeader"></a>
+
+### ParachainHeader
+data needed to prove parachain header inclusion in mmr
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1,astar-1 |
+| `parachain_id` | [uint32](#uint32) |  | para id must be uint |
+| `block_header` | [bytes](#bytes) |  | scale-encoded parachain header bytes |
+| `proofs` | [bytes](#bytes) | repeated | proofs for parachain header in the mmr_leaf.parachain_heads |
+| `header_index` | [uint32](#uint32) |  | merkle leaf index for parachain heads proof |
+| `header_count` | [uint32](#uint32) |  | total number of para heads in parachain_heads_root |
+| `timestamp` | [StateProof](#ibc.lightclients.grandpa.v1.StateProof) |  | timestamp and proof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ParachainHeaderMap"></a>
+
+### ParachainHeaderMap
+Parachain headers and their merkle proofs.
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `parachain_header_map` | [ParachainHeaderMap.ParachainHeaderMapEntry](#ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry) | repeated | map<blocknumber,ParachainHeader>
+
+map<uint32,Timestamp> timestamp_map=2; |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry"></a>
+
+### ParachainHeaderMap.ParachainHeaderMapEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [uint32](#uint32) |  |  |
+| `value` | [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader) |  |  |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.ParentNumberAndHash"></a>
+
+### ParentNumberAndHash
+parent number and hash
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `parent_number` | [uint32](#uint32) |  | parent block for this leaf |
+| `parent_hash` | [bytes](#bytes) |  | parent hash for this leaf |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.PayloadItem"></a>
+
+### PayloadItem
+Actual payload items
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `id` | [bytes](#bytes) |  | 2-byte payload id |
+| `data` | [bytes](#bytes) |  | arbitrary length payload data., eg mmr_root_hash |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.Signature"></a>
+
+### Signature
+Signature with it`s index in merkle tree
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `index` | [uint32](#uint32) |  | signature leaf index in the merkle tree. |
+| `signature` | [bytes](#bytes) |  | signature bytes |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.SignedCommitment"></a>
+
+### SignedCommitment
+signed commitment data
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `commitment` | [Commitment](#ibc.lightclients.grandpa.v1.Commitment) |  | commitment data being signed |
+| `signatures` | [Signature](#ibc.lightclients.grandpa.v1.Signature) | repeated | all the signatures |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.StateProof"></a>
+
+### StateProof
+state value and proof
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [bytes](#bytes) |  | state key |
+| `value` | [bytes](#bytes) |  | the state value |
+| `proofs` | [bytes](#bytes) | repeated | these proof gets from parachain by rpc methord:state_getReadProof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.SubchainHeader"></a>
+
+### SubchainHeader
+subchain header
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1,astar-1 |
+| `block_header` | [bytes](#bytes) |  | scale-encoded subchain header bytes |
+| `timestamp` | [StateProof](#ibc.lightclients.grandpa.v1.StateProof) |  | timestamp and proof |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.SubchainHeaderMap"></a>
+
+### SubchainHeaderMap
+subchain header map
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `subchain_header_map` | [SubchainHeaderMap.SubchainHeaderMapEntry](#ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry) | repeated | LatestMMR latest_mmr = 1; map<blocknumber,scale-encoded blockheader>
+
+map<uint32,Timestamp> timestamp_map=2; |
+
+
+
+
+
+
+<a name="ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry"></a>
+
+### SubchainHeaderMap.SubchainHeaderMapEntry
+
+
+
+| Field | Type | Label | Description |
+| ----- | ---- | ----- | ----------- |
+| `key` | [uint32](#uint32) |  |  |
+| `value` | [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader) |  |  |
 
 
 
