@@ -276,6 +276,7 @@ func ChannelStateSignBytes(
 		Data:        dataBz,
 	}
 
+	fmt.Println(signBytes)
 	return cdc.Marshal(signBytes)
 }
 
@@ -297,6 +298,7 @@ func ChannelStateDataBytes(
 		Path:    []byte(path.String()),
 		Channel: &channel,
 	}
+	fmt.Println(data)
 
 	dataBz, err := cdc.Marshal(data)
 	if err != nil {
@@ -327,6 +329,7 @@ func PacketCommitmentSignBytes(
 		DataType:    PACKETCOMMITMENT,
 		Data:        dataBz,
 	}
+	fmt.Println(signBytes)
 
 	return cdc.Marshal(signBytes)
 }
@@ -343,6 +346,7 @@ func PacketCommitmentDataBytes(
 		Commitment: commitmentBytes,
 	}
 
+	fmt.Println(data)
 	dataBz, err := cdc.Marshal(data)
 	if err != nil {
 		return nil, err
