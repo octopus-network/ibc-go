@@ -178,7 +178,7 @@ func ToMMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBat
 
 }
 
-func ToPBSolochainHeaderMap(subchainHeaderMap map[uint32]beefy.SubchainHeader) Header_SubchainHeaderMap {
+func ToPBSubchainHeaderMap(subchainHeaderMap map[uint32]beefy.SubchainHeader) Header_SubchainHeaderMap {
 
 	headerMap := make(map[uint32]SubchainHeader)
 	for num, header := range subchainHeaderMap {

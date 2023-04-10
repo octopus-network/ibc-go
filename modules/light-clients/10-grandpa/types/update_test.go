@@ -587,7 +587,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			suite.Suite.T().Logf("subchainHeaderMap: %+v", subchainHeaderMap)
 			suite.Suite.T().Logf("subchainHeaderMap: %#v", subchainHeaderMap)
 
-			pbHeader_subchainMap := ibcgptypes.ToPBSolochainHeaderMap(subchainHeaderMap)
+			pbHeader_subchainMap := ibcgptypes.ToPBSubchainHeaderMap(subchainHeaderMap)
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
 				BeefyMmr: pbBeefyMMR,
@@ -654,12 +654,12 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			// suite.Suite.T().Logf("rebuildSolochainHeaderMap: %+v", rebuildSolochainHeaderMap)
 			suite.Suite.T().Logf("unmarshal subchainHeaderMap: %+v", *unmarshalSubchainHeaderMap)
 
-			suite.Suite.T().Log("\n------------------ VerifySolochainHeader --------------------------")
+			suite.Suite.T().Log("\n------------------ VerifySubchainHeader --------------------------")
 			// err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
 			// suite.Require().NoError(err)
 			err = clientState.VerifyHeader(unmarshalPBHeader, rebuildMMRLeaves)
 			suite.Require().NoError(err)
-			suite.Suite.T().Log("\n------------------ VerifySolochainHeader end ----------------------\n")
+			suite.Suite.T().Log("\n------------------ VerifySubchainHeader end ----------------------\n")
 
 			// step4, update client state
 			// update client height
@@ -741,7 +741,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			}
 
 			received++
-			if received >= 1 {
+			if received >= 2 {
 				return
 			}
 		case <-timeout:
@@ -856,7 +856,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 				}
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:               "parachain-1",
+					ChainId:               "astar-0",
 					ChainType:             beefy.CHAINTYPE_PARACHAIN,
 					ParachainId:           beefy.LOCAL_PARACHAIN_ID,
 					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,

@@ -122,7 +122,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SOLOCHAIN:
-		Logger.Debug("verify solochain header")
+		Logger.Debug("verify subchain header")
 
 		headerMap := gpHeader.GetSubchainHeaderMap()
 		// convert pb solochain header to beefy solochain header

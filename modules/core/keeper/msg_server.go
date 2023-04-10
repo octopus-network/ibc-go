@@ -24,7 +24,7 @@ var (
 // CreateClient defines a rpc handler method for MsgCreateClient.
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-
+	ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
 		return nil, err
