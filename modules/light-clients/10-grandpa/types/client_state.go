@@ -16,7 +16,8 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v6/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v6/modules/core/exported"
-	ibctmtypes "github.com/cosmos/ibc-go/v6/modules/light-clients/07-tendermint/types"
+
+	// ibcgptypes "github.com/cosmos/ibc-go/v6/modules/light-clients/10-grandpa/types"
 	trieproof "github.com/octopus-network/trie-go/trie/proof"
 )
 
@@ -180,8 +181,8 @@ func (cs ClientState) VerifyClientState(
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "client state cannot be empty")
 	}
 
-	// asset tendermint clientstate
-	_, ok := clientState.(*ibctmtypes.ClientState)
+	// asset grandpa clientstate
+	_, ok := clientState.(*ClientState)
 	if !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
 	}
@@ -245,7 +246,7 @@ func (cs ClientState) VerifyClientConsensusState(
 	}
 
 	// asset tendermint consensuse state
-	_, ok := consensusState.(*ibctmtypes.ConsensusState)
+	_, ok := consensusState.(*ConsensusState)
 	if !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
 	}
