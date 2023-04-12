@@ -16,9 +16,7 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v6/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v6/modules/core/exported"
-
 	// ibcgptypes "github.com/cosmos/ibc-go/v6/modules/light-clients/10-grandpa/types"
-	trieproof "github.com/octopus-network/trie-go/trie/proof"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -208,6 +206,7 @@ func (cs ClientState) VerifyClientState(
 	}
 	Logger.Debug("LightClient:", "10-Grandpa", "method:",
 		"ClientState.VerifyClientState()", "encodedClientState", encodedClientState)
+
 	// get state proof
 	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -245,7 +244,7 @@ func (cs ClientState) VerifyClientConsensusState(
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "consensus state cannot be empty")
 	}
 
-	// asset tendermint consensuse state
+	// asset grandpa consensuse state
 	_, ok := consensusState.(*ConsensusState)
 	if !ok {
 		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
@@ -557,7 +556,7 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 		"height", height, "prefix", prefix, "proof", proof, "portID", portID, "channelID", channelID,
 		"delayTimePeriod", delayTimePeriod, "delayBlockPeriod", delayBlockPeriod, "sequence", sequence)
 
-	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
+	stateProof, _, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
 	}
@@ -585,22 +584,24 @@ func (cs ClientState) VerifyPacketReceiptAbsence(
 	// TODO: asset stateProof.Key == beefy.CreateStorageKeyPrefix(path,method)
 
 	// build trie proof tree
-	trie, err := trieproof.BuildTrie(stateProof.Proofs, consensusState.Root)
-	if err != nil {
-		Logger.Error("LightClient:", "10-Grandpa", "method:",
-			"ClientState.VerifyPacketReceiptAbsence()", "failure to build trie proof: ", err)
+	// trie, err := trieproof.BuildTrie(stateProof.Proofs, consensusState.Root)
+	// if err != nil {
+	// 	Logger.Error("LightClient:", "10-Grandpa", "method:",
+	// 		"ClientState.VerifyPacketReceiptAbsence()", "failure to build trie proof: ", err)
 
-		return err
+	// 	return err
+	// }
+	// // try to find value
+	// value := trie.Get(stateProof.Key)
+	// if value != nil {
+	// 	Logger.Error("LightClient:", "10-Grandpa", "method:",
+	// 		"ClientState.VerifyPacketReceiptAbsence()", "found value : ", value)
+
+	// 	return sdkerrors.Wrap(errors.New("VerifyPacketReceiptAbsence error "), "found value")
+	// }
+	if stateProof.Proofs != nil {
+		return sdkerrors.Wrap(errors.New("VerifyPacketReceiptAbsence error "), "state proof is not nil")
 	}
-	// find value
-	value := trie.Get(stateProof.Key)
-	if value != nil {
-		Logger.Error("LightClient:", "10-Grandpa", "method:",
-			"ClientState.VerifyPacketReceiptAbsence()", "found value : ", value)
-
-		return sdkerrors.Wrap(errors.New("VerifyPacketReceiptAbsence error "), "found value")
-	}
-
 	return nil
 }
 
@@ -708,20 +709,12 @@ func produceVerificationArgs(
 	prefix exported.Prefix,
 	proof []byte,
 ) (stateProof StateProof, consensusState *ConsensusState, err error) {
-	// if cs.GetLatestHeight().LT(height) {
-	// 	return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrapf(
-	// 		sdkerrors.ErrInvalidHeight,
-	// 		"client state height < proof height (%d < %d), please ensure the client has been updated", cs.GetLatestHeight(), height,
-	// 	)
-	// }
-
-	// no height checks because parachain_header height fits into revision_number
-	// so if fetching consensus state fails, we don't have the consensus state for the parachain header.
-
-	if proof == nil {
-		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "proof cannot be empty")
+	if cs.GetLatestHeight().LT(height) {
+		return StateProof{}, nil, sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidHeight,
+			"client state height < proof height (%d < %d), please ensure the client has been updated", cs.GetLatestHeight(), height,
+		)
 	}
-
 	if prefix == nil {
 		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidPrefix, "prefix cannot be empty")
 	}
@@ -731,11 +724,54 @@ func produceVerificationArgs(
 		return StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidPrefix, "invalid prefix type %T, expected *MerklePrefix", prefix)
 	}
 
-	// Note: decode proof
-	// err = gsrpccodec.Decode(proof, &stateProof)
-	err = cdc.Unmarshal(proof, &stateProof)
-	if err != nil {
-		return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
+	if proof == nil {
+		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "proof cannot be empty")
+	}
+	var merkleProof commitmenttypes.MerkleProof
+	if err = cdc.Unmarshal(proof, &merkleProof); err != nil {
+		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "failed to unmarshal proof into commitment merkle proof")
+	}
+
+	//just one proof
+	commitmentProof := merkleProof.GetProofs()[0]
+
+	switch proofType := commitmentProof.Proof.(type) {
+	case *ics23.CommitmentProof_Exist:
+		existenceProof := commitmentProof.GetExist()
+		if existenceProof == nil {
+			return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
+
+		}
+		Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.produceVerificationArgs()",
+			"existenceProof.key", existenceProof.Key, "existenceProof.Value", existenceProof.Value)
+		// Note: decode proof
+		// err = gsrpccodec.Decode(proof, &stateProof)
+		err = cdc.Unmarshal(existenceProof.Value, &stateProof)
+		if err != nil {
+			return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
+		}
+
+	case *ics23.CommitmentProof_Nonexist:
+		nonExistenceProof := commitmentProof.GetNonexist()
+		if nonExistenceProof == nil {
+			return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
+
+		}
+		Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.produceVerificationArgs()",
+			"existenceProof.key", nonExistenceProof.Key)
+		// Note: decode proof
+		// err = gsrpccodec.Decode(proof, &stateProof)
+		// err = cdc.Unmarshal(nonExistenceProof.Value, &stateProof)
+		// if err != nil {
+		// 	return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
+		// }
+		// TODO: how to build nonExistenceProof for state proof
+		stateProof = StateProof{}
+
+	default:
+		return StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof,
+			"expected proof type: %T ", proofType)
+
 	}
 
 	consensusState, err = GetConsensusState(store, cdc, height)
