@@ -183,6 +183,7 @@ func ToPBSubchainHeaderMap(subchainHeaderMap map[uint32]beefy.SubchainHeader) He
 	headerMap := make(map[uint32]SubchainHeader)
 	for num, header := range subchainHeaderMap {
 		headerMap[num] = SubchainHeader{
+			ChainId:     header.ChainId,
 			BlockHeader: header.BlockHeader,
 			Timestamp:   StateProof(header.Timestamp),
 		}
@@ -204,6 +205,7 @@ func ToPBParachainHeaderMap(parachainHeaderMap map[uint32]beefy.ParachainHeader)
 	headerMap := make(map[uint32]ParachainHeader)
 	for num, header := range parachainHeaderMap {
 		headerMap[num] = ParachainHeader{
+			ChainId:     header.ChainId,
 			ParachainId: header.ParaId,
 			BlockHeader: header.BlockHeader,
 			Proofs:      header.Proof,

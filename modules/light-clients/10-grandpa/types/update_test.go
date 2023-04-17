@@ -582,7 +582,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 			// step3, build header proof
 			// build subchain header map
-			subchainHeaderMap, err := beefy.BuildSubchainHeaderMap(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes)
+			subchainHeaderMap, err := beefy.BuildSubchainHeaderMap(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes, "sub-0")
 			suite.Require().NoError(err)
 			suite.Suite.T().Logf("subchainHeaderMap: %+v", subchainHeaderMap)
 			suite.Suite.T().Logf("subchainHeaderMap: %#v", subchainHeaderMap)
@@ -647,6 +647,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			unmarshalSubchainHeaderMap := unmarshalPBHeader.GetSubchainHeaderMap()
 			for num, header := range unmarshalSubchainHeaderMap.GetSubchainHeaderMap() {
 				rebuildSubchainHeaderMap[num] = beefy.SubchainHeader{
+					ChainId:     header.ChainId,
 					BlockHeader: header.BlockHeader,
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
@@ -773,7 +774,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 	if err != nil {
 		suite.Suite.T().Logf("Connecting err: %v", err)
 	}
-	suite.Suite.T().Logf("subscribed to parachain %s\n", beefy.LOCAL_RELAY_ENDPPOIT)
+	suite.Suite.T().Logf("subscribed to parachain %s\n", beefy.LOCAL_PARACHAIN_ENDPOINT)
 
 	timeout := time.After(24 * time.Hour)
 	received := 0
@@ -860,10 +861,10 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 					ChainType:             beefy.CHAINTYPE_PARACHAIN,
 					ParachainId:           beefy.LOCAL_PARACHAIN_ID,
 					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
-					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), uint64(latestSignedCommitmentBlockNumber)),
+					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestSignedCommitmentBlockNumber)),
 					MmrRootHash:           s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), uint64(latestChainHeight)),
-					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("parachain-1"), 0),
+					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestChainHeight)),
+					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), 0),
 					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
 						Len:  uint32(authoritySet.Len),
@@ -931,7 +932,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			// step3, build header proof
 			// build parachain header proof and verify that proof
 			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, localParachainEndpoint,
-				mmrBatchProof.Proof.LeafIndexes, beefy.LOCAL_PARACHAIN_ID)
+				mmrBatchProof.Proof.LeafIndexes, "astar-0", beefy.LOCAL_PARACHAIN_ID)
 			suite.Require().NoError(err)
 			suite.Suite.T().Logf("parachainHeaderMap: %+v", parachainHeaderMap)
 

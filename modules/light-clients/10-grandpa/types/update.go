@@ -129,6 +129,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 		beefySubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
 		for num, header := range headerMap.SubchainHeaderMap {
 			beefySubchainHeaderMap[num] = beefy.SubchainHeader{
+				ChainId: header.ChainId,
 				BlockHeader: header.BlockHeader,
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
