@@ -90,7 +90,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			if latestHeight < header.BlockNumber {
 				latestHeight = header.BlockNumber
 			}
-			subchainHeaderMap[header.BlockNumber]=header
+			subchainHeaderMap[header.BlockNumber] = header
 		}
 
 		// find lastest subchain header
@@ -123,13 +123,13 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 	case *Header_ParachainHeaders:
 		parachainHeaders := msg.ParachainHeaders.ParachainHeaders
 
-		// convert subchainheaders to subchainheaders map
+		// convert pb parachainheaders to parachainheaders map
 		parachainHeaderMap := make(map[uint32]ParachainHeader)
 		for _, header := range parachainHeaders {
-			if latestHeight < header.BlockNumber {
-				latestHeight = header.BlockNumber
+			if latestHeight < header.RelayerChainNumber {
+				latestHeight = header.RelayerChainNumber
 			}
-			parachainHeaderMap[header.BlockNumber]=header
+			parachainHeaderMap[header.RelayerChainNumber] = header
 		}
 		latestParachainHeader := parachainHeaderMap[latestHeight]
 		// var decodeHeader gsrpctypes.Header

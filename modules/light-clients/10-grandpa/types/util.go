@@ -211,7 +211,7 @@ func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader) Header_
 		parachainHeader := ParachainHeader{
 			ChainId:     header.ChainId,
 			ParachainId: header.ParaId,
-			BlockNumber: header.BlockNumber,
+			RelayerChainNumber: header.RelayerChainNumber,
 			BlockHeader: header.BlockHeader,
 			Proofs:      header.Proof,
 			HeaderIndex: header.HeaderIndex,

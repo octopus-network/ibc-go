@@ -129,7 +129,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 		beefySubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
 		for _, header := range headers {
 			beefySubchainHeaderMap[header.BlockNumber] = beefy.SubchainHeader{
-				ChainId: header.ChainId,
+				ChainId:     header.ChainId,
 				BlockNumber: header.BlockNumber,
 				BlockHeader: header.BlockHeader,
 				Timestamp:   beefy.StateProof(header.Timestamp),
@@ -147,15 +147,15 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 		// convert pb parachain header to beefy parachain header
 		beefyParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
 		for _, header := range headers {
-			beefyParachainHeaderMap[header.BlockNumber] = beefy.ParachainHeader{
-				ChainId: header.ChainId,
-				ParaId:      header.ParachainId,
-				BlockNumber: header.BlockNumber,
-				BlockHeader: header.BlockHeader,
-				Proof:       header.Proofs,
-				HeaderIndex: header.HeaderIndex,
-				HeaderCount: header.HeaderCount,
-				Timestamp:   beefy.StateProof(header.Timestamp),
+			beefyParachainHeaderMap[header.RelayerChainNumber] = beefy.ParachainHeader{
+				ChainId:            header.ChainId,
+				ParaId:             header.ParachainId,
+				RelayerChainNumber: header.RelayerChainNumber,
+				BlockHeader:        header.BlockHeader,
+				Proof:              header.Proofs,
+				HeaderIndex:        header.HeaderIndex,
+				HeaderCount:        header.HeaderCount,
+				Timestamp:          beefy.StateProof(header.Timestamp),
 			}
 		}
 		err := beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)

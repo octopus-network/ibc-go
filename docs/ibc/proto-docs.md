@@ -4714,7 +4714,7 @@ data needed to prove parachain header inclusion in mmr
 | ----- | ---- | ----- | ----------- |
 | `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1,astar-1 |
 | `parachain_id` | [uint32](#uint32) |  | para id must be uint |
-| `block_number` | [uint32](#uint32) |  | block number(height) |
+| `relayer_chain_number` | [uint32](#uint32) |  | This block number is relayer chain blocknumber that parachain header packed into relayer block |
 | `block_header` | [bytes](#bytes) |  | scale-encoded parachain header bytes |
 | `proofs` | [bytes](#bytes) | repeated | proofs for parachain header in the mmr_leaf.parachain_heads |
 | `header_index` | [uint32](#uint32) |  | merkle leaf index for parachain heads proof |

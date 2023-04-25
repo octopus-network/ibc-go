@@ -185,8 +185,8 @@ message ParachainHeader {
   string chain_id = 1;
   // para id must be uint
   uint32 parachain_id = 2;
-  // block number(height)
-  uint32 block_number = 3;
+  // This block number is relayer chain blocknumber that parachain header packed into relayer block
+  uint32 relayer_chain_number = 3;
   // scale-encoded parachain header bytes
   bytes block_header = 4;
   // proofs for parachain header in the mmr_leaf.parachain_heads

@@ -1003,14 +1003,14 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			unmarshalParachainHeaders := unmarshalPBHeader.GetParachainHeaders().ParachainHeaders
 			for _, header := range unmarshalParachainHeaders {
 				rebuildParachainHeader := beefy.ParachainHeader{
-					ChainId:     "astar-0",
-					ParaId:      header.ParachainId,
-					BlockNumber: header.BlockNumber,
-					BlockHeader: header.BlockHeader,
-					Proof:       header.Proofs,
-					HeaderIndex: header.HeaderIndex,
-					HeaderCount: header.HeaderCount,
-					Timestamp:   beefy.StateProof(header.Timestamp),
+					ChainId:            "astar-0",
+					ParaId:             header.ParachainId,
+					RelayerChainNumber: header.RelayerChainNumber,
+					BlockHeader:        header.BlockHeader,
+					Proof:              header.Proofs,
+					HeaderIndex:        header.HeaderIndex,
+					HeaderCount:        header.HeaderCount,
+					Timestamp:          beefy.StateProof(header.Timestamp),
 				}
 				rebuildParachainHeaders = append(rebuildParachainHeaders, rebuildParachainHeader)
 			}
