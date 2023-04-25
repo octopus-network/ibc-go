@@ -8,6 +8,8 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
+	"fmt"
+
 	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
 	connectiontypes "github.com/cosmos/ibc-go/v6/modules/core/03-connection/types"
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
@@ -24,7 +26,9 @@ var (
 // CreateClient defines a rpc handler method for MsgCreateClient.
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
+	// ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
+	fmt.Printf("clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
+
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
 		return nil, err
@@ -45,6 +49,9 @@ func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateCl
 // UpdateClient defines a rpc handler method for MsgUpdateClient.
 func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateClient) (*clienttypes.MsgUpdateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
+	// ctx.Logger().Info("msg.Header.TypeUrl", msg.Header.TypeUrl)
+
+	fmt.Printf("clienttypes.MsgUpdateClient.TypeUrl: %+v", msg.Header.TypeUrl)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
 	if err != nil {

@@ -582,16 +582,16 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 			// step3, build header proof
 			// build subchain header map
-			subchainHeaderMap, err := beefy.BuildSubchainHeaderMap(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes, "sub-0")
+			subchainHeaders, err := beefy.BuildSubchainHeaders(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes, "sub-0")
 			suite.Require().NoError(err)
-			suite.Suite.T().Logf("subchainHeaderMap: %+v", subchainHeaderMap)
-			suite.Suite.T().Logf("subchainHeaderMap: %#v", subchainHeaderMap)
+			suite.Suite.T().Logf("subchainHeaders: %+v", subchainHeaders)
+			suite.Suite.T().Logf("subchainHeaders: %#v", subchainHeaders)
 
-			pbHeader_subchainMap := ibcgptypes.ToPBSubchainHeaderMap(subchainHeaderMap)
+			pbHeader_subchainHeaders := ibcgptypes.ToPBSubchainHeaders(subchainHeaders)
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
 				BeefyMmr: pbBeefyMMR,
-				Message:  &pbHeader_subchainMap,
+				Message:  &pbHeader_subchainHeaders,
 			}
 			suite.Suite.T().Logf("pbHeader: %+v", pbHeader)
 			suite.Suite.T().Logf("pbHeader: %#v", pbHeader)
@@ -643,17 +643,21 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 			// step3, verify header
 			// convert pb subchain header to beefy subchain header
-			rebuildSubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
-			unmarshalSubchainHeaderMap := unmarshalPBHeader.GetSubchainHeaderMap()
-			for num, header := range unmarshalSubchainHeaderMap.GetSubchainHeaderMap() {
-				rebuildSubchainHeaderMap[num] = beefy.SubchainHeader{
+			var rebuildSubchainHeaders []beefy.SubchainHeader
+			unmarshalSubchainHeaders := unmarshalPBHeader.GetSubchainHeaders().SubchainHeaders
+			for _, header := range unmarshalSubchainHeaders {
+				rebuildHeader := beefy.SubchainHeader{
 					ChainId:     header.ChainId,
+					BlockNumber: header.BlockNumber,
 					BlockHeader: header.BlockHeader,
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
+
+				rebuildSubchainHeaders = append(rebuildSubchainHeaders, rebuildHeader)
 			}
+
 			// suite.Suite.T().Logf("rebuildSolochainHeaderMap: %+v", rebuildSolochainHeaderMap)
-			suite.Suite.T().Logf("unmarshal subchainHeaderMap: %+v", *unmarshalSubchainHeaderMap)
+			suite.Suite.T().Logf("unmarshal subchainHeaders: %+v", unmarshalSubchainHeaders)
 
 			suite.Suite.T().Log("\n------------------ VerifySubchainHeader --------------------------")
 			// err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
@@ -694,7 +698,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 			// step5,update consensue state
 			var latestHeight uint32
-			for _, header := range unmarshalSubchainHeaderMap.SubchainHeaderMap {
+			for _, header := range unmarshalSubchainHeaders {
 				var decodeHeader gsrpctypes.Header
 				err = gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 				suite.Require().NoError(err)
@@ -742,7 +746,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			}
 
 			received++
-			if received >= 2 {
+			if received >= 3 {
 				return
 			}
 		case <-timeout:
@@ -931,19 +935,19 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 
 			// step3, build header proof
 			// build parachain header proof and verify that proof
-			parachainHeaderMap, err := beefy.BuildParachainHeaderMap(localRelayEndpoint, localParachainEndpoint,
+			parachainHeaders, err := beefy.BuildParachainHeaders(localRelayEndpoint, localParachainEndpoint,
 				mmrBatchProof.Proof.LeafIndexes, "astar-0", beefy.LOCAL_PARACHAIN_ID)
 			suite.Require().NoError(err)
-			suite.Suite.T().Logf("parachainHeaderMap: %+v", parachainHeaderMap)
+			suite.Suite.T().Logf("parachainHeaders: %+v", parachainHeaders)
 
 			// convert beefy parachain header to pb parachain header
-			pbHeader_parachainMap := ibcgptypes.ToPBParachainHeaderMap(parachainHeaderMap)
-			suite.Suite.T().Logf("pbHeader_parachainMap: %+v", pbHeader_parachainMap)
+			pbHeader_parachains := ibcgptypes.ToPBParachainHeaders(parachainHeaders)
+			suite.Suite.T().Logf("pbHeader_parachains: %+v", pbHeader_parachains)
 
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
 				BeefyMmr: pbBeefyMMR,
-				Message:  &pbHeader_parachainMap,
+				Message:  &pbHeader_parachains,
 			}
 			suite.Suite.T().Logf("gpheader: %+v", pbHeader)
 
@@ -995,21 +999,24 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 
 			// step3, verify header
 			// convert pb parachain header to beefy parachain header
-			rebuildParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
-			unmarshalParachainHeaderMap := unmarshalPBHeader.GetParachainHeaderMap()
-			for num, header := range unmarshalParachainHeaderMap.ParachainHeaderMap {
-				rebuildParachainHeaderMap[num] = beefy.ParachainHeader{
+			var rebuildParachainHeaders []beefy.ParachainHeader
+			unmarshalParachainHeaders := unmarshalPBHeader.GetParachainHeaders().ParachainHeaders
+			for _, header := range unmarshalParachainHeaders {
+				rebuildParachainHeader := beefy.ParachainHeader{
+					ChainId:     "astar-0",
 					ParaId:      header.ParachainId,
+					BlockNumber: header.BlockNumber,
 					BlockHeader: header.BlockHeader,
 					Proof:       header.Proofs,
 					HeaderIndex: header.HeaderIndex,
 					HeaderCount: header.HeaderCount,
 					Timestamp:   beefy.StateProof(header.Timestamp),
 				}
+				rebuildParachainHeaders = append(rebuildParachainHeaders, rebuildParachainHeader)
 			}
 			// suite.Suite.T().Logf("parachainHeaderMap: %+v", parachainHeaderMap)
 			// suite.Suite.T().Logf("gParachainHeaderMap: %+v", gParachainHeaderMap)
-			suite.Suite.T().Logf("unmarshal parachainHeaderMap: %+v", *unmarshalParachainHeaderMap)
+			suite.Suite.T().Logf("unmarshal parachainHeaders: %+v", unmarshalParachainHeaders)
 			// suite.Suite.T().Logf("rebuildSolochainHeaderMap: %+v", rebuildParachainHeaderMap)
 			suite.Suite.T().Log("\n----------- VerifyParachainHeader -----------")
 			// err = beefy.VerifyParachainHeader(rebuildMMRLeaves, rebuildParachainHeaderMap)
@@ -1050,7 +1057,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 
 			// step5,update consensue state
 			var latestHeight uint32
-			for _, header := range unmarshalParachainHeaderMap.ParachainHeaderMap {
+			for _, header := range unmarshalParachainHeaders {
 				var decodeHeader gsrpctypes.Header
 				err = gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 				suite.Require().NoError(err)

@@ -178,50 +178,56 @@ func ToMMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBat
 
 }
 
-func ToPBSubchainHeaderMap(subchainHeaderMap map[uint32]beefy.SubchainHeader) Header_SubchainHeaderMap {
+func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader) Header_SubchainHeaders {
 
-	headerMap := make(map[uint32]SubchainHeader)
-	for num, header := range subchainHeaderMap {
-		headerMap[num] = SubchainHeader{
+	// headerMap := make(map[uint32]SubchainHeader)
+	var headers []SubchainHeader
+	for _, header := range beefySubchainHeaders {
+		subHeader := SubchainHeader{
 			ChainId:     header.ChainId,
+			BlockNumber: header.BlockNumber,
 			BlockHeader: header.BlockHeader,
 			Timestamp:   StateProof(header.Timestamp),
 		}
+		headers = append(headers, subHeader)
+
 	}
 
-	pbSubchainHeaderMap := SubchainHeaderMap{
-		SubchainHeaderMap: headerMap,
+	pbSubchainHeaders := SubchainHeaders{
+		SubchainHeaders: headers,
 	}
 
-	header_subchainMap := Header_SubchainHeaderMap{
-		SubchainHeaderMap: &pbSubchainHeaderMap,
+	header_subchainMap := Header_SubchainHeaders{
+		SubchainHeaders: &pbSubchainHeaders,
 	}
 	return header_subchainMap
 
 }
 
-func ToPBParachainHeaderMap(parachainHeaderMap map[uint32]beefy.ParachainHeader) Header_ParachainHeaderMap {
+func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader) Header_ParachainHeaders {
 
-	headerMap := make(map[uint32]ParachainHeader)
-	for num, header := range parachainHeaderMap {
-		headerMap[num] = ParachainHeader{
+	var headers []ParachainHeader
+	for _, header := range beefyParachainHeaders {
+		parachainHeader := ParachainHeader{
 			ChainId:     header.ChainId,
 			ParachainId: header.ParaId,
+			BlockNumber: header.BlockNumber,
 			BlockHeader: header.BlockHeader,
 			Proofs:      header.Proof,
 			HeaderIndex: header.HeaderIndex,
 			HeaderCount: header.HeaderCount,
 			Timestamp:   StateProof(header.Timestamp),
 		}
+		headers = append(headers, parachainHeader)
 	}
 
-	gParachainHeaderMap := ParachainHeaderMap{
-		ParachainHeaderMap: headerMap,
+	pbParachainHeaders := ParachainHeaders{
+		ParachainHeaders: headers,
 	}
 
-	header_parachainMap := Header_ParachainHeaderMap{
-		ParachainHeaderMap: &gParachainHeaderMap,
+	header_parachainHeaders := Header_ParachainHeaders{
+		ParachainHeaders: &pbParachainHeaders,
 	}
-	return header_parachainMap
+	return header_parachainHeaders
 
 }

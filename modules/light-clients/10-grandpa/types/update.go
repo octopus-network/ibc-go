@@ -124,12 +124,13 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 	case beefy.CHAINTYPE_SOLOCHAIN:
 		Logger.Debug("verify subchain header")
 
-		headerMap := gpHeader.GetSubchainHeaderMap()
+		headers := gpHeader.GetSubchainHeaders().SubchainHeaders
 		// convert pb solochain header to beefy solochain header
 		beefySubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
-		for num, header := range headerMap.SubchainHeaderMap {
-			beefySubchainHeaderMap[num] = beefy.SubchainHeader{
+		for _, header := range headers {
+			beefySubchainHeaderMap[header.BlockNumber] = beefy.SubchainHeader{
 				ChainId: header.ChainId,
+				BlockNumber: header.BlockNumber,
 				BlockHeader: header.BlockHeader,
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
@@ -142,12 +143,14 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 	case beefy.CHAINTYPE_PARACHAIN:
 		Logger.Debug("verify parachain header")
 
-		headerMap := gpHeader.GetParachainHeaderMap()
+		headers := gpHeader.GetParachainHeaders().ParachainHeaders
 		// convert pb parachain header to beefy parachain header
 		beefyParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
-		for num, header := range headerMap.ParachainHeaderMap {
-			beefyParachainHeaderMap[num] = beefy.ParachainHeader{
+		for _, header := range headers {
+			beefyParachainHeaderMap[header.BlockNumber] = beefy.ParachainHeader{
+				ChainId: header.ChainId,
 				ParaId:      header.ParachainId,
+				BlockNumber: header.BlockNumber,
 				BlockHeader: header.BlockHeader,
 				Proof:       header.Proofs,
 				HeaderIndex: header.HeaderIndex,
@@ -205,8 +208,9 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 	var latestTimestamp uint64
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SOLOCHAIN:
-		subchainHeaderMap := header.GetSubchainHeaderMap().SubchainHeaderMap
-		for _, header := range subchainHeaderMap {
+		subchainHeaders := header.GetSubchainHeaders().SubchainHeaders
+
+		for _, header := range subchainHeaders {
 			var decodeHeader gsrpctypes.Header
 			err := gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 			if err != nil {
@@ -230,8 +234,8 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 		}
 
 	case beefy.CHAINTYPE_PARACHAIN:
-		parachainHeaderMap := header.GetParachainHeaderMap().ParachainHeaderMap
-		for _, header := range parachainHeaderMap {
+		parachainHeaders := header.GetParachainHeaders().ParachainHeaders
+		for _, header := range parachainHeaders {
 			var decodeHeader gsrpctypes.Header
 			err := gsrpccodec.Decode(header.BlockHeader, &decodeHeader)
 			if err != nil {

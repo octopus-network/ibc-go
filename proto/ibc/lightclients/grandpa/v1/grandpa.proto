@@ -158,29 +158,24 @@ message ConsensusState {
   bytes root = 2;
 }
 
-// subchain header map
-message SubchainHeaderMap {
-  // LatestMMR latest_mmr = 1;
-  // map<blocknumber,scale-encoded blockheader>
-  map<uint32, SubchainHeader> subchain_header_map = 1 [(gogoproto.nullable) = false];
-  // map<uint32,Timestamp> timestamp_map=2;
-}
-
 // subchain header
 message SubchainHeader {
   option (gogoproto.goproto_getters) = false;
   // chain_id string type, eg: ibc-1,astar-1
   string chain_id = 1;
+  // block number(height)
+  uint32 block_number = 2;
   // scale-encoded subchain header bytes
-  bytes block_header = 2;
+  bytes block_header = 3;
   // timestamp and proof
-  StateProof timestamp = 3 [(gogoproto.nullable) = false];
+  StateProof timestamp = 4 [(gogoproto.nullable) = false];
 }
-/// Parachain headers and their merkle proofs.
-message ParachainHeaderMap {
-  // map<blocknumber,ParachainHeader>
-  map<uint32, ParachainHeader> parachain_header_map = 1 [(gogoproto.nullable) = false];
-  //  map<uint32,Timestamp> timestamp_map=2;
+
+// subchain header
+message SubchainHeaders {
+  option (gogoproto.goproto_getters) = false;
+
+  repeated SubchainHeader subchain_headers = 1 [(gogoproto.nullable) = false];
 }
 
 // data needed to prove parachain header inclusion in mmr
@@ -190,17 +185,26 @@ message ParachainHeader {
   string chain_id = 1;
   // para id must be uint
   uint32 parachain_id = 2;
+  // block number(height)
+  uint32 block_number = 3;
   // scale-encoded parachain header bytes
-  bytes block_header = 3;
+  bytes block_header = 4;
   // proofs for parachain header in the mmr_leaf.parachain_heads
-  repeated bytes proofs = 4;
+  repeated bytes proofs = 5;
   // merkle leaf index for parachain heads proof
-  uint32 header_index = 5;
+  uint32 header_index = 6;
   // total number of para heads in parachain_heads_root
-  uint32 header_count = 6;
+  uint32 header_count = 7;
 
   // timestamp and proof
-  StateProof timestamp = 7 [(gogoproto.nullable) = false];
+  StateProof timestamp = 8 [(gogoproto.nullable) = false];
+}
+
+// parachain header array
+message ParachainHeaders {
+  option (gogoproto.goproto_getters) = false;
+
+  repeated ParachainHeader parachain_headers = 1 [(gogoproto.nullable) = false];
 }
 
 // state value and proof
@@ -220,9 +224,9 @@ message Header {
   // only one header
   oneof message {
     // subchain headers and their proofs
-    SubchainHeaderMap subchain_header_map = 2;
+    SubchainHeaders subchain_headers = 2;
     // parachain headers and their proofs
-    ParachainHeaderMap parachain_header_map = 3;
+    ParachainHeaders parachain_headers = 3;
   }
 }
 

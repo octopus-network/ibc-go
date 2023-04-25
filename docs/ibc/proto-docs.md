@@ -319,16 +319,14 @@
     - [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof)
     - [Misbehaviour](#ibc.lightclients.grandpa.v1.Misbehaviour)
     - [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader)
-    - [ParachainHeaderMap](#ibc.lightclients.grandpa.v1.ParachainHeaderMap)
-    - [ParachainHeaderMap.ParachainHeaderMapEntry](#ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry)
+    - [ParachainHeaders](#ibc.lightclients.grandpa.v1.ParachainHeaders)
     - [ParentNumberAndHash](#ibc.lightclients.grandpa.v1.ParentNumberAndHash)
     - [PayloadItem](#ibc.lightclients.grandpa.v1.PayloadItem)
     - [Signature](#ibc.lightclients.grandpa.v1.Signature)
     - [SignedCommitment](#ibc.lightclients.grandpa.v1.SignedCommitment)
     - [StateProof](#ibc.lightclients.grandpa.v1.StateProof)
     - [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader)
-    - [SubchainHeaderMap](#ibc.lightclients.grandpa.v1.SubchainHeaderMap)
-    - [SubchainHeaderMap.SubchainHeaderMapEntry](#ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry)
+    - [SubchainHeaders](#ibc.lightclients.grandpa.v1.SubchainHeaders)
   
 - [ibc/lightclients/localhost/v1/localhost.proto](#ibc/lightclients/localhost/v1/localhost.proto)
     - [ClientState](#ibc.lightclients.localhost.v1.ClientState)
@@ -4629,8 +4627,8 @@ header wrapper
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) |  | the latest mmr data |
-| `subchain_header_map` | [SubchainHeaderMap](#ibc.lightclients.grandpa.v1.SubchainHeaderMap) |  | subchain headers and their proofs |
-| `parachain_header_map` | [ParachainHeaderMap](#ibc.lightclients.grandpa.v1.ParachainHeaderMap) |  | parachain headers and their proofs |
+| `subchain_headers` | [SubchainHeaders](#ibc.lightclients.grandpa.v1.SubchainHeaders) |  | subchain headers and their proofs |
+| `parachain_headers` | [ParachainHeaders](#ibc.lightclients.grandpa.v1.ParachainHeaders) |  | parachain headers and their proofs |
 
 
 
@@ -4716,6 +4714,7 @@ data needed to prove parachain header inclusion in mmr
 | ----- | ---- | ----- | ----------- |
 | `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1,astar-1 |
 | `parachain_id` | [uint32](#uint32) |  | para id must be uint |
+| `block_number` | [uint32](#uint32) |  | block number(height) |
 | `block_header` | [bytes](#bytes) |  | scale-encoded parachain header bytes |
 | `proofs` | [bytes](#bytes) | repeated | proofs for parachain header in the mmr_leaf.parachain_heads |
 | `header_index` | [uint32](#uint32) |  | merkle leaf index for parachain heads proof |
@@ -4727,33 +4726,15 @@ data needed to prove parachain header inclusion in mmr
 
 
 
-<a name="ibc.lightclients.grandpa.v1.ParachainHeaderMap"></a>
+<a name="ibc.lightclients.grandpa.v1.ParachainHeaders"></a>
 
-### ParachainHeaderMap
-Parachain headers and their merkle proofs.
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `parachain_header_map` | [ParachainHeaderMap.ParachainHeaderMapEntry](#ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry) | repeated | map<blocknumber,ParachainHeader>
-
-map<uint32,Timestamp> timestamp_map=2; |
-
-
-
-
-
-
-<a name="ibc.lightclients.grandpa.v1.ParachainHeaderMap.ParachainHeaderMapEntry"></a>
-
-### ParachainHeaderMap.ParachainHeaderMapEntry
-
+### ParachainHeaders
+parachain header array
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `key` | [uint32](#uint32) |  |  |
-| `value` | [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader) |  |  |
+| `parachain_headers` | [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader) | repeated |  |
 
 
 
@@ -4850,6 +4831,7 @@ subchain header
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1,astar-1 |
+| `block_number` | [uint32](#uint32) |  | block number(height) |
 | `block_header` | [bytes](#bytes) |  | scale-encoded subchain header bytes |
 | `timestamp` | [StateProof](#ibc.lightclients.grandpa.v1.StateProof) |  | timestamp and proof |
 
@@ -4858,33 +4840,15 @@ subchain header
 
 
 
-<a name="ibc.lightclients.grandpa.v1.SubchainHeaderMap"></a>
+<a name="ibc.lightclients.grandpa.v1.SubchainHeaders"></a>
 
-### SubchainHeaderMap
-subchain header map
-
-
-| Field | Type | Label | Description |
-| ----- | ---- | ----- | ----------- |
-| `subchain_header_map` | [SubchainHeaderMap.SubchainHeaderMapEntry](#ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry) | repeated | LatestMMR latest_mmr = 1; map<blocknumber,scale-encoded blockheader>
-
-map<uint32,Timestamp> timestamp_map=2; |
-
-
-
-
-
-
-<a name="ibc.lightclients.grandpa.v1.SubchainHeaderMap.SubchainHeaderMapEntry"></a>
-
-### SubchainHeaderMap.SubchainHeaderMapEntry
-
+### SubchainHeaders
+subchain header
 
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `key` | [uint32](#uint32) |  |  |
-| `value` | [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader) |  |  |
+| `subchain_headers` | [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader) | repeated |  |
 
 
 
