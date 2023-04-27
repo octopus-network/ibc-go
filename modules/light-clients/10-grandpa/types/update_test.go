@@ -523,7 +523,7 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 
 				clientState = &ibcgptypes.ClientState{
 					ChainId:               "sub-0",
-					ChainType:             beefy.CHAINTYPE_SOLOCHAIN,
+					ChainType:             beefy.CHAINTYPE_SUBCHAIN,
 					ParachainId:           0,
 					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
 					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),

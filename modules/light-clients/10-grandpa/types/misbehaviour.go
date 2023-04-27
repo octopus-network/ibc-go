@@ -49,7 +49,6 @@ func (misbehaviour Misbehaviour) GetTime() time.Time {
 
 // TODO: ValidateBasic implements Misbehaviour interface
 func (misbehaviour Misbehaviour) ValidateBasic() error {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:", "Misbehaviour.ValidateBasic()")
 	if err := misbehaviour.Header1.ValidateBasic(); err != nil {
 		return sdkerrors.Wrap(
 			clienttypes.ErrInvalidMisbehaviour,

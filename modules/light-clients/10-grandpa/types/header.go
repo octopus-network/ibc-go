@@ -1,6 +1,7 @@
 package types
 
 import (
+	"log"
 	"reflect"
 	time "time"
 
@@ -20,7 +21,6 @@ func (h Header) ConsensusState() *ConsensusState {
 	//get latest header and time
 	latestHeader, latestTime, err := getLastestBlockHeader(h)
 	if err != nil {
-		Logger.Error("LightClient:", "10-Grandpa", "method:", "getLastestHeader error: ", err)
 		return nil
 	}
 	// build consensue state
@@ -48,10 +48,12 @@ func (h Header) GetHeight() exported.Height {
 	//get latest header and time
 	latestHeader, _, err := getLastestBlockHeader(h)
 	if err != nil {
-		Logger.Error("LightClient:", "10-Grandpa", "method:", "GetHeight error: ", err)
 		return nil
 	}
-	return clienttypes.NewHeight(0, uint64(latestHeader.Number))
+	latestHeight := clienttypes.NewHeight(0, uint64(latestHeader.Number))
+	log.Printf("GetHeight -> latestHeight", latestHeight)
+
+	return latestHeight
 	// revision := clienttypes.ParseChainID(h.Header.ChainID)
 	// return clienttypes.NewHeight(revision, uint64(h.Header.Height))
 }
@@ -65,9 +67,9 @@ func (h Header) GetTime() time.Time {
 	// }
 	//get latest header and time
 	_, latestTime, err := getLastestBlockHeader(h)
-	Logger.Debug("latestTime:", latestTime)
+	log.Printf("GetTime -> latestTime: %+v ", latestTime)
+
 	if err != nil {
-		Logger.Error("LightClient:", "10-Grandpa", "method:", "getLastestHeader error: ", err)
 		return time.Unix(0, 0)
 	}
 	return latestTime
@@ -83,7 +85,6 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 	switch msg := headerMessage.(type) {
 	case *Header_SubchainHeaders:
 		subchainHeaders := msg.SubchainHeaders.SubchainHeaders
-
 		// convert subchainheaders to subchainheaders map
 		subchainHeaderMap := make(map[uint32]SubchainHeader)
 		for _, header := range subchainHeaders {
@@ -95,34 +96,31 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 
 		// find lastest subchain header
 		latestSubchainHeader := subchainHeaderMap[latestHeight]
-
+		log.Printf("getLastestBlockHeader -> latestSubchainHeader: %+v ", latestSubchainHeader)
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestSubchainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode header error")
 		}
-		Logger.Debug("decodeHeader.Number:", latestBlockHeader.Number)
 
 		// verify timestamp and get it
 		err = beefy.VerifyStateProof(latestSubchainHeader.Timestamp.Proofs,
 			latestBlockHeader.StateRoot[:], latestSubchainHeader.Timestamp.Key,
 			latestSubchainHeader.Timestamp.Value)
 		if err != nil {
-			Logger.Error("LightClient:", "10-Grandpa", "method:", "VerifyStateProof error: ", err)
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
 		}
 		//decode
 		var decodeTimestamp gsrpctypes.U64
 		err = gsrpccodec.Decode(latestSubchainHeader.Timestamp.Value, &decodeTimestamp)
 		if err != nil {
-			Logger.Error("decode timestamp error:", err)
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
+		log.Printf("getLastestBlockHeader -> subchain latestTimestamp: %+v ", latestTimestamp)
 
 	case *Header_ParachainHeaders:
 		parachainHeaders := msg.ParachainHeaders.ParachainHeaders
-
 		// convert pb parachainheaders to parachainheaders map
 		parachainHeaderMap := make(map[uint32]ParachainHeader)
 		for _, header := range parachainHeaders {
@@ -132,6 +130,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			parachainHeaderMap[header.RelayerChainNumber] = header
 		}
 		latestParachainHeader := parachainHeaderMap[latestHeight]
+		log.Printf("getLastestBlockHeader -> latestParachainHeader: %+v ", latestParachainHeader)
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestParachainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
@@ -143,18 +142,16 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			latestBlockHeader.StateRoot[:], latestParachainHeader.Timestamp.Key,
 			latestParachainHeader.Timestamp.Value)
 		if err != nil {
-			Logger.Error("LightClient:", "10-Grandpa", "method:", "VerifyStateProof error: ", err)
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "verify timestamp error")
 		}
 		//decode
 		var decodeTimestamp gsrpctypes.U64
 		err = gsrpccodec.Decode(latestParachainHeader.Timestamp.Value, &decodeTimestamp)
 		if err != nil {
-			Logger.Error("decode timestamp error:", err)
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
-
+		log.Printf("getLastestBlockHeader -> parachain latestTimestamp: %+v ", latestTimestamp)
 	}
 
 	return latestBlockHeader, latestTimestamp, nil

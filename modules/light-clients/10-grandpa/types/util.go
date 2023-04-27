@@ -1,10 +1,7 @@
 package types
 
 import (
-	"os"
-
 	"github.com/octopus-network/beefy-go/beefy"
-	"github.com/tendermint/tendermint/libs/log"
 
 	// log "github.com/go-kit/log"
 	"github.com/ComposableFi/go-merkle-trees/mmr"
@@ -12,7 +9,7 @@ import (
 )
 
 // var logger = log.Logger.With("light-client/10-grandpa/client_state")
-var Logger = log.NewTMLogger(os.Stderr)
+// var Logger = log.NewTMLogger(os.Stderr)
 
 func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp, authorityProof [][]byte) BeefyMMR {
 
@@ -209,14 +206,14 @@ func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader) Header_
 	var headers []ParachainHeader
 	for _, header := range beefyParachainHeaders {
 		parachainHeader := ParachainHeader{
-			ChainId:     header.ChainId,
-			ParachainId: header.ParaId,
+			ChainId:            header.ChainId,
+			ParachainId:        header.ParaId,
 			RelayerChainNumber: header.RelayerChainNumber,
-			BlockHeader: header.BlockHeader,
-			Proofs:      header.Proof,
-			HeaderIndex: header.HeaderIndex,
-			HeaderCount: header.HeaderCount,
-			Timestamp:   StateProof(header.Timestamp),
+			BlockHeader:        header.BlockHeader,
+			Proofs:             header.Proof,
+			HeaderIndex:        header.HeaderIndex,
+			HeaderCount:        header.HeaderCount,
+			Timestamp:          StateProof(header.Timestamp),
 		}
 		headers = append(headers, parachainHeader)
 	}

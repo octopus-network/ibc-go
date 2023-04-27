@@ -21,7 +21,5 @@ func (cs ClientState) CheckMisbehaviourAndUpdateState(
 	clientStore sdk.KVStore,
 	misbehaviour exported.Misbehaviour,
 ) (exported.ClientState, error) {
-	Logger.Debug("LightClient:", "10-Grandpa", "method:", "ClientState.CheckMisbehaviourAndUpdateState()")
-
 	return &cs, nil
 }

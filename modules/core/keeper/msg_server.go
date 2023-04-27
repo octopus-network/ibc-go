@@ -2,13 +2,12 @@ package keeper
 
 import (
 	"context"
+	"log"
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/cosmos/cosmos-sdk/telemetry"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-
-	"fmt"
 
 	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
 	connectiontypes "github.com/cosmos/ibc-go/v6/modules/core/03-connection/types"
@@ -27,7 +26,7 @@ var (
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	// ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
-	fmt.Printf("clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
+	log.Printf("clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
 
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
@@ -51,7 +50,7 @@ func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateCl
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	// ctx.Logger().Info("msg.Header.TypeUrl", msg.Header.TypeUrl)
 
-	fmt.Printf("clienttypes.MsgUpdateClient.TypeUrl: %+v", msg.Header.TypeUrl)
+	log.Printf("clienttypes.MsgUpdateClient.TypeUrl: %+v ", msg.Header.TypeUrl)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
 	if err != nil {

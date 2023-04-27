@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
@@ -22,7 +23,6 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore,
 	header exported.Header,
 ) (exported.ClientState, exported.ConsensusState, error) {
-	ctx.Logger().Debug("LightClient:", "10-Grandpa", "method:", "CheckHeaderAndUpdateState")
 
 	pbHeader, ok := header.(*Header)
 	if !ok {
@@ -64,17 +64,20 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	if err != nil {
 		return nil, nil, err
 	}
+	log.Printf("CheckHeaderAndUpdateState -> latest client state: %+v", newClientState)
 	// update consensue state and build latest new consensue state
 	newConsensusState, err := cs.UpdateConsensusStates(ctx, cdc, clientStore, pbHeader)
 	if err != nil {
 		return nil, nil, err
 	}
+	log.Printf("CheckHeaderAndUpdateState -> latest consensuse state: %+v", newConsensusState)
+
 	return newClientState, newConsensusState, nil
 }
 
 // verify signatures
 func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProofs [][]byte) error {
-
+	log.Printf("VerifySignatures -> SignedCommitment: %+v", bsc)
 	// checking signatures Threshold
 	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(bsc.Signatures)) ||
 		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(bsc.Signatures)) {
@@ -111,7 +114,7 @@ func (cs ClientState) VerifyMMR(bsc beefy.SignedCommitment, mmrSize uint64,
 	//verify mmr proof
 	result, err := beefy.VerifyMMRBatchProof(bsc.Commitment.Payload, mmrSize, beefyMMRLeaves, mmrBatchProof)
 	if err != nil || !result {
-		return sdkerrors.Wrap(errors.New("failed to verify mmr proof"), "")
+		return sdkerrors.Wrap(err, "failed to verify mmr proof")
 	}
 	return nil
 }
@@ -121,9 +124,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 ) error {
 
 	switch cs.ChainType {
-	case beefy.CHAINTYPE_SOLOCHAIN:
-		Logger.Debug("verify subchain header")
-
+	case beefy.CHAINTYPE_SUBCHAIN:
 		headers := gpHeader.GetSubchainHeaders().SubchainHeaders
 		// convert pb solochain header to beefy solochain header
 		beefySubchainHeaderMap := make(map[uint32]beefy.SubchainHeader)
@@ -135,14 +136,14 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
 		}
+
+		log.Printf("VerifyHeader -> subchain headers  : %+v", beefySubchainHeaderMap)
 		err := beefy.VerifySubchainHeader(beefyMMRLeaves, beefySubchainHeaderMap)
 		if err != nil {
 			return err
 		}
 
 	case beefy.CHAINTYPE_PARACHAIN:
-		Logger.Debug("verify parachain header")
-
 		headers := gpHeader.GetParachainHeaders().ParachainHeaders
 		// convert pb parachain header to beefy parachain header
 		beefyParachainHeaderMap := make(map[uint32]beefy.ParachainHeader)
@@ -158,6 +159,8 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 				Timestamp:          beefy.StateProof(header.Timestamp),
 			}
 		}
+		log.Printf("VerifyHeader -> parachain headers  : %+v", beefyParachainHeaderMap)
+
 		err := beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
 		if err != nil {
 			return err
@@ -168,7 +171,6 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 
 // update client state
 func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, mmrLeaves []MMRLeaf) (*ClientState, error) {
-	ctx.Logger().Debug("update client state")
 	// var newClientState *ClientState
 
 	latestBeefyHeight := clienttypes.NewHeight(clienttypes.ParseChainID(cs.ChainId), uint64(commitment.BlockNumber))
@@ -199,7 +201,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 }
 
-// TODO: save all the consensue state at height,but just return latest block header
+// Save all the consensue state at height,but just return latest block header
 func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCodec, clientStore sdk.KVStore, header *Header) (*ConsensusState, error) {
 
 	var newConsensueState *ConsensusState
@@ -207,7 +209,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 	var latestBlockHeader gsrpctypes.Header
 	var latestTimestamp uint64
 	switch cs.ChainType {
-	case beefy.CHAINTYPE_SOLOCHAIN:
+	case beefy.CHAINTYPE_SUBCHAIN:
 		subchainHeaders := header.GetSubchainHeaders().SubchainHeaders
 
 		for _, header := range subchainHeaders {
@@ -259,7 +261,10 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 
 		}
 	}
-
+	log.Printf("UpdateConsensusStates -> latestChainHeight: %+v \n UpdateConsensusStates -> latestTimestamp: %+v \n UpdateConsensusStates -> latestBlockHeader: %+v \n ",
+		latestChainHeight,
+		latestTimestamp,
+		latestBlockHeader)
 	// TODO: asset blockheader and timestamp is not nil
 	newConsensueState = NewConsensusState(latestBlockHeader.StateRoot[:], time.UnixMilli(int64(latestTimestamp)))
 
