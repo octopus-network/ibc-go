@@ -4626,7 +4626,7 @@ header wrapper
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) |  | the latest mmr data |
+| `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) | optional | the latest mmr data |
 | `subchain_headers` | [SubchainHeaders](#ibc.lightclients.grandpa.v1.SubchainHeaders) |  | subchain headers and their proofs |
 | `parachain_headers` | [ParachainHeaders](#ibc.lightclients.grandpa.v1.ParachainHeaders) |  | parachain headers and their proofs |
 

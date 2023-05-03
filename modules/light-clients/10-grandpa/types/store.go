@@ -72,8 +72,8 @@ func SetConsensusState(clientStore sdk.KVStore, cdc codec.BinaryCodec, consensus
 	key := host.ConsensusStateKey(height)
 	val := clienttypes.MustMarshalConsensusState(cdc, consensusState)
 	clientStore.Set(key, val)
-	log.Printf("SetConsensusState -> height: %+v \n SetConsensusState -> consensusState: %+v ",
-		height, consensusState)
+	log.Printf("ics10-debug::SetConsensusState -> height: %+v \n consensusState: %+v ",
+		height, *consensusState)
 }
 
 // GetConsensusState retrieves the consensus state from the client prefixed

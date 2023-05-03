@@ -26,7 +26,7 @@ var (
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	// ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
-	log.Printf("clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
+	log.Printf("ics10-debug::clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
 
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
@@ -50,7 +50,7 @@ func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateCl
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	// ctx.Logger().Info("msg.Header.TypeUrl", msg.Header.TypeUrl)
 
-	log.Printf("clienttypes.MsgUpdateClient.TypeUrl: %+v ", msg.Header.TypeUrl)
+	log.Printf("ics10-debug::clienttypes.MsgUpdateClient.TypeUrl: %+v ", msg.Header.TypeUrl)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
 	if err != nil {

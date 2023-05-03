@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ComposableFi/go-merkle-trees/mmr"
 	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 	gsrpccodec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -32,27 +33,51 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	}
 
 	beefyMMR := pbHeader.BeefyMmr
+	//TODO: check beefymmr is nil ?
 
 	// step1:  verify signature
 	// convert signedcommitment
 	bsc := ToBeefySC(beefyMMR.SignedCommitment)
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> SignedCommitment: %+v", bsc)
+
 	err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
 	if err != nil {
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> VerifySignatures failed : %+v", err)
 		return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
 	}
 
 	// step2: verify mmr
+
+	mmrSize := beefyMMR.MmrSize
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> recv mmrSize: %+v", mmrSize)
+	leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(cs.BeefyActivationHeight), bsc.Commitment.BlockNumber)
+	calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> cal mmrSize: %+v", calMmrSize)
+
 	// convert mmrleaf
 	beefyMMRLeaves := ToBeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMRLeaves: %+v", beefyMMRLeaves)
+
 	// convert mmr proof
 	beefyBatchProof := ToMMRBatchProof(beefyMMR.MmrLeavesAndBatchProof)
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyBatchProof: %+v", beefyBatchProof)
+
 	// verify mmr
-	err = cs.VerifyMMR(bsc, beefyMMR.MmrSize, beefyMMRLeaves, beefyBatchProof)
+	// err = cs.VerifyMMR(bsc, mmrSize, beefyMMRLeaves, beefyBatchProof)
+	// if err != nil {
+	// 	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use recv mmrsize to verify mmr error!")
+	// 	// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
+	// }
+	// verify mmr
+	err = cs.VerifyMMR(bsc, calMmrSize, beefyMMRLeaves, beefyBatchProof)
 	if err != nil {
-		return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use cal mmrsize to verify mmr error!")
+		// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
 	}
 
 	// step3: verify header
+	// TODO: check header.message is nil ?
+
 	err = cs.VerifyHeader(*pbHeader, beefyMMRLeaves)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(err, "failed to verify header")
@@ -60,24 +85,27 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 
 	// step4: update state
 	// update client state and build new client state
-	newClientState, err := cs.UpdateClientState(ctx, beefyMMR.SignedCommitment.Commitment, beefyMMR.MmrLeavesAndBatchProof.Leaves)
+	latestChainHeight := clienttypes.NewHeight(pbHeader.GetHeight().GetRevisionNumber(), pbHeader.GetHeight().GetRevisionHeight())
+	newClientState, err := cs.UpdateClientState(ctx, beefyMMR.SignedCommitment.Commitment,
+		beefyMMR.MmrLeavesAndBatchProof.Leaves, latestChainHeight)
+
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Printf("CheckHeaderAndUpdateState -> latest client state: %+v", newClientState)
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latest client state: %+v", *newClientState)
 	// update consensue state and build latest new consensue state
 	newConsensusState, err := cs.UpdateConsensusStates(ctx, cdc, clientStore, pbHeader)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Printf("CheckHeaderAndUpdateState -> latest consensuse state: %+v", newConsensusState)
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latest consensuse state: %+v", *newConsensusState)
 
 	return newClientState, newConsensusState, nil
 }
 
 // verify signatures
 func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProofs [][]byte) error {
-	log.Printf("VerifySignatures -> SignedCommitment: %+v", bsc)
+
 	// checking signatures Threshold
 	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(bsc.Signatures)) ||
 		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(bsc.Signatures)) {
@@ -85,6 +113,15 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 		return sdkerrors.Wrap(errors.New("verify signature error "), ErrInvalidValidatorSet.Error())
 
 	}
+
+	// check bsc.Commitment.ValidatorSetID is cs.AuthoritySet.Id or cs.NextAuthoritySet.Id
+	log.Printf("ics10-debug::VerifySignatures -> bsc.Commitment.ValidatorSetID: %+v ,cs.AuthoritySet.Id:%+v ,cs.NextAuthoritySet.Id:%+v ",
+		bsc.Commitment.ValidatorSetID, cs.AuthoritySet.Id, cs.NextAuthoritySet.Id)
+	if bsc.Commitment.ValidatorSetID != cs.AuthoritySet.Id && bsc.Commitment.ValidatorSetID != cs.NextAuthoritySet.Id {
+		return sdkerrors.Wrap(errors.New("ValidatorSetID Mismatch "), ErrInvalidValidatorSet.Error())
+
+	}
+
 	// verify signatures
 	switch bsc.Commitment.ValidatorSetID {
 	case cs.AuthoritySet.Id:
@@ -98,6 +135,7 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 		if err != nil {
 			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
 		}
+
 	}
 
 	return nil
@@ -108,12 +146,14 @@ func (cs ClientState) VerifyMMR(bsc beefy.SignedCommitment, mmrSize uint64,
 	beefyMMRLeaves []gsrpctypes.MMRLeaf, mmrBatchProof beefy.MMRBatchProof) error {
 	// check mmr height
 	if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
+		log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
 		return sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
 	}
 
 	//verify mmr proof
 	result, err := beefy.VerifyMMRBatchProof(bsc.Commitment.Payload, mmrSize, beefyMMRLeaves, mmrBatchProof)
 	if err != nil || !result {
+		log.Printf("ics10-debug::VerifyMMR -> failed to verify mmr proof: %+v", err)
 		return sdkerrors.Wrap(err, "failed to verify mmr proof")
 	}
 	return nil
@@ -137,7 +177,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 			}
 		}
 
-		log.Printf("VerifyHeader -> subchain headers  : %+v", beefySubchainHeaderMap)
+		log.Printf("ics10-debug::VerifyHeader -> subchain headers : %+v", beefySubchainHeaderMap)
 		err := beefy.VerifySubchainHeader(beefyMMRLeaves, beefySubchainHeaderMap)
 		if err != nil {
 			return err
@@ -159,7 +199,7 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 				Timestamp:          beefy.StateProof(header.Timestamp),
 			}
 		}
-		log.Printf("VerifyHeader -> parachain headers  : %+v", beefyParachainHeaderMap)
+		log.Printf("ics10-debug::VerifyHeader -> parachain headers : %+v", beefyParachainHeaderMap)
 
 		err := beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
 		if err != nil {
@@ -170,11 +210,12 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 }
 
 // update client state
-func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, mmrLeaves []MMRLeaf) (*ClientState, error) {
+func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, mmrLeaves []MMRLeaf,
+	latestChainHeight clienttypes.Height) (*ClientState, error) {
 	// var newClientState *ClientState
 
 	latestBeefyHeight := clienttypes.NewHeight(clienttypes.ParseChainID(cs.ChainId), uint64(commitment.BlockNumber))
-	latestChainHeight := latestBeefyHeight
+	// latestChainHeight := latestChainHeight
 	mmrRoot := commitment.Payloads[0].Data
 
 	// find latest next authority set from mmrleaves
@@ -192,10 +233,22 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	}
 
-	newClientState := NewClientState(cs.ChainType, cs.ChainId,
-		cs.ParachainId, cs.BeefyActivationHeight,
-		latestBeefyHeight, mmrRoot, latestChainHeight,
-		cs.FrozenHeight, *latestNextAuthoritySet, cs.NextAuthoritySet)
+	// update authority set
+	newAuthoritySet := cs.NextAuthoritySet
+	newNextAuthoritySet := *latestNextAuthoritySet
+	log.Printf("ics10-debug::UpdateClientState -> newAuthoritySet:%+v ,newNextAuthoritySet:%+v ",
+		newAuthoritySet, newNextAuthoritySet)
+
+	newClientState := NewClientState(
+		cs.ChainType, cs.ChainId,
+		cs.ParachainId,
+		cs.BeefyActivationHeight,
+		latestBeefyHeight,
+		mmrRoot,
+		latestChainHeight,
+		cs.FrozenHeight,
+		newAuthoritySet,
+		newNextAuthoritySet)
 
 	return newClientState, nil
 
@@ -261,7 +314,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 
 		}
 	}
-	log.Printf("UpdateConsensusStates -> latestChainHeight: %+v \n UpdateConsensusStates -> latestTimestamp: %+v \n UpdateConsensusStates -> latestBlockHeader: %+v \n ",
+	log.Printf("ics10-debug::UpdateConsensusStates -> latestChainHeight: %+v \nlatestTimestamp: %+v \nlatestBlockHeader: %+v ",
 		latestChainHeight,
 		latestTimestamp,
 		latestBlockHeader)

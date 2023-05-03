@@ -220,7 +220,7 @@ message StateProof {
 // header wrapper
 message Header {
   // the latest mmr data
-  BeefyMMR beefy_mmr = 1 [(gogoproto.nullable) = false];
+  optional BeefyMMR beefy_mmr = 1;
   // only one header
   oneof message {
     // subchain headers and their proofs

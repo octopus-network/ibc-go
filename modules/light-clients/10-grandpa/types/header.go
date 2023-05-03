@@ -51,7 +51,7 @@ func (h Header) GetHeight() exported.Height {
 		return nil
 	}
 	latestHeight := clienttypes.NewHeight(0, uint64(latestHeader.Number))
-	log.Printf("GetHeight -> latestHeight", latestHeight)
+	log.Printf("ics10-debug::GetHeight -> latestHeight:%+v ", latestHeight)
 
 	return latestHeight
 	// revision := clienttypes.ParseChainID(h.Header.ChainID)
@@ -67,7 +67,7 @@ func (h Header) GetTime() time.Time {
 	// }
 	//get latest header and time
 	_, latestTime, err := getLastestBlockHeader(h)
-	log.Printf("GetTime -> latestTime: %+v ", latestTime)
+	log.Printf("ics10-debug::GetTime -> latestTime: %+v ", latestTime)
 
 	if err != nil {
 		return time.Unix(0, 0)
@@ -96,7 +96,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 
 		// find lastest subchain header
 		latestSubchainHeader := subchainHeaderMap[latestHeight]
-		log.Printf("getLastestBlockHeader -> latestSubchainHeader: %+v ", latestSubchainHeader)
+		log.Printf("ics10-debug::getLastestBlockHeader -> latestSubchainHeader: %+v ", latestSubchainHeader)
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestSubchainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
@@ -117,7 +117,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
-		log.Printf("getLastestBlockHeader -> subchain latestTimestamp: %+v ", latestTimestamp)
+		log.Printf("ics10-debug::getLastestBlockHeader -> subchain latestTimestamp: %+v ", latestTimestamp)
 
 	case *Header_ParachainHeaders:
 		parachainHeaders := msg.ParachainHeaders.ParachainHeaders
@@ -130,7 +130,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			parachainHeaderMap[header.RelayerChainNumber] = header
 		}
 		latestParachainHeader := parachainHeaderMap[latestHeight]
-		log.Printf("getLastestBlockHeader -> latestParachainHeader: %+v ", latestParachainHeader)
+		log.Printf("ics10-debug::getLastestBlockHeader -> latestParachainHeader: %+v ", latestParachainHeader)
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestParachainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
@@ -151,7 +151,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
-		log.Printf("getLastestBlockHeader -> parachain latestTimestamp: %+v ", latestTimestamp)
+		log.Printf("ics10-debug::getLastestBlockHeader -> parachain latestTimestamp: %+v ", latestTimestamp)
 	}
 
 	return latestBlockHeader, latestTimestamp, nil
