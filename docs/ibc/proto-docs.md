@@ -4552,8 +4552,9 @@ mmr data
 | ----- | ---- | ----- | ----------- |
 | `signed_commitment` | [SignedCommitment](#ibc.lightclients.grandpa.v1.SignedCommitment) |  | signed commitment data |
 | `signature_proofs` | [bytes](#bytes) | repeated | build merkle tree based on all the signature in signed commitment and generate the signature proof |
-| `mmr_leaves_and_batch_proof` | [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof) |  | mmr proof |
-| `mmr_size` | [uint64](#uint64) |  | size of the mmr for the given proof |
+| `mmr_leaves_and_batch_proof` | [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof) |  | mmr proof
+
+size of the mmr for the given proof uint64 mmr_size = 4; |
 
 
 
@@ -4572,13 +4573,13 @@ and a possible frozen height.
 | `chain_type` | [uint32](#uint32) |  | 0: subchain 1: parachain |
 | `chain_id` | [string](#string) |  | chain_id string type, eg: ibc-1 |
 | `parachain_id` | [uint32](#uint32) |  | parachain id is uint type |
-| `beefy_activation_height` | [uint32](#uint32) |  | block number that the beefy protocol was activated on the relay chain. This should be the first block in the merkle-mountain-range tree. |
-| `latest_beefy_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | the latest mmr_root_hash height |
-| `mmr_root_hash` | [bytes](#bytes) |  | Latest mmr root hash |
+| `latest_beefy_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | block number that the beefy protocol was activated on the relay chain. This should be the first block in the merkle-mountain-range tree. uint32 beefy_activation_height = 4; the latest mmr_root_hash height |
+| `latest_mmr_root` | [bytes](#bytes) |  | Latest mmr root hash |
 | `latest_chain_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | latest subchain or parachain height |
 | `frozen_height` | [ibc.core.client.v1.Height](#ibc.core.client.v1.Height) |  | Block height when the client was frozen due to a misbehaviour |
-| `authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the current round |
-| `next_authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | authorities for the next round |
+| `latest_authority_set` | [BeefyAuthoritySet](#ibc.lightclients.grandpa.v1.BeefyAuthoritySet) |  | latest authority set
+
+authorities for the current round BeefyAuthoritySet authority_set = 9 [(gogoproto.nullable) = false]; // authorities for the next round BeefyAuthoritySet next_authority_set = 10 [(gogoproto.nullable) = false]; |
 
 
 
@@ -4626,7 +4627,7 @@ header wrapper
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) | optional | the latest mmr data |
+| `beefy_mmr` | [BeefyMMR](#ibc.lightclients.grandpa.v1.BeefyMMR) |  | the latest mmr data |
 | `subchain_headers` | [SubchainHeaders](#ibc.lightclients.grandpa.v1.SubchainHeaders) |  | subchain headers and their proofs |
 | `parachain_headers` | [ParachainHeaders](#ibc.lightclients.grandpa.v1.ParachainHeaders) |  | parachain headers and their proofs |
 
@@ -4735,6 +4736,7 @@ parachain header array
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `parachain_headers` | [ParachainHeader](#ibc.lightclients.grandpa.v1.ParachainHeader) | repeated |  |
+| `mmr_leaves_and_batch_proof` | [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof) |  | mmr proof for header |
 
 
 
@@ -4849,6 +4851,7 @@ subchain header
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `subchain_headers` | [SubchainHeader](#ibc.lightclients.grandpa.v1.SubchainHeader) | repeated |  |
+| `mmr_leaves_and_batch_proof` | [MMRLeavesAndBatchProof](#ibc.lightclients.grandpa.v1.MMRLeavesAndBatchProof) |  | mmr proof for header |
 
 
 

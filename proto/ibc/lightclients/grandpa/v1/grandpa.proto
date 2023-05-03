@@ -22,19 +22,21 @@ message ClientState {
   uint32 parachain_id = 3;
   // block number that the beefy protocol was activated on the relay chain.
   // This should be the first block in the merkle-mountain-range tree.
-  uint32 beefy_activation_height = 4;
+  // uint32 beefy_activation_height = 4;
   // the latest mmr_root_hash height
-  ibc.core.client.v1.Height latest_beefy_height = 5 [(gogoproto.nullable) = false];
+  ibc.core.client.v1.Height latest_beefy_height = 4 [(gogoproto.nullable) = false];
   // Latest mmr root hash
-  bytes mmr_root_hash = 6;
+  bytes latest_mmr_root = 5;
   // latest subchain or parachain height
-  ibc.core.client.v1.Height latest_chain_height = 7 [(gogoproto.nullable) = false];
+  ibc.core.client.v1.Height latest_chain_height = 6 [(gogoproto.nullable) = false];
   // Block height when the client was frozen due to a misbehaviour
-  ibc.core.client.v1.Height frozen_height = 8 [(gogoproto.nullable) = false];
+  ibc.core.client.v1.Height frozen_height = 7 [(gogoproto.nullable) = false];
+  // latest authority set
+  BeefyAuthoritySet latest_authority_set = 8 [(gogoproto.nullable) = false];
   // authorities for the current round
-  BeefyAuthoritySet authority_set = 9 [(gogoproto.nullable) = false];
-  // authorities for the next round
-  BeefyAuthoritySet next_authority_set = 10 [(gogoproto.nullable) = false];
+  // BeefyAuthoritySet authority_set = 9 [(gogoproto.nullable) = false];
+  // // authorities for the next round
+  // BeefyAuthoritySet next_authority_set = 10 [(gogoproto.nullable) = false];
 }
 
 // Beefy Authority Info
@@ -100,7 +102,7 @@ message BeefyMMR {
   // mmr proof
   MMRLeavesAndBatchProof mmr_leaves_and_batch_proof = 3 [(gogoproto.nullable) = false];
   // size of the mmr for the given proof
-  uint64 mmr_size = 4;
+  // uint64 mmr_size = 4;
 }
 
 // mmr leaves and proofs
@@ -176,6 +178,8 @@ message SubchainHeaders {
   option (gogoproto.goproto_getters) = false;
 
   repeated SubchainHeader subchain_headers = 1 [(gogoproto.nullable) = false];
+  // mmr proof for header
+  MMRLeavesAndBatchProof mmr_leaves_and_batch_proof = 2 [(gogoproto.nullable) = false];
 }
 
 // data needed to prove parachain header inclusion in mmr
@@ -195,7 +199,6 @@ message ParachainHeader {
   uint32 header_index = 6;
   // total number of para heads in parachain_heads_root
   uint32 header_count = 7;
-
   // timestamp and proof
   StateProof timestamp = 8 [(gogoproto.nullable) = false];
 }
@@ -205,6 +208,8 @@ message ParachainHeaders {
   option (gogoproto.goproto_getters) = false;
 
   repeated ParachainHeader parachain_headers = 1 [(gogoproto.nullable) = false];
+  // mmr proof for header
+  MMRLeavesAndBatchProof mmr_leaves_and_batch_proof = 2 [(gogoproto.nullable) = false];
 }
 
 // state value and proof
@@ -220,7 +225,7 @@ message StateProof {
 // header wrapper
 message Header {
   // the latest mmr data
-  optional BeefyMMR beefy_mmr = 1;
+  BeefyMMR beefy_mmr = 1;
   // only one header
   oneof message {
     // subchain headers and their proofs

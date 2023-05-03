@@ -4,7 +4,7 @@ import (
 	"github.com/octopus-network/beefy-go/beefy"
 
 	// log "github.com/go-kit/log"
-	"github.com/ComposableFi/go-merkle-trees/mmr"
+	// "github.com/ComposableFi/go-merkle-trees/mmr"
 	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
@@ -38,6 +38,21 @@ func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp,
 		Commitment: pbCommitment,
 		Signatures: pb,
 	}
+
+	pbMmrLevavesAndProof := ToPbMmrProof(mmrBatchProof)
+
+	// leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
+	// mmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
+	// build pbBeefyMMR
+	pbBeefyMMR := BeefyMMR{
+		SignedCommitment:       pbsc,
+		SignatureProofs:        authorityProof,
+		MmrLeavesAndBatchProof: pbMmrLevavesAndProof,
+	}
+	return pbBeefyMMR
+}
+
+func ToPbMmrProof(mmrBatchProof beefy.MmrProofsResp) MMRLeavesAndBatchProof {
 	// convert mmrleaf
 	var pbMMRLeaves []MMRLeaf
 
@@ -88,16 +103,7 @@ func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp,
 		Leaves:        pbMMRLeaves,
 		MmrBatchProof: pbBatchProof,
 	}
-	leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
-	mmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-	// build pbBeefyMMR
-	pbBeefyMMR := BeefyMMR{
-		SignedCommitment:       pbsc,
-		SignatureProofs:        authorityProof,
-		MmrLeavesAndBatchProof: pbMmrLevavesAndProof,
-		MmrSize:                mmrSize,
-	}
-	return pbBeefyMMR
+	return pbMmrLevavesAndProof
 }
 
 func ToBeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
@@ -152,30 +158,30 @@ func ToBeefyMMRLeaves(pbMMRLeaves []MMRLeaf) []gsrpctypes.MMRLeaf {
 	return beefyMMRLeaves
 }
 
-func ToMMRBatchProof(mmrLeavesAndBatchProof MMRLeavesAndBatchProof) beefy.MMRBatchProof {
-	pbLeafIndexes := mmrLeavesAndBatchProof.MmrBatchProof.LeafIndexes
+func ToMMRBatchProof(mmrBatchProof MMRBatchProof) beefy.MMRBatchProof {
+	pbLeafIndexes := mmrBatchProof.LeafIndexes
 	leafIndexes := make([]gsrpctypes.U64, len(pbLeafIndexes))
 	for i, v := range pbLeafIndexes {
 		leafIndexes[i] = gsrpctypes.NewU64(v)
 	}
 
-	pbItems := mmrLeavesAndBatchProof.MmrBatchProof.Items
+	pbItems := mmrBatchProof.Items
 	items := make([]gsrpctypes.H256, len(pbItems))
 	for i, v := range pbItems {
 		items[i] = gsrpctypes.NewH256(v)
 	}
 
-	mmrBatchProof := beefy.MMRBatchProof{
+	beefyMmrBatchProof := beefy.MMRBatchProof{
 		LeafIndexes: leafIndexes,
-		LeafCount:   gsrpctypes.NewU64(mmrLeavesAndBatchProof.MmrBatchProof.LeafCount),
+		LeafCount:   gsrpctypes.NewU64(mmrBatchProof.LeafCount),
 		Items:       items,
 	}
 
-	return mmrBatchProof
+	return beefyMmrBatchProof
 
 }
 
-func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader) Header_SubchainHeaders {
+func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader, mmrBatchProof beefy.MmrProofsResp) Header_SubchainHeaders {
 
 	// headerMap := make(map[uint32]SubchainHeader)
 	var headers []SubchainHeader
@@ -190,18 +196,20 @@ func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader) Header_Sub
 
 	}
 
+	pbMmrLevavesAndProof := ToPbMmrProof(mmrBatchProof)
 	pbSubchainHeaders := SubchainHeaders{
-		SubchainHeaders: headers,
+		SubchainHeaders:        headers,
+		MmrLeavesAndBatchProof: pbMmrLevavesAndProof,
 	}
 
-	header_subchainMap := Header_SubchainHeaders{
+	header_subchainHeaders := Header_SubchainHeaders{
 		SubchainHeaders: &pbSubchainHeaders,
 	}
-	return header_subchainMap
+	return header_subchainHeaders
 
 }
 
-func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader) Header_ParachainHeaders {
+func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader,mmrBatchProof beefy.MmrProofsResp) Header_ParachainHeaders {
 
 	var headers []ParachainHeader
 	for _, header := range beefyParachainHeaders {
@@ -217,9 +225,10 @@ func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader) Header_
 		}
 		headers = append(headers, parachainHeader)
 	}
-
+	pbMmrLevavesAndProof := ToPbMmrProof(mmrBatchProof)
 	pbParachainHeaders := ParachainHeaders{
 		ParachainHeaders: headers,
+		MmrLeavesAndBatchProof: pbMmrLevavesAndProof,
 	}
 
 	header_parachainHeaders := Header_ParachainHeaders{

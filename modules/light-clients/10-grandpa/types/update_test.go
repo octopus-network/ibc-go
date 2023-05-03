@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/ComposableFi/go-merkle-trees/mmr"
 	"github.com/octopus-network/beefy-go/beefy"
 	tmtypes "github.com/tendermint/tendermint/types"
 
@@ -522,26 +523,20 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 				suite.Suite.T().Logf("toBlockHash: %#x", latestSignedCommitmentBlockHash)
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:               "sub-0",
-					ChainType:             beefy.CHAINTYPE_SUBCHAIN,
-					ParachainId:           0,
-					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
-					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
-					MmrRootHash:           s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
-					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), 0),
-					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
+					ChainId:           "sub-0",
+					ChainType:         beefy.CHAINTYPE_SUBCHAIN,
+					ParachainId:       0,
+					LatestBeefyHeight: clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
+					LatestMmrRoot:     s.SignedCommitment.Commitment.Payload[0].Data,
+					LatestChainHeight: clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), uint64(latestSignedCommitmentBlockNumber)),
+					FrozenHeight:      clienttypes.NewHeight(clienttypes.ParseChainID("sub-0"), 0),
+					LatestAuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
 						Len:  uint32(authoritySet.Len),
 						Root: authoritySet.Root[:],
 					},
-					NextAuthoritySet: ibcgptypes.BeefyAuthoritySet{
-						Id:   uint64(nextAuthoritySet.ID),
-						Len:  uint32(nextAuthoritySet.Len),
-						Root: nextAuthoritySet.Root[:],
-					},
 				}
-				suite.Suite.T().Logf("init client state: %+v", &clientState)
+				// suite.Suite.T().Logf("init client state: %+v", &clientState)
 				suite.Suite.T().Logf("init client state: %+v", *clientState)
 				// test pb marshal and unmarshal
 				marshalCS, err := clientState.Marshal()
@@ -570,31 +565,39 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			suite.Require().NoError(err)
 
 			// step2,build beefy mmr
-			targetHeights := []uint32{uint32(latestSignedCommitmentBlockNumber - 1)}
+			// targetHeights := []uint32{uint32(latestSignedCommitmentBlockNumber - 1)}
+			targetHeights := []uint32{uint32(latestSignedCommitmentBlockNumber)}
 			// build mmr proofs for leaves containing target paraId
-			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
-			mmrBatchProof, err := beefy.BuildMMRProofs(localSubchainEndpoint, targetHeights,
+			// beefyMmrProof, err := beefy.BuildMMRBatchProof(localSolochainEndpoint, &latestSignedCommitmentBlockHash, targetHeights)
+			beefyMmrProof, err := beefy.BuildMMRProofs(localSubchainEndpoint, targetHeights,
 				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
 				gsrpctypes.NewOptionHashEmpty())
 			suite.Require().NoError(err)
-			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
+			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, beefyMmrProof, authorityProof)
 			suite.Suite.T().Logf("pbBeefyMMR: %+v", pbBeefyMMR)
 
 			// step3, build header proof
-			// build subchain header map
-			subchainHeaders, err := beefy.BuildSubchainHeaders(localSubchainEndpoint, mmrBatchProof.Proof.LeafIndexes, "sub-0")
+			// build subchain header
+			// mock targetheights
+			targetHeights = append(targetHeights, uint32(latestSignedCommitmentBlockNumber-1))
+			suite.Suite.T().Logf("targetHeights: %+v", targetHeights)
+			subChainHeaderMmrProof, err := beefy.BuildMMRProofs(localSubchainEndpoint, targetHeights,
+				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
+				gsrpctypes.NewOptionHashEmpty())
+			suite.Require().NoError(err)
+			subchainHeaders, err := beefy.BuildSubchainHeaders(localSubchainEndpoint, subChainHeaderMmrProof.Proof.LeafIndexes, "sub-0")
 			suite.Require().NoError(err)
 			suite.Suite.T().Logf("subchainHeaders: %+v", subchainHeaders)
-			suite.Suite.T().Logf("subchainHeaders: %#v", subchainHeaders)
+			// suite.Suite.T().Logf("subchainHeaders: %#v", subchainHeaders)
 
-			pbHeader_subchainHeaders := ibcgptypes.ToPBSubchainHeaders(subchainHeaders)
+			pbHeader_subchainHeaders := ibcgptypes.ToPBSubchainHeaders(subchainHeaders, subChainHeaderMmrProof)
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
-				BeefyMmr: pbBeefyMMR,
+				BeefyMmr: &pbBeefyMMR,
 				Message:  &pbHeader_subchainHeaders,
 			}
-			suite.Suite.T().Logf("pbHeader: %+v", pbHeader)
-			suite.Suite.T().Logf("pbHeader: %#v", pbHeader)
+			suite.Suite.T().Logf("pbHeader: beefymmr: %+v ,subchain headers: %+v", *pbHeader.BeefyMmr, *pbHeader_subchainHeaders.SubchainHeaders)
+			// suite.Suite.T().Logf("pbHeader: %#v", pbHeader)
 
 			// mock gp header marshal and unmarshal
 			marshalPBHeader, err := pbHeader.Marshal()
@@ -606,13 +609,13 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			var unmarshalPBHeader ibcgptypes.Header
 			err = unmarshalPBHeader.Unmarshal(marshalPBHeader)
 			suite.Require().NoError(err)
-			suite.Suite.T().Logf("unmarshal gHeader: %+v", unmarshalPBHeader)
+			suite.Suite.T().Logf("unmarshal gHeader: beefymmr: %+v ,subchain headers: %+v", *unmarshalPBHeader.GetBeefyMmr(), unmarshalPBHeader.GetSubchainHeaders().SubchainHeaders)
 
 			// step1:verify signature
 			// unmarshalBeefyMmr := unmarshalGPHeader.BeefyMmr
 			unmarshalBeefyMmr := pbHeader.BeefyMmr
 			// suite.Suite.T().Logf("pbBeefyMMR: %+v", pbBeefyMMR)
-			suite.Suite.T().Logf("unmarshal BeefyMmr: %+v", unmarshalBeefyMmr)
+			suite.Suite.T().Logf("unmarshal BeefyMmr: %+v", *unmarshalBeefyMmr)
 
 			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
 			rebuildBSC := ibcgptypes.ToBeefySC(unmarshalPBSC)
@@ -623,24 +626,47 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			suite.Require().NoError(err)
 			suite.Suite.T().Log("\n------------------ VerifySignatures end ----------------------\n")
 
+			suite.Suite.T().Log("\n------------------ VerifyMMRBatchProof for beefy  --------------------------")
 			// step2, verify mmr
 			rebuildMMRLeaves := ibcgptypes.ToBeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			suite.Suite.T().Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-			rebuildMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			rebuildMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof)
 			suite.Suite.T().Logf("Convert2MMRBatchProof: %+v", rebuildMMRBatchProof)
-
-			suite.Suite.T().Log("\n------------------ VerifyMMRBatchProof --------------------------")
 			// check mmr height
-			// suite.Require().Less(clientState.LatestBeefyHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
-			// result, err := beefy.VerifyMMRBatchProof(rebuildBSC.Commitment.Payload,
-			// 	unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, rebuildMMRBatchProof)
-			// 	suite.Require().NoError(err)
-			// 	suite.Require().True(result)
-			err = clientState.VerifyMMR(rebuildBSC, unmarshalBeefyMmr.MmrSize,
+			suite.Suite.T().Logf("ics10-debug::clientState.LatestBeefyHeight: %+v, Commitment.BlockNumber: %+v ", clientState.LatestBeefyHeight.RevisionHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
+			suite.Require().Less(clientState.LatestBeefyHeight.RevisionHeight, uint64(unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber))
+
+			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
+			calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
+			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
+			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
 				rebuildMMRLeaves, rebuildMMRBatchProof)
 			suite.Require().NoError(err)
-			suite.Suite.T().Log("\n------------------ VerifyMMRBatchProof end ----------------------\n")
+			// update client height beefy mmr
+			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			clientState.LatestMmrRoot = unmarshalPBSC.Commitment.Payloads[0].Data
+			suite.Suite.T().Log("\n------------------ VerifyMMRBatchProof for beefy end ----------------------\n")
 
+			suite.Suite.T().Log("\n------------------mock async VerifyMMRBatchProof for subchain header  --------------------------")
+			// step2, async verify mmr for subchain header
+			unmarshalSubchainHeadersMmrProof := unmarshalPBHeader.GetSubchainHeaders().MmrLeavesAndBatchProof
+			rebuildSubchainHeaderMMRLeaves := ibcgptypes.ToBeefyMMRLeaves(unmarshalSubchainHeadersMmrProof.Leaves)
+			suite.Suite.T().Logf("rebuildSubchainHeaderMMRLeaves: %+v", rebuildSubchainHeaderMMRLeaves)
+			rebuildSubchainHeaderMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalSubchainHeadersMmrProof.MmrBatchProof)
+			suite.Suite.T().Logf("rebuildSubchainHeaderMMRBatchProof: %+v", rebuildSubchainHeaderMMRBatchProof)
+			// check : latest block height must less LatestBeefyHeight
+			suite.Suite.T().Logf("ics10-debug::latest block height: %+v, clientState.LatestBeefyHeight: %+v ", unmarshalPBHeader.GetHeight(), clientState.LatestBeefyHeight)
+			suite.Require().LessOrEqual(unmarshalPBHeader.GetHeight().GetRevisionHeight(), clientState.LatestBeefyHeight.RevisionHeight)
+			// cal mmr size use clientState.LatestBeefyHeight.RevisionHeight
+			leafIndex2 := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), uint32(clientState.LatestBeefyHeight.RevisionHeight))
+			calMmrSize2 := mmr.LeafIndexToMMRSize(uint64(leafIndex2))
+			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> clientState.LatestBeefyHeight.RevisionHeight: %+v, leafIndex2: %+v, cal mmrSize: %+v", clientState.LatestBeefyHeight.RevisionHeight, leafIndex2, calMmrSize2)
+			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
+				rebuildSubchainHeaderMMRLeaves, rebuildSubchainHeaderMMRBatchProof)
+			suite.Require().NoError(err)
+
+			suite.Suite.T().Log("\n------------------mock async VerifyMMRBatchProof for subchain header end ----------------------\n")
 			// step3, verify header
 			// convert pb subchain header to beefy subchain header
 			var rebuildSubchainHeaders []beefy.SubchainHeader
@@ -660,24 +686,26 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			suite.Suite.T().Logf("unmarshal subchainHeaders: %+v", unmarshalSubchainHeaders)
 
 			suite.Suite.T().Log("\n------------------ VerifySubchainHeader --------------------------")
-			// err = beefy.VerifySolochainHeader(rebuildMMRLeaves, rebuildSolochainHeaderMap)
-			// suite.Require().NoError(err)
-			err = clientState.VerifyHeader(unmarshalPBHeader, rebuildMMRLeaves)
+
+			// cal mmr size use clientState.LatestBeefyHeight.RevisionHeight
+
+			err = clientState.VerifyHeader(unmarshalPBHeader, clientState.LatestMmrRoot, calMmrSize2)
 			suite.Require().NoError(err)
 			suite.Suite.T().Log("\n------------------ VerifySubchainHeader end ----------------------\n")
 
 			// step4, update client state
-			// update client height
-			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
-			clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
-			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
+			// // update client height
+			// clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			// clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			// clientState.LatestMmrRoot = unmarshalPBSC.Commitment.Payloads[0].Data
+
 			// find latest next authority set from mmrleaves
-			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
+			var latestAuthoritySet *ibcgptypes.BeefyAuthoritySet
 			var latestAuthoritySetId uint64
 			for _, leaf := range rebuildMMRLeaves {
 				if latestAuthoritySetId < uint64(leaf.BeefyNextAuthoritySet.ID) {
 					latestAuthoritySetId = uint64(leaf.BeefyNextAuthoritySet.ID)
-					latestNextAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
+					latestAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
 						Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
 						Root: leaf.BeefyNextAuthoritySet.Root[:],
@@ -685,16 +713,17 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 				}
 
 			}
-			suite.Suite.T().Logf("current clientState.AuthoritySet.Id: %+v", clientState.AuthoritySet.Id)
+			suite.Suite.T().Logf("current clientState.AuthoritySet.Id: %+v", clientState.LatestAuthoritySet.Id)
 			suite.Suite.T().Logf("latestAuthoritySetId: %+v", latestAuthoritySetId)
-			suite.Suite.T().Logf("latestNextAuthoritySet: %+v", *latestNextAuthoritySet)
+			suite.Suite.T().Logf("latestAuthoritySet: %+v", *latestAuthoritySet)
+
 			//  update client state authority set
-			if clientState.AuthoritySet.Id < latestAuthoritySetId {
-				clientState.AuthoritySet = *latestNextAuthoritySet
-				suite.Suite.T().Logf("update clientState.AuthoritySet : %+v", clientState.AuthoritySet)
+			if clientState.LatestAuthoritySet.Id < latestAuthoritySetId {
+				clientState.LatestAuthoritySet = *latestAuthoritySet
+				suite.Suite.T().Logf("update clientState.AuthoritySet : %+v", clientState.LatestAuthoritySet)
 			}
 			// print latest client state
-			suite.Suite.T().Logf("updated client state: %+v", clientState)
+			suite.Suite.T().Logf("updated client state: %+v", *clientState)
 
 			// step5,update consensue state
 			var latestHeight uint32
@@ -798,7 +827,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			}
 
 			suite.Suite.T().Logf("decoded msg: %+v\n", s)
-			suite.Suite.T().Logf("decoded msg: %#v\n", s)
+			// suite.Suite.T().Logf("decoded msg: %#v\n", s)
 			latestSignedCommitmentBlockNumber := s.SignedCommitment.Commitment.BlockNumber
 			// suite.Suite.T().Logf("blockNumber: %d\n", latestBlockNumber)
 			latestSignedCommitmentBlockHash, err := localRelayEndpoint.RPC.Chain.GetBlockHash(uint64(latestSignedCommitmentBlockNumber))
@@ -861,26 +890,21 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 				}
 
 				clientState = &ibcgptypes.ClientState{
-					ChainId:               "astar-0",
-					ChainType:             beefy.CHAINTYPE_PARACHAIN,
-					ParachainId:           beefy.LOCAL_PARACHAIN_ID,
-					BeefyActivationHeight: beefy.BEEFY_ACTIVATION_BLOCK,
-					LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestSignedCommitmentBlockNumber)),
-					MmrRootHash:           s.SignedCommitment.Commitment.Payload[0].Data,
-					LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestChainHeight)),
-					FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), 0),
-					AuthoritySet: ibcgptypes.BeefyAuthoritySet{
+					ChainId:     "astar-0",
+					ChainType:   beefy.CHAINTYPE_PARACHAIN,
+					ParachainId: beefy.LOCAL_PARACHAIN_ID,
+
+					LatestBeefyHeight: clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestSignedCommitmentBlockNumber)),
+					LatestMmrRoot:     s.SignedCommitment.Commitment.Payload[0].Data,
+					LatestChainHeight: clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), uint64(latestChainHeight)),
+					FrozenHeight:      clienttypes.NewHeight(clienttypes.ParseChainID("astar-0"), 0),
+					LatestAuthoritySet: ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(authoritySet.ID),
 						Len:  uint32(authoritySet.Len),
 						Root: authoritySet.Root[:],
 					},
-					NextAuthoritySet: ibcgptypes.BeefyAuthoritySet{
-						Id:   uint64(nextAuthoritySet.ID),
-						Len:  uint32(nextAuthoritySet.Len),
-						Root: nextAuthoritySet.Root[:],
-					},
 				}
-				suite.Suite.T().Logf("init client state: %+v", &clientState)
+				// suite.Suite.T().Logf("init client state: %+v", &clientState)
 				suite.Suite.T().Logf("init client state: %+v", *clientState)
 				// test pb marshal and unmarshal
 				marshalCS, err := clientState.Marshal()
@@ -913,6 +937,17 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			fromBlockHash, err := localRelayEndpoint.RPC.Chain.GetBlockHash(uint64(fromBlockNumber))
 			suite.Require().NoError(err)
 
+			beefyMmrProofHeight := []uint32{uint32(latestSignedCommitmentBlockNumber)}
+			// build mmr proofs for leaves containing target paraId
+			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelaychainBlockHeights)
+			beeMmrProof, err := beefy.BuildMMRProofs(localRelayEndpoint, beefyMmrProofHeight,
+				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
+				gsrpctypes.NewOptionHashEmpty())
+			suite.Require().NoError(err)
+
+			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, beeMmrProof, authorityProof)
+			suite.Suite.T().Logf("pbBeefyMMR: %+v", pbBeefyMMR)
+
 			changeSets, err := beefy.QueryParachainStorage(localRelayEndpoint, beefy.LOCAL_PARACHAIN_ID, fromBlockHash, latestSignedCommitmentBlockHash)
 			suite.Require().NoError(err)
 
@@ -922,34 +957,27 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 				suite.Require().NoError(err)
 				targetRelaychainBlockHeights = append(targetRelaychainBlockHeights, uint32(relayHeader.Number))
 			}
-
-			// build mmr proofs for leaves containing target paraId
-			// mmrBatchProof, err := beefy.BuildMMRBatchProof(localRelayEndpoint, &latestSignedCommitmentBlockHash, targetRelaychainBlockHeights)
-			mmrBatchProof, err := beefy.BuildMMRProofs(localRelayEndpoint, targetRelaychainBlockHeights,
+			parachainMmrProof, err := beefy.BuildMMRProofs(localRelayEndpoint, targetRelaychainBlockHeights,
 				gsrpctypes.NewOptionU32(gsrpctypes.U32(latestSignedCommitmentBlockNumber)),
 				gsrpctypes.NewOptionHashEmpty())
 			suite.Require().NoError(err)
-
-			pbBeefyMMR := ibcgptypes.ToPBBeefyMMR(bsc, mmrBatchProof, authorityProof)
-			suite.Suite.T().Logf("pbBeefyMMR: %+v", pbBeefyMMR)
-
 			// step3, build header proof
 			// build parachain header proof and verify that proof
 			parachainHeaders, err := beefy.BuildParachainHeaders(localRelayEndpoint, localParachainEndpoint,
-				mmrBatchProof.Proof.LeafIndexes, "astar-0", beefy.LOCAL_PARACHAIN_ID)
+				parachainMmrProof.Proof.LeafIndexes, "astar-0", beefy.LOCAL_PARACHAIN_ID)
 			suite.Require().NoError(err)
 			suite.Suite.T().Logf("parachainHeaders: %+v", parachainHeaders)
 
 			// convert beefy parachain header to pb parachain header
-			pbHeader_parachains := ibcgptypes.ToPBParachainHeaders(parachainHeaders)
-			suite.Suite.T().Logf("pbHeader_parachains: %+v", pbHeader_parachains)
+			pbHeader_parachains := ibcgptypes.ToPBParachainHeaders(parachainHeaders, parachainMmrProof)
+			// suite.Suite.T().Logf("pbHeader_parachains: %+v", pbHeader_parachains)
 
 			// build grandpa pb header
 			pbHeader := ibcgptypes.Header{
-				BeefyMmr: pbBeefyMMR,
+				BeefyMmr: &pbBeefyMMR,
 				Message:  &pbHeader_parachains,
 			}
-			suite.Suite.T().Logf("gpheader: %+v", pbHeader)
+			suite.Suite.T().Logf("pbHeader: beefymmr: %+v ,parachain headers: %+v", *pbHeader.BeefyMmr, *pbHeader_parachains.ParachainHeaders)
 
 			// mock gp header marshal and unmarshal
 			marshalPBHeader, err := pbHeader.Marshal()
@@ -962,13 +990,13 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			var unmarshalPBHeader ibcgptypes.Header
 			err = unmarshalPBHeader.Unmarshal(marshalPBHeader)
 			suite.Require().NoError(err)
-			suite.Suite.T().Logf("unmarshal gHeader: %+v", unmarshalPBHeader)
+			suite.Suite.T().Logf("unmarshal gHeader: beefymmr: %+v ,parachain headers: %+v", *unmarshalPBHeader.GetBeefyMmr(), unmarshalPBHeader.GetParachainHeaders().ParachainHeaders)
 
 			// verify signature
 			// unmarshalBeefyMmr := unmarshalGPHeader.BeefyMmr
 			unmarshalBeefyMmr := pbHeader.BeefyMmr
 			// suite.Suite.T().Logf("gBeefyMMR: %+v", gBeefyMMR)
-			suite.Suite.T().Logf("unmarshal BeefyMmr: %+v", unmarshalBeefyMmr)
+			suite.Suite.T().Logf("unmarshal BeefyMmr: %+v", *unmarshalBeefyMmr)
 
 			unmarshalPBSC := unmarshalBeefyMmr.SignedCommitment
 
@@ -983,19 +1011,28 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			// step2, verify mmr
 			rebuildMMRLeaves := ibcgptypes.ToBeefyMMRLeaves(unmarshalBeefyMmr.MmrLeavesAndBatchProof.Leaves)
 			suite.Suite.T().Logf("rebuildMMRLeaves: %+v", rebuildMMRLeaves)
-			beefyMmrBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof)
+			beefyMmrBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof)
 			suite.Suite.T().Logf("Convert2MMRBatchProof: %+v", beefyMmrBatchProof)
 
-			suite.Suite.T().Log("\n---------------- verify mmr proof --------------------")
+			suite.Suite.T().Log("\n---------------- verify beefy mmr proof --------------------")
 			// check mmr height
 			// suite.Require().Less(clientState.LatestBeefyHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
 			// result, err := beefy.VerifyMMRBatchProof(rebuildBSC.Commitment.Payload,
 			// suite.Require().True(result)
 			// 	unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, beefyMmrBatchProof)
-			err = clientState.VerifyMMR(rebuildBSC, unmarshalBeefyMmr.MmrSize,
+			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
+			calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
+			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
+
+			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
 				rebuildMMRLeaves, beefyMmrBatchProof)
 			suite.Require().NoError(err)
-			suite.Suite.T().Log("\n-------------verify mmr proof end--------------------\n")
+
+			// update client height beefy mmr
+			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			// clientState.LatestChainHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
+			clientState.LatestMmrRoot = unmarshalPBSC.Commitment.Payloads[0].Data
+			suite.Suite.T().Log("\n-------------verify beefy mmr proof end--------------------\n")
 
 			// step3, verify header
 			// convert pb parachain header to beefy parachain header
@@ -1021,21 +1058,21 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			suite.Suite.T().Log("\n----------- VerifyParachainHeader -----------")
 			// err = beefy.VerifyParachainHeader(rebuildMMRLeaves, rebuildParachainHeaderMap)
 			// suite.Require().NoError(err)
-			err = clientState.VerifyHeader(unmarshalPBHeader, rebuildMMRLeaves)
+			err = clientState.VerifyHeader(unmarshalPBHeader, clientState.LatestMmrRoot, calMmrSize)
 			suite.Require().NoError(err)
 			suite.Suite.T().Log("\n--------------------------------------------\n")
 
 			// step4, update client state
 			clientState.LatestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(chainID), uint64(latestSignedCommitmentBlockNumber))
 			// clientState.LatestChainHeight = latestSignedCommitmentBlockNumber
-			clientState.MmrRootHash = unmarshalPBSC.Commitment.Payloads[0].Data
+			clientState.LatestMmrRoot = unmarshalPBSC.Commitment.Payloads[0].Data
 			// find latest next authority set from mmrleaves
-			var latestNextAuthoritySet *ibcgptypes.BeefyAuthoritySet
+			var latestAuthoritySet *ibcgptypes.BeefyAuthoritySet
 			var latestAuthoritySetId uint64
 			for _, leaf := range rebuildMMRLeaves {
 				if latestAuthoritySetId < uint64(leaf.BeefyNextAuthoritySet.ID) {
 					latestAuthoritySetId = uint64(leaf.BeefyNextAuthoritySet.ID)
-					latestNextAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
+					latestAuthoritySet = &ibcgptypes.BeefyAuthoritySet{
 						Id:   uint64(leaf.BeefyNextAuthoritySet.ID),
 						Len:  uint32(leaf.BeefyNextAuthoritySet.Len),
 						Root: leaf.BeefyNextAuthoritySet.Root[:],
@@ -1043,17 +1080,17 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 				}
 
 			}
-			suite.Suite.T().Logf("current clientState.AuthoritySet.Id: %+v", clientState.AuthoritySet.Id)
-			suite.Suite.T().Logf("latestAuthoritySetId: %+v", latestAuthoritySetId)
-			suite.Suite.T().Logf("latestNextAuthoritySet: %+v", *latestNextAuthoritySet)
+			suite.Suite.T().Logf("current clientState.AuthoritySet.Id: %+v", clientState.LatestAuthoritySet.Id)
+			// suite.Suite.T().Logf("latestAuthoritySetId: %+v", latestAuthoritySetId)
+			suite.Suite.T().Logf("latestAuthoritySet: %+v", *latestAuthoritySet)
 			//  update client state authority set
-			if clientState.AuthoritySet.Id < latestAuthoritySetId {
-				clientState.AuthoritySet = *latestNextAuthoritySet
-				suite.Suite.T().Logf("update clientState.AuthoritySet : %+v", clientState.AuthoritySet)
+			if clientState.LatestAuthoritySet.Id < latestAuthoritySetId {
+				clientState.LatestAuthoritySet = *latestAuthoritySet
+				suite.Suite.T().Logf("update clientState.AuthoritySet : %+v", clientState.LatestAuthoritySet)
 			}
 
 			// print latest client state
-			suite.Suite.T().Logf("updated client state: %+v", clientState)
+			suite.Suite.T().Logf("updated client state: %+v", *clientState)
 
 			// step5,update consensue state
 			var latestHeight uint32

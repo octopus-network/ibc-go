@@ -37,7 +37,7 @@ func (suite *GrandpaTestSuite) TestHeaderValidateBasic() {
 		{"beefy mmr is nil", func() {
 
 			header = &ibcgptypes.Header{
-				BeefyMmr: ibcgptypes.BeefyMMR{},
+				BeefyMmr: &ibcgptypes.BeefyMMR{},
 				Message:  gpHeader.Message,
 			}
 		}, false},

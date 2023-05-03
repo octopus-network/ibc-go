@@ -62,9 +62,9 @@ func (cs ClientState) VerifyUpgradeAndUpdateState(
 	// All chain-chosen parameters come from committed client, all client-chosen parameters
 	// come from current client.
 	newClientState := NewClientState(
-		gpUpgradeClient.ChainType, gpUpgradeClient.ChainId, gpUpgradeClient.ParachainId, gpUpgradeClient.BeefyActivationHeight,
-		gpUpgradeClient.LatestBeefyHeight, gpUpgradeClient.MmrRootHash, gpUpgradeClient.LatestChainHeight,
-		gpUpgradeClient.FrozenHeight, gpUpgradeClient.AuthoritySet, gpUpgradeClient.NextAuthoritySet,
+		gpUpgradeClient.ChainType, gpUpgradeClient.ChainId, gpUpgradeClient.ParachainId,
+		gpUpgradeClient.LatestBeefyHeight, gpUpgradeClient.LatestMmrRoot, gpUpgradeClient.LatestChainHeight,
+		gpUpgradeClient.FrozenHeight, gpUpgradeClient.LatestAuthoritySet,
 	)
 
 	if err := newClientState.Validate(); err != nil {

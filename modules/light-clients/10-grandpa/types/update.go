@@ -2,6 +2,7 @@ package types
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 
@@ -32,65 +33,105 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 		)
 	}
 
-	beefyMMR := pbHeader.BeefyMmr
+	var newBeefyMmr bool = false
+	beefyMMR := pbHeader.GetBeefyMmr()
 	//TODO: check beefymmr is nil ?
+	if beefyMMR != nil {
 
-	// step1:  verify signature
-	// convert signedcommitment
-	bsc := ToBeefySC(beefyMMR.SignedCommitment)
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> SignedCommitment: %+v", bsc)
+		// step1:  verify signature
+		// convert signedcommitment
+		bsc := ToBeefySC(beefyMMR.SignedCommitment)
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> SignedCommitment: %+v", bsc)
 
-	err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
-	if err != nil {
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> VerifySignatures failed : %+v", err)
-		return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
+		err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
+		if err != nil {
+			log.Printf("ics10-debug::CheckHeaderAndUpdateState -> VerifySignatures failed : %+v", err)
+			return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
+		}
+
+		// step2: verify beefy mmr
+
+		// mmrSize := beefyMMR.MmrSize
+		// log.Printf("ics10-debug::CheckHeaderAndUpdateState -> recv mmrSize: %+v", mmrSize)
+		leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
+		calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> cal mmrSize: %+v", calMmrSize)
+
+		// convert mmrleaf
+		beefyMMRLeaves := ToBeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMRLeaves: %+v", beefyMMRLeaves)
+
+		// convert mmr proof
+		beefyBatchProof := ToMMRBatchProof(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof)
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyBatchProof: %+v", beefyBatchProof)
+
+		// check mmr height
+		if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
+			log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
+			return nil, nil, sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
+		}
+		// verify mmr
+		err = cs.VerifyMMR(bsc.Commitment.Payload[0].Data, calMmrSize, beefyMMRLeaves, beefyBatchProof)
+		if err != nil {
+			log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use cal mmrsize to verify mmr error!")
+			// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
+		}
+		newBeefyMmr = true
 	}
 
-	// step2: verify mmr
-
-	mmrSize := beefyMMR.MmrSize
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> recv mmrSize: %+v", mmrSize)
-	leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(cs.BeefyActivationHeight), bsc.Commitment.BlockNumber)
-	calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> cal mmrSize: %+v", calMmrSize)
-
-	// convert mmrleaf
-	beefyMMRLeaves := ToBeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMRLeaves: %+v", beefyMMRLeaves)
-
-	// convert mmr proof
-	beefyBatchProof := ToMMRBatchProof(beefyMMR.MmrLeavesAndBatchProof)
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyBatchProof: %+v", beefyBatchProof)
-
-	// verify mmr
-	// err = cs.VerifyMMR(bsc, mmrSize, beefyMMRLeaves, beefyBatchProof)
-	// if err != nil {
-	// 	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use recv mmrsize to verify mmr error!")
-	// 	// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
-	// }
-	// verify mmr
-	err = cs.VerifyMMR(bsc, calMmrSize, beefyMMRLeaves, beefyBatchProof)
-	if err != nil {
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use cal mmrsize to verify mmr error!")
-		// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
+	msg := pbHeader.GetMessage()
+	if msg == nil {
+		return nil, nil, errors.New("header is nil !")
 	}
 
 	// step3: verify header
-	// TODO: check header.message is nil ?
+	var mmrSize uint64 
+	var mmrRoot []byte
+	var latestBeefyHeight clienttypes.Height
+	if newBeefyMmr {
+		leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), beefyMMR.SignedCommitment.Commitment.BlockNumber)
+		mmrSize = mmr.LeafIndexToMMRSize(uint64(leafIndex))
+		mmrRoot = beefyMMR.SignedCommitment.Commitment.Payloads[0].Data
+		latestBeefyHeight = clienttypes.NewHeight(clienttypes.ParseChainID(cs.ChainId), uint64(beefyMMR.SignedCommitment.Commitment.BlockNumber))
+	} else {
+		leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), uint32(cs.LatestBeefyHeight.RevisionHeight))
+		mmrSize = mmr.LeafIndexToMMRSize(uint64(leafIndex))
+		mmrRoot = cs.LatestMmrRoot
+		latestBeefyHeight = cs.LatestBeefyHeight
+	}
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> mmrSize: %d,  mmrRoot: %+v ", mmrSize, mmrRoot)
 
-	err = cs.VerifyHeader(*pbHeader, beefyMMRLeaves)
+	latestChainHeight := clienttypes.NewHeight(pbHeader.GetHeight().GetRevisionNumber(), pbHeader.GetHeight().GetRevisionHeight())
+	// check height:latest block height must less LatestBeefyHeight
+	if latestChainHeight.RevisionHeight > latestBeefyHeight.RevisionHeight {
+		errMsg := fmt.Sprintf("latestChainHeight[%d] > latestBeefyHeight[%d], not enough to verify !", latestChainHeight.RevisionHeight, latestBeefyHeight.RevisionHeight)
+		return nil, nil, errors.New(errMsg)
+	}
+	err := cs.VerifyHeader(*pbHeader, mmrRoot, mmrSize)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(err, "failed to verify header")
 	}
 
 	// step4: update state
 	// update client state and build new client state
-	latestChainHeight := clienttypes.NewHeight(pbHeader.GetHeight().GetRevisionNumber(), pbHeader.GetHeight().GetRevisionHeight())
-	newClientState, err := cs.UpdateClientState(ctx, beefyMMR.SignedCommitment.Commitment,
-		beefyMMR.MmrLeavesAndBatchProof.Leaves, latestChainHeight)
+	var newClientState *ClientState
 
-	if err != nil {
-		return nil, nil, err
+	if newBeefyMmr {
+		newClientState, err = cs.UpdateClientState(ctx, beefyMMR.SignedCommitment.Commitment,
+			beefyMMR.MmrLeavesAndBatchProof.Leaves, latestChainHeight)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		// just update latestChainHeight
+		newClientState = &ClientState{
+			ChainType: cs.ChainType, ChainId: cs.ChainId, ParachainId: cs.ParachainId,
+			LatestBeefyHeight:  cs.LatestBeefyHeight,
+			LatestMmrRoot:      cs.LatestMmrRoot,
+			LatestChainHeight:  latestChainHeight,
+			FrozenHeight:       cs.FrozenHeight,
+			LatestAuthoritySet: cs.LatestAuthoritySet,
+		}
 	}
 	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latest client state: %+v", *newClientState)
 	// update consensue state and build latest new consensue state
@@ -107,51 +148,54 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProofs [][]byte) error {
 
 	// checking signatures Threshold
-	if beefy.SignatureThreshold(cs.AuthoritySet.Len) > uint32(len(bsc.Signatures)) ||
-		beefy.SignatureThreshold(cs.NextAuthoritySet.Len) > uint32(len(bsc.Signatures)) {
-
+	if beefy.SignatureThreshold(cs.LatestAuthoritySet.Len) > uint32(len(bsc.Signatures)) {
 		return sdkerrors.Wrap(errors.New("verify signature error "), ErrInvalidValidatorSet.Error())
 
 	}
 
-	// check bsc.Commitment.ValidatorSetID is cs.AuthoritySet.Id or cs.NextAuthoritySet.Id
-	log.Printf("ics10-debug::VerifySignatures -> bsc.Commitment.ValidatorSetID: %+v ,cs.AuthoritySet.Id:%+v ,cs.NextAuthoritySet.Id:%+v ",
-		bsc.Commitment.ValidatorSetID, cs.AuthoritySet.Id, cs.NextAuthoritySet.Id)
-	if bsc.Commitment.ValidatorSetID != cs.AuthoritySet.Id && bsc.Commitment.ValidatorSetID != cs.NextAuthoritySet.Id {
-		return sdkerrors.Wrap(errors.New("ValidatorSetID Mismatch "), ErrInvalidValidatorSet.Error())
+	// // check bsc.Commitment.ValidatorSetID is cs.AuthoritySet.Id or cs.NextAuthoritySet.Id
+	// log.Printf("ics10-debug::VerifySignatures -> bsc.Commitment.ValidatorSetID: %+v ,cs.AuthoritySet.Id:%+v ,cs.NextAuthoritySet.Id:%+v ",
+	// 	bsc.Commitment.ValidatorSetID, cs.AuthoritySet.Id, cs.NextAuthoritySet.Id)
+	// if bsc.Commitment.ValidatorSetID != cs.AuthoritySet.Id && bsc.Commitment.ValidatorSetID != cs.NextAuthoritySet.Id {
+	// 	return sdkerrors.Wrap(errors.New("ValidatorSetID Mismatch "), ErrInvalidValidatorSet.Error())
 
-	}
+	// }
 
 	// verify signatures
-	switch bsc.Commitment.ValidatorSetID {
-	case cs.AuthoritySet.Id:
-		err := beefy.VerifySignature(bsc, uint64(cs.AuthoritySet.Len), beefy.Bytes32(cs.AuthoritySet.Root), SignatureProofs)
-		if err != nil {
-			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
-		}
+	// switch bsc.Commitment.ValidatorSetID {
+	// case cs.AuthoritySet.Id:
+	// 	err := beefy.VerifySignature(bsc, uint64(cs.AuthoritySet.Len), beefy.Bytes32(cs.AuthoritySet.Root), SignatureProofs)
+	// 	if err != nil {
+	// 		return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+	// 	}
 
-	case cs.NextAuthoritySet.Id:
-		err := beefy.VerifySignature(bsc, uint64(cs.NextAuthoritySet.Len), beefy.Bytes32(cs.NextAuthoritySet.Root), SignatureProofs)
-		if err != nil {
-			return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
-		}
+	// case cs.NextAuthoritySet.Id:
+	// 	err := beefy.VerifySignature(bsc, uint64(cs.NextAuthoritySet.Len), beefy.Bytes32(cs.NextAuthoritySet.Root), SignatureProofs)
+	// 	if err != nil {
+	// 		return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
+	// 	}
 
+	// }
+
+	err := beefy.VerifySignature(bsc, uint64(cs.LatestAuthoritySet.Len), beefy.Bytes32(cs.LatestAuthoritySet.Root), SignatureProofs)
+	if err != nil {
+		return sdkerrors.Wrap(err, ErrInvalidValidatorSet.Error())
 	}
 
 	return nil
 }
 
 // verify batch mmr proof
-func (cs ClientState) VerifyMMR(bsc beefy.SignedCommitment, mmrSize uint64,
+func (cs ClientState) VerifyMMR(mmrRoot []byte, mmrSize uint64,
 	beefyMMRLeaves []gsrpctypes.MMRLeaf, mmrBatchProof beefy.MMRBatchProof) error {
 	// check mmr height
-	if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
-		log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
-		return sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
-	}
+	// if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
+	// 	log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
+	// 	return sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
+	// }
 
 	//verify mmr proof
-	result, err := beefy.VerifyMMRBatchProof(bsc.Commitment.Payload, mmrSize, beefyMMRLeaves, mmrBatchProof)
+	result, err := beefy.VerifyMMRBatchProof(mmrRoot, mmrSize, beefyMMRLeaves, mmrBatchProof)
 	if err != nil || !result {
 		log.Printf("ics10-debug::VerifyMMR -> failed to verify mmr proof: %+v", err)
 		return sdkerrors.Wrap(err, "failed to verify mmr proof")
@@ -160,8 +204,7 @@ func (cs ClientState) VerifyMMR(bsc beefy.SignedCommitment, mmrSize uint64,
 }
 
 // verify solochain header or parachain header
-func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.MMRLeaf,
-) error {
+func (cs ClientState) VerifyHeader(gpHeader Header, mmrRoot []byte, mmrSize uint64) error {
 
 	switch cs.ChainType {
 	case beefy.CHAINTYPE_SUBCHAIN:
@@ -176,9 +219,20 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
 		}
-
 		log.Printf("ics10-debug::VerifyHeader -> subchain headers : %+v", beefySubchainHeaderMap)
-		err := beefy.VerifySubchainHeader(beefyMMRLeaves, beefySubchainHeaderMap)
+
+		headerMMRLeaves := ToBeefyMMRLeaves(gpHeader.GetSubchainHeaders().MmrLeavesAndBatchProof.Leaves)
+		log.Printf("ics10-debug::VerifyHeader -> subchain headerMMRLeaves : %+v", headerMMRLeaves)
+		headerMMRProof := ToMMRBatchProof(gpHeader.GetSubchainHeaders().MmrLeavesAndBatchProof.MmrBatchProof)
+		log.Printf("ics10-debug::VerifyHeader -> subchain headerMMRProof : %+v", headerMMRProof)
+
+		// verify mmr proof for subchain header
+		err := cs.VerifyMMR(mmrRoot, mmrSize, headerMMRLeaves, headerMMRProof)
+		if err != nil {
+			return err
+		}
+		// verify subchain header
+		err = beefy.VerifySubchainHeader(headerMMRLeaves, beefySubchainHeaderMap)
 		if err != nil {
 			return err
 		}
@@ -201,7 +255,17 @@ func (cs ClientState) VerifyHeader(gpHeader Header, beefyMMRLeaves []gsrpctypes.
 		}
 		log.Printf("ics10-debug::VerifyHeader -> parachain headers : %+v", beefyParachainHeaderMap)
 
-		err := beefy.VerifyParachainHeader(beefyMMRLeaves, beefyParachainHeaderMap)
+		headerMMRLeaves := ToBeefyMMRLeaves(gpHeader.GetParachainHeaders().MmrLeavesAndBatchProof.Leaves)
+		log.Printf("ics10-debug::VerifyHeader -> parachain headerMMRLeaves : %+v", headerMMRLeaves)
+		headerMMRProof := ToMMRBatchProof(gpHeader.GetParachainHeaders().MmrLeavesAndBatchProof.MmrBatchProof)
+		log.Printf("ics10-debug::VerifyHeader -> parachain headerMMRProof : %+v", headerMMRProof)
+		// verify mmr proof for parachain header
+		err := cs.VerifyMMR(mmrRoot, mmrSize, headerMMRLeaves, headerMMRProof)
+		if err != nil {
+			return err
+		}
+		// verify parachain header
+		err = beefy.VerifyParachainHeader(headerMMRLeaves, beefyParachainHeaderMap)
 		if err != nil {
 			return err
 		}
@@ -216,15 +280,15 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	latestBeefyHeight := clienttypes.NewHeight(clienttypes.ParseChainID(cs.ChainId), uint64(commitment.BlockNumber))
 	// latestChainHeight := latestChainHeight
-	mmrRoot := commitment.Payloads[0].Data
+	latestMmrRoot := commitment.Payloads[0].Data
 
-	// find latest next authority set from mmrleaves
-	var latestNextAuthoritySet *BeefyAuthoritySet
+	// find latest authority set from mmrleaves
+	var latestAuthoritySet *BeefyAuthoritySet
 	var latestAuthoritySetId uint64
 	for _, leaf := range mmrLeaves {
 		if latestAuthoritySetId < leaf.BeefyNextAuthoritySet.Id {
 			latestAuthoritySetId = leaf.BeefyNextAuthoritySet.Id
-			latestNextAuthoritySet = &BeefyAuthoritySet{
+			latestAuthoritySet = &BeefyAuthoritySet{
 				Id:   leaf.BeefyNextAuthoritySet.Id,
 				Len:  leaf.BeefyNextAuthoritySet.Len,
 				Root: leaf.BeefyNextAuthoritySet.Root,
@@ -234,21 +298,18 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 	}
 
 	// update authority set
-	newAuthoritySet := cs.NextAuthoritySet
-	newNextAuthoritySet := *latestNextAuthoritySet
-	log.Printf("ics10-debug::UpdateClientState -> newAuthoritySet:%+v ,newNextAuthoritySet:%+v ",
-		newAuthoritySet, newNextAuthoritySet)
+	// newNextAuthoritySet := *latestAuthoritySet
+	log.Printf("ics10-debug::UpdateClientState -> latest AuthoritySet:%+v ",
+		*latestAuthoritySet)
 
 	newClientState := NewClientState(
 		cs.ChainType, cs.ChainId,
 		cs.ParachainId,
-		cs.BeefyActivationHeight,
 		latestBeefyHeight,
-		mmrRoot,
+		latestMmrRoot,
 		latestChainHeight,
 		cs.FrozenHeight,
-		newAuthoritySet,
-		newNextAuthoritySet)
+		*latestAuthoritySet)
 
 	return newClientState, nil
 

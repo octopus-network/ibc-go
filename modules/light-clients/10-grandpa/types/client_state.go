@@ -27,25 +27,21 @@ func NewClientState(
 	chainType uint32,
 	chainId string,
 	parachainId uint32,
-	beefyActivationHeight uint32,
 	latestBeefyHeight clienttypes.Height,
 	mmrRootHash []byte,
 	latestHeight clienttypes.Height,
 	frozenHeight clienttypes.Height,
 	authoritySet BeefyAuthoritySet,
-	nextAuthoritySet BeefyAuthoritySet,
 ) *ClientState {
 	return &ClientState{
-		ChainType:             chainType,
-		ChainId:               chainId,
-		ParachainId:           parachainId,
-		BeefyActivationHeight: beefyActivationHeight,
-		LatestBeefyHeight:     latestBeefyHeight,
-		MmrRootHash:           mmrRootHash,
-		LatestChainHeight:     latestHeight,
-		FrozenHeight:          frozenHeight,
-		AuthoritySet:          authoritySet,
-		NextAuthoritySet:      nextAuthoritySet,
+		ChainType:          chainType,
+		ChainId:            chainId,
+		ParachainId:        parachainId,
+		LatestBeefyHeight:  latestBeefyHeight,
+		LatestMmrRoot:      mmrRootHash,
+		LatestChainHeight:  latestHeight,
+		FrozenHeight:       frozenHeight,
+		LatestAuthoritySet: authoritySet,
 	}
 }
 
@@ -125,15 +121,13 @@ func (cs ClientState) ZeroCustomFields() exported.ClientState {
 	// copy over all chain-specified fields
 	// and leave custom fields empty
 	zcs := &ClientState{
-		ChainId:               cs.ChainId,
-		ChainType:             cs.ChainType,
-		BeefyActivationHeight: cs.BeefyActivationHeight,
-		LatestBeefyHeight:     cs.LatestBeefyHeight,
-		MmrRootHash:           cs.MmrRootHash,
-		LatestChainHeight:     cs.LatestChainHeight,
-		FrozenHeight:          cs.FrozenHeight,
-		AuthoritySet:          cs.AuthoritySet,
-		NextAuthoritySet:      cs.NextAuthoritySet,
+		ChainId:            cs.ChainId,
+		ChainType:          cs.ChainType,
+		LatestBeefyHeight:  cs.LatestBeefyHeight,
+		LatestMmrRoot:      cs.LatestMmrRoot,
+		LatestChainHeight:  cs.LatestChainHeight,
+		FrozenHeight:       cs.FrozenHeight,
+		LatestAuthoritySet: cs.LatestAuthoritySet,
 	}
 	log.Printf("ics10-debug::ZeroCustomFields -> result: %+v ", zcs)
 

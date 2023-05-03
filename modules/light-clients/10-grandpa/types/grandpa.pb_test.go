@@ -9,21 +9,15 @@ import (
 )
 
 var gpClientState = ibcgptypes.ClientState{
-	ChainType:             0,
-	ChainId:               chainID,
-	ParachainId:           0,
-	BeefyActivationHeight: 0,
-	LatestBeefyHeight:     clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
-	MmrRootHash:           conv.SplitStrToSlice[byte]("131 79 104 195 33 161 208 242 156 164 3 120 80 122 102 198 67 105 240 96 40 47 16 197 136 94 190 101 145 9 176 52", " "),
-	LatestChainHeight:     clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
-	FrozenHeight:          clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 0),
-	AuthoritySet: ibcgptypes.BeefyAuthoritySet{
+	ChainType:         0,
+	ChainId:           chainID,
+	ParachainId:       0,
+	LatestBeefyHeight: clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
+	LatestMmrRoot:     conv.SplitStrToSlice[byte]("131 79 104 195 33 161 208 242 156 164 3 120 80 122 102 198 67 105 240 96 40 47 16 197 136 94 190 101 145 9 176 52", " "),
+	LatestChainHeight: clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 15228),
+	FrozenHeight:      clienttypes.NewHeight(clienttypes.ParseChainID(chainID), 0),
+	LatestAuthoritySet: ibcgptypes.BeefyAuthoritySet{
 		Id:   1522,
-		Len:  5,
-		Root: conv.SplitStrToSlice[byte]("48 72 3 250 90 145 217 133 44 170 254 4 180 184 103 164 237 39 160 122 91 238 61 21 7 180 177 135 166 135 119 162", " "),
-	},
-	NextAuthoritySet: ibcgptypes.BeefyAuthoritySet{
-		Id:   1523,
 		Len:  5,
 		Root: conv.SplitStrToSlice[byte]("48 72 3 250 90 145 217 133 44 170 254 4 180 184 103 164 237 39 160 122 91 238 61 21 7 180 177 135 166 135 119 162", " "),
 	},
@@ -128,7 +122,7 @@ var beefyMMR = ibcgptypes.BeefyMMR{
 }
 
 var gpHeader = ibcgptypes.Header{
-	BeefyMmr: beefyMMR,
+	BeefyMmr: &beefyMMR,
 	Message: &ibcgptypes.Header_SubchainHeaders{
 		SubchainHeaders: &subchainHeaders,
 	},
