@@ -35,9 +35,9 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 
 	var newBeefyMmr bool = false
 	beefyMMR := pbHeader.GetBeefyMmr()
-	//TODO: check beefymmr is nil ?
+	// check beefymmr is nil ?
 	if beefyMMR != nil {
-
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMR: %+v", *beefyMMR)
 		// step1:  verify signature
 		// convert signedcommitment
 		bsc := ToBeefySC(beefyMMR.SignedCommitment)
@@ -77,6 +77,9 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 			// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
 		}
 		newBeefyMmr = true
+	} else {
+		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefmmr is nil,just verfiy block header!")
+
 	}
 
 	msg := pbHeader.GetMessage()
@@ -85,7 +88,7 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	}
 
 	// step3: verify header
-	var mmrSize uint64 
+	var mmrSize uint64
 	var mmrRoot []byte
 	var latestBeefyHeight clienttypes.Height
 	if newBeefyMmr {
@@ -102,6 +105,9 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> mmrSize: %d,  mmrRoot: %+v ", mmrSize, mmrRoot)
 
 	latestChainHeight := clienttypes.NewHeight(pbHeader.GetHeight().GetRevisionNumber(), pbHeader.GetHeight().GetRevisionHeight())
+	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latestBeefyHeight: %+v,  latestChainHeight: %+v ",
+		latestBeefyHeight, latestChainHeight)
+
 	// check height:latest block height must less LatestBeefyHeight
 	if latestChainHeight.RevisionHeight > latestBeefyHeight.RevisionHeight {
 		errMsg := fmt.Sprintf("latestChainHeight[%d] > latestBeefyHeight[%d], not enough to verify !", latestChainHeight.RevisionHeight, latestBeefyHeight.RevisionHeight)

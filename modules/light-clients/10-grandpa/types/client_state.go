@@ -17,6 +17,7 @@ import (
 	channeltypes "github.com/cosmos/ibc-go/v6/modules/core/04-channel/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v6/modules/core/23-commitment/types"
 	"github.com/cosmos/ibc-go/v6/modules/core/exported"
+	trie_scale "github.com/octopus-network/trie-go/scale"
 	// ibcgptypes "github.com/cosmos/ibc-go/v6/modules/light-clients/10-grandpa/types"
 )
 
@@ -161,17 +162,17 @@ func (cs ClientState) VerifyClientState(
 	proof []byte,
 	clientState exported.ClientState,
 ) error {
-	log.Printf("ics10-debug::VerifyClientState -> height:%+v, prefix:%+v, counterpartyClientIdentifier:%+v, proof:%+v", height, prefix,
-		counterpartyClientIdentifier, proof)
+	log.Printf("ics10-debug::VerifyClientState -> height:%+v, prefix:%+v, counterpartyClientIdentifier:%+v, clientState:%+v", height, prefix,
+		counterpartyClientIdentifier, clientState)
 
 	if clientState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "client state cannot be empty")
 	}
 	// asset grandpa clientstate
-	_, ok := clientState.(*ClientState)
-	if !ok {
-		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
-	}
+	// pbClientState, ok := clientState.(*ClientState)
+	// if !ok {
+	// 	return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", clientState, &ClientState{})
+	// }
 
 	// clientPrefixedPath := commitmenttypes.NewMerklePath(host.FullClientStatePath(counterpartyClientIdentifier))
 	// path, err := commitmenttypes.ApplyPrefix(prefix, clientPrefixedPath)
@@ -187,22 +188,36 @@ func (cs ClientState) VerifyClientState(
 	// if err != nil {
 	// 	return sdkerrors.Wrap(err, "keyPath could not be scale encoded")
 	// }
-
-	encodedClientState, err := gsrpccodec.Encode(clientState)
+	// marshal pbClientState
+	marshaledClientState, err := gsrpccodec.Encode(clientState)
 	if err != nil {
 		return sdkerrors.Wrap(err, "clientState could not be scale encoded")
 	}
-	log.Printf("ics10-debug::VerifyClientState -> clientState:%+v ", clientState)
-	log.Printf("ics10-debug::VerifyClientState -> encodedClientState:%+v ", encodedClientState)
+
+	// marshaledClientState, err := cdc.Marshal(pbClientState)
+	// if err != nil {
+	// 	return sdkerrors.Wrap(err, "clientState could not be scale encoded")
+	// }
 
 	// get state proof
 	stateProof, provingConsensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
 		return err
 	}
+	log.Printf("ics10-debug::VerifyClientState -> clientState:%+v ", clientState)
+	log.Printf("ics10-debug::VerifyClientState -> encodedClientState:%#x ", marshaledClientState)
+	log.Printf("ics10-debug::VerifyClientState -> state proof value:%#x ", stateProof.Value)
 
+	/// Key: ClientStatePath
+	/// value: ClientState
+	// pub type ClientStates<T: Config> = StorageMap<_, Blake2_128Concat, ClientStatePath, Vec<u8>>;
+	//Twox128(Prefix::pallet_prefix())
+	// ++ Twox128(Prefix::STORAGE_PREFIX)
+	// ++ Hasher1(encode(key))
+	// <ClientStates<T>>::insert(ClientStatePath(client_id), data);
+	//TODO: Blake2_128Concat(ClientStatePath(client_id), data)
 	// err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
-	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, encodedClientState)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, marshaledClientState)
 	if err != nil {
 		log.Printf("ics10-debug::VerifyClientState -> VerifyStateProof error :%+v ", err)
 		return err
@@ -224,28 +239,31 @@ func (cs ClientState) VerifyClientConsensusState(
 	proof []byte,
 	consensusState exported.ConsensusState,
 ) error {
-	log.Printf("ics10-debug::VerifyClientConsensusState -> height:%+v, prefix:%+v, counterpartyClientIdentifier:%+v, consensusHeight:%+v, proof:%+v",
+	log.Printf("ics10-debug::VerifyClientConsensusState -> height:%+v, prefix:%+v, counterpartyClientIdentifier:%+v, consensusHeight:%+v, consensusState:%+v",
 		height, prefix,
 		counterpartyClientIdentifier,
-		consensusHeight, proof)
+		consensusHeight, consensusState)
 
 	if consensusState == nil {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidClient, "consensus state cannot be empty")
 	}
 
 	// asset grandpa consensuse state
-	_, ok := consensusState.(*ConsensusState)
-	if !ok {
-		return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
-	}
+	// pbConsensusState, ok := consensusState.(*ConsensusState)
+	// if !ok {
+	// 	return sdkerrors.Wrapf(clienttypes.ErrInvalidClient, "invalid client type %T, expected %T", consensusState, &ConsensusState{})
+	// }
 
 	// encode consensue state
-	encodedConsensueState, err := gsrpccodec.Encode(consensusState)
+	marshaledConsensusState, err := trie_scale.Marshal(consensusState)
 	if err != nil {
 		return sdkerrors.Wrap(err, "consensusState could not be scale encoded")
 	}
-	log.Printf("ics10-debug::VerifyClientConsensusState -> consensusState:%+v ", consensusState)
-	log.Printf("ics10-debug::VerifyClientConsensusState -> encodedConsensueState:%+v ", encodedConsensueState)
+	// TODO: marshall consensuse state
+	// marshaledConsensusState, err := cdc.Marshal(pbConsensusState)
+	// if err != nil {
+	// 	return sdkerrors.Wrap(err, "consensusState could not be scale encoded")
+	// }
 
 	// clientPrefixedPath := commitmenttypes.NewMerklePath(host.FullConsensusStatePath(counterpartyClientIdentifier, consensusHeight))
 	// path, err := commitmenttypes.ApplyPrefix(prefix, clientPrefixedPath)
@@ -263,10 +281,29 @@ func (cs ClientState) VerifyClientConsensusState(
 	if err != nil {
 		return err
 	}
-
+	log.Printf("ics10-debug::VerifyClientConsensusState -> consensusState:%+v ", consensusState)
+	log.Printf("ics10-debug::VerifyClientConsensusState -> encodedConsensueState:%#x ", marshaledConsensusState)
+	log.Printf("ics10-debug::VerifyClientConsensusState -> state proof value:%#x ", stateProof.Value)
 	// verify state proof
 	// err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, stateProof.Value)
-	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, encodedConsensueState)
+
+	/// key: ClientConsensusStatePath
+	/// value: ConsensusState
+	// pub type ConsensusStates<T: Config> =
+	// 	StorageMap<_, Blake2_128Concat, ClientConsensusStatePath, Vec<u8>>;
+	//Twox128(Prefix::pallet_prefix())
+	// ++ Twox128(Prefix::STORAGE_PREFIX)
+	// ++ Hasher1(encode(key))
+	// 	<ConsensusStates<T>>::insert(
+	// 	ClientConsensusStatePath {
+	// 		client_id,
+	// 		epoch: height.revision_number(),
+	// 		height: height.revision_height(),
+	// 	},
+	// 	consensus_state,
+	// );
+	//TODO: Blake2_128Concat(ClientConsensusStatePath(client_id,epoch,height), consensus_state)
+	err = beefy.VerifyStateProof(stateProof.Proofs, provingConsensusState.Root, stateProof.Key, marshaledConsensusState)
 	if err != nil {
 		log.Printf("ics10-debug::VerifyClientConsensusState -> VerifyStateProof error :%+v ", err)
 		return err
@@ -286,8 +323,8 @@ func (cs ClientState) VerifyConnectionState(
 	connectionID string,
 	connectionEnd exported.ConnectionI,
 ) error {
-	log.Printf("ics10-debug::VerifyConnectionState -> height:%+v, prefix:%+v, connectionID:%+v, proof:%+v",
-		height, prefix, connectionID, proof)
+	log.Printf("ics10-debug::VerifyConnectionState -> height:%+v, prefix:%+v, connectionID:%+v, connectionEnd:%+v",
+		height, prefix, connectionID,connectionEnd)
 
 	stateProof, consensusState, err := produceVerificationArgs(store, cdc, cs, height, prefix, proof)
 	if err != nil {
@@ -311,12 +348,14 @@ func (cs ClientState) VerifyConnectionState(
 	}
 
 	//encode connectionend
-	encodedConnEnd, err := gsrpccodec.Encode(connection)
+	// encodedConnEnd, err := gsrpccodec.Encode(connection)
+	encodedConnEnd, err := trie_scale.Marshal(connection)
 	if err != nil {
 		return sdkerrors.Wrap(err, "connection state could not be scale encoded")
 	}
 	log.Printf("ics10-debug::VerifyConnectionState -> connectionEnd:%+v ", connectionEnd)
-	log.Printf("ics10-debug::VerifyClientConsensusState -> encodedConnEnd:%+v ", encodedConnEnd)
+	log.Printf("ics10-debug::VerifyConnectionState -> encodedConnEnd:%#x ", encodedConnEnd)
+	log.Printf("ics10-debug::VerifyConnectionState -> state proof value :%#x ", stateProof.Value)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedConnEnd)
@@ -368,13 +407,14 @@ func (cs ClientState) VerifyChannelState(
 	}
 
 	//encode channel end
-	encodedChanEnd, err := gsrpccodec.Encode(channelEnd)
+	encodedChanEnd, err := trie_scale.Marshal(channelEnd)
 	if err != nil {
 		return sdkerrors.Wrap(err, "channel end could not be scale encoded")
 	}
 
 	log.Printf("ics10-debug::VerifyChannelState -> channel:%+v ", channelEnd)
-	log.Printf("ics10-debug::VerifyChannelState -> encodedConnEnd:%+v ", encodedChanEnd)
+	log.Printf("ics10-debug::VerifyChannelState -> encodedConnEnd:%#x ", encodedChanEnd)
+	log.Printf("ics10-debug::VerifyChannelState -> state proof value:%#x ", stateProof.Value)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedChanEnd)
@@ -434,13 +474,14 @@ func (cs ClientState) VerifyPacketCommitment(
 	// }
 
 	// TODO:confirm the commitmentBytes is scale encode?
-	encodedCZ, err := gsrpccodec.Encode(commitmentBytes)
+	encodedCZ, err := trie_scale.Marshal(commitmentBytes)
 	if err != nil {
 		return sdkerrors.Wrap(err, "commitmentBytes could not be scale encoded")
 	}
 
 	log.Printf("ics10-debug::VerifyPacketCommitment -> commitmentBytes:%+v ", commitmentBytes)
-	log.Printf("ics10-debug::VerifyPacketCommitment -> encodedCZ:%+v ", encodedCZ)
+	log.Printf("ics10-debug::VerifyPacketCommitment -> encodedCZ:%#x ", encodedCZ)
+	log.Printf("ics10-debug::VerifyPacketCommitment -> state proof value:%#x ", stateProof.Value)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedCZ)
@@ -496,13 +537,14 @@ func (cs ClientState) VerifyPacketAcknowledgement(
 
 	// acknowledgement
 	// TODO: confirm the acknowledgement is scale encode?
-	encodedAck, err := gsrpccodec.Encode(acknowledgement)
+	encodedAck, err := trie_scale.Marshal(acknowledgement)
 	if err != nil {
 		return sdkerrors.Wrap(err, "acknowledgement could not be scale encoded")
 	}
 
 	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> acknowledgement:%+v ", acknowledgement)
-	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> encodedAck:%+v ", encodedAck)
+	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> encodedAck:%#x ", encodedAck)
+	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> state proof value:%#x ", stateProof.Value)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedAck)
@@ -622,12 +664,13 @@ func (cs ClientState) VerifyNextSequenceRecv(
 	// TODO: confirm the nextSequenceRecv is scale encode or Uint64ToBigEndian?
 	// bz := sdk.Uint64ToBigEndian(nextSequenceRecv)
 	//encode channel end
-	encodedNextSequenceRecv, err := gsrpccodec.Encode(nextSequenceRecv)
+	encodedNextSequenceRecv, err := trie_scale.Marshal(nextSequenceRecv)
 	if err != nil {
 		return sdkerrors.Wrap(err, "channel end could not be scale encoded")
 	}
 	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> nextSequenceRecv:%+v ", nextSequenceRecv)
 	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> encodedNextSequenceRecv:%+v ", encodedNextSequenceRecv)
+	log.Printf("ics10-debug::VerifyPacketAcknowledgement -> state proof value:%+v ", stateProof.Value)
 
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, encodedNextSequenceRecv)
@@ -683,61 +726,63 @@ func produceVerificationArgs(
 	height exported.Height,
 	prefix exported.Prefix,
 	proof []byte,
-) (stateProof StateProof, consensusState *ConsensusState, err error) {
+) (beefy.StateProof, *ConsensusState, error) {
 	log.Printf("ics10-debug::produceVerificationArgs -> ClientState:%+v, height:%+v, prefix:%+v", cs, height, prefix)
 
+	var stateProof beefy.StateProof
 	if cs.GetLatestHeight().LT(height) {
-		return StateProof{}, nil, sdkerrors.Wrapf(
+		return beefy.StateProof{}, nil, sdkerrors.Wrapf(
 			sdkerrors.ErrInvalidHeight,
 			"client state height < proof height (%d < %d), please ensure the client has been updated", cs.GetLatestHeight(), height,
 		)
 	}
 	if prefix == nil {
-		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidPrefix, "prefix cannot be empty")
+		return beefy.StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidPrefix, "prefix cannot be empty")
 	}
 
 	_, ok := prefix.(*commitmenttypes.MerklePrefix)
 	if !ok {
-		return StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidPrefix, "invalid prefix type %T, expected *MerklePrefix", prefix)
+		return beefy.StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidPrefix, "invalid prefix type %T, expected *MerklePrefix", prefix)
 	}
 
 	if proof == nil {
-		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "proof cannot be empty")
+		return beefy.StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "proof cannot be empty")
 	}
 
 	log.Printf("ics10-debug::produceVerificationArgs -> proof:%+v ", proof)
 
 	var merkleProof commitmenttypes.MerkleProof
-	if err = cdc.Unmarshal(proof, &merkleProof); err != nil {
-		return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "failed to unmarshal proof into commitment merkle proof")
+	if err := cdc.Unmarshal(proof, &merkleProof); err != nil {
+		return beefy.StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "failed to unmarshal proof into commitment merkle proof")
 	}
 
 	//just one proof
 	commitmentProof := merkleProof.GetProofs()[0]
-	log.Printf("ics10-debug::produceVerificationArgs -> commitmentProof:%+v ", commitmentProof)
+	log.Printf("ics10-debug::produceVerificationArgs -> commitmentProof:%+v ", *commitmentProof)
 
 	switch proofType := commitmentProof.Proof.(type) {
 	case *ics23.CommitmentProof_Exist:
 		existenceProof := commitmentProof.GetExist()
 		if existenceProof == nil {
-			return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
+			return beefy.StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
 
 		}
 		log.Printf("ics10-debug::produceVerificationArgs -> existenceProof.Key:%+v ", existenceProof.Key)
 		log.Printf("ics10-debug::produceVerificationArgs -> existenceProof.Value:%+v ", existenceProof.Value)
 
 		// Note: decode proof
-		// err = gsrpccodec.Decode(proof, &stateProof)
-		err = cdc.Unmarshal(existenceProof.Value, &stateProof)
+		err := gsrpccodec.Decode(existenceProof.Value, &stateProof)
+		// err = cdc.Unmarshal(existenceProof.Value, &stateProof)
 		if err != nil {
-			return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
+			log.Printf("ics10-debug::produceVerificationArgs -> decoded stateProof err:%+v ", err)
+			return beefy.StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
 		}
 		log.Printf("ics10-debug::produceVerificationArgs -> decoded stateProof:%+v ", stateProof)
 
 	case *ics23.CommitmentProof_Nonexist:
 		nonExistenceProof := commitmentProof.GetNonexist()
 		if nonExistenceProof == nil {
-			return StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
+			return beefy.StateProof{}, nil, sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "existence proof is nil")
 
 		}
 		log.Printf("ics10-debug::produceVerificationArgs -> nonExistenceProof.Key:%+v ", nonExistenceProof.Key)
@@ -746,22 +791,22 @@ func produceVerificationArgs(
 		// err = gsrpccodec.Decode(proof, &stateProof)
 		// err = cdc.Unmarshal(nonExistenceProof.Value, &stateProof)
 		// if err != nil {
-		// 	return StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
+		// 	return beefy.StateProof{}, nil, sdkerrors.Wrap(err, "proof couldn't be decoded into StateProof struct")
 		// }
 		// TODO: how to build nonExistenceProof for state proof
-		stateProof = StateProof{}
+		stateProof = beefy.StateProof{}
 
 	default:
-		return StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof,
+		return beefy.StateProof{}, nil, sdkerrors.Wrapf(commitmenttypes.ErrInvalidProof,
 			"expected proof type: %T ", proofType)
 
 	}
 
-	consensusState, err = GetConsensusState(store, cdc, height)
-	log.Printf("ics10-debug::produceVerificationArgs -> height:%+v : consensus state:%+v ", height, consensusState)
+	consensusState, err := GetConsensusState(store, cdc, height)
+	log.Printf("ics10-debug::produceVerificationArgs -> height:%+v : consensus state:%+v ", height, *consensusState)
 
 	if err != nil {
-		return StateProof{}, nil, sdkerrors.Wrap(err, "please ensure the proof was constructed against a height that exists on the client")
+		return beefy.StateProof{}, nil, sdkerrors.Wrap(err, "please ensure the proof was constructed against a height that exists on the client")
 	}
 
 	return stateProof, consensusState, nil

@@ -16,7 +16,8 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/mux v1.8.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
-	github.com/octopus-network/beefy-go v0.4.0
+	github.com/octopus-network/beefy-go v0.5.0
+	github.com/octopus-network/trie-go v0.2.0
 	github.com/rakyll/statik v0.1.7
 	github.com/regen-network/cosmos-proto v0.3.1
 	github.com/spf13/cast v1.5.0
@@ -129,7 +130,6 @@ require (
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/octopus-network/trie-go v0.1.0 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.5 // indirect
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect
@@ -182,4 +182,6 @@ replace github.com/vedhavyas/go-subkey => github.com/vedhavyas/go-subkey v1.0.2
 
 replace github.com/ChainSafe/go-schnorrkel => github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 
-replace github.com/octopus-network/beefy-go => ../beefy-go
+// replace github.com/octopus-network/beefy-go => ../beefy-go
+
+// replace github.com/octopus-network/trie-go => ../trie-go
