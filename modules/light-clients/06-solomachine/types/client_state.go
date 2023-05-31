@@ -464,13 +464,13 @@ func produceVerificationArgs(
 		return nil, nil, 0, 0, sdkerrors.Wrap(clienttypes.ErrInvalidConsensus, "consensus state cannot be empty")
 	}
 
-	latestSequence := cs.GetLatestHeight().GetRevisionHeight()
-	if latestSequence != sequence {
-		return nil, nil, 0, 0, sdkerrors.Wrapf(
-			sdkerrors.ErrInvalidHeight,
-			"client state sequence != proof sequence (%d != %d)", latestSequence, sequence,
-		)
-	}
+	// latestSequence := cs.GetLatestHeight().GetRevisionHeight()
+	// if latestSequence != sequence {
+	// 	return nil, nil, 0, 0, sdkerrors.Wrapf(
+	// 		sdkerrors.ErrInvalidHeight,
+	// 		"client state sequence != proof sequence (%d != %d)", latestSequence, sequence,
+	// 	)
+	// }
 
 	if cs.ConsensusState.GetTimestamp() > timestamp {
 		return nil, nil, 0, 0, sdkerrors.Wrapf(ErrInvalidProof, "the consensus state timestamp is greater than the signature timestamp (%d >= %d)", cs.ConsensusState.GetTimestamp(), timestamp)
