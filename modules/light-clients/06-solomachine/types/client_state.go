@@ -472,9 +472,9 @@ func produceVerificationArgs(
 	// 	)
 	// }
 
-	if cs.ConsensusState.GetTimestamp() > timestamp {
-		return nil, nil, 0, 0, sdkerrors.Wrapf(ErrInvalidProof, "the consensus state timestamp is greater than the signature timestamp (%d >= %d)", cs.ConsensusState.GetTimestamp(), timestamp)
-	}
+	// if cs.ConsensusState.GetTimestamp() > timestamp {
+	// 	return nil, nil, 0, 0, sdkerrors.Wrapf(ErrInvalidProof, "the consensus state timestamp is greater than the signature timestamp (%d >= %d)", cs.ConsensusState.GetTimestamp(), timestamp)
+	// }
 
 	publicKey, err := cs.ConsensusState.GetPubKey()
 	if err != nil {
