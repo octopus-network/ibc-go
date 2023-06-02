@@ -13,6 +13,7 @@ import (
 	commitmenttypes "github.com/cosmos/ibc-go/v4/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v4/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v4/modules/core/exported"
+	"fmt"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -145,27 +146,38 @@ func (cs *ClientState) VerifyClientConsensusState(
 	consensusState exported.ConsensusState,
 ) error {
 	// NOTE: the proof height sequence is incremented by two due to the connection handshake verification ordering
+	fmt.Println(height)
 	height = clienttypes.NewHeight(height.GetRevisionNumber(), height.GetRevisionHeight()+2)
+	fmt.Println("height:", height)
+	fmt.Println("prefix:", prefix)
 
 	publicKey, sigData, timestamp, sequence, err := produceVerificationArgs(cdc, cs, height, prefix, proof)
+	fmt.Println("publicKey:", publicKey)
+	fmt.Println("sigData:", sigData)
+	fmt.Println("timestamp:", timestamp)
+	fmt.Println("sequence:", sequence)
 	if err != nil {
 		return err
 	}
 
 	clientPrefixedPath := commitmenttypes.NewMerklePath(host.FullConsensusStatePath(counterpartyClientIdentifier, consensusHeight))
 	path, err := commitmenttypes.ApplyPrefix(prefix, clientPrefixedPath)
+	fmt.Println("path:", path)
 	if err != nil {
 		return err
 	}
 
 	signBz, err := ConsensusStateSignBytes(cdc, sequence, timestamp, cs.ConsensusState.Diversifier, path, consensusState)
+	fmt.Println("signBz:", signBz)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("1")
 	if err := VerifySignature(publicKey, signBz, sigData); err != nil {
 		return err
 	}
+	fmt.Println("2")
 
 	cs.Sequence++
 	cs.ConsensusState.Timestamp = timestamp
