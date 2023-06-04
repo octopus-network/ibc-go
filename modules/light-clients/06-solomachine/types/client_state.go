@@ -438,9 +438,9 @@ func produceVerificationArgs(
 	prefix exported.Prefix,
 	proof []byte,
 ) (cryptotypes.PubKey, signing.SignatureData, uint64, uint64, error) {
-	if revision := height.GetRevisionNumber(); revision != 0 {
-		return nil, nil, 0, 0, sdkerrors.Wrapf(sdkerrors.ErrInvalidHeight, "revision must be 0 for solomachine, got revision-number: %d", revision)
-	}
+	// if revision := height.GetRevisionNumber(); revision != 0 {
+	// 	return nil, nil, 0, 0, sdkerrors.Wrapf(sdkerrors.ErrInvalidHeight, "revision must be 0 for solomachine, got revision-number: %d", revision)
+	// }
 	// sequence is encoded in the revision height of height struct
 	sequence := height.GetRevisionHeight()
 	if prefix == nil {
