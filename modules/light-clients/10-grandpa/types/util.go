@@ -2,10 +2,10 @@ package types
 
 import (
 	"github.com/octopus-network/beefy-go/beefy"
+	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 
 	// log "github.com/go-kit/log"
 	// "github.com/ComposableFi/go-merkle-trees/mmr"
-	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
 )
 
 // var logger = log.Logger.With("light-client/10-grandpa/client_state")

@@ -37,48 +37,48 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 	beefyMMR := pbHeader.GetBeefyMmr()
 	// check beefymmr is nil ?
 	if beefyMMR != nil {
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMR: %+v", *beefyMMR)
+		log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> beefyMMR: %+v", *beefyMMR)
 		// step1:  verify signature
 		// convert signedcommitment
 		bsc := ToBeefySC(beefyMMR.SignedCommitment)
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> SignedCommitment: %+v", bsc)
+		// log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> SignedCommitment: %+v", bsc)
 
 		err := cs.VerifySignatures(bsc, beefyMMR.SignatureProofs)
 		if err != nil {
-			log.Printf("ics10-debug::CheckHeaderAndUpdateState -> VerifySignatures failed : %+v", err)
+			log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> VerifySignatures failed : %+v", err)
 			return nil, nil, sdkerrors.Wrap(err, "failed to verify signatures")
 		}
 
 		// step2: verify beefy mmr
 
 		// mmrSize := beefyMMR.MmrSize
-		// log.Printf("ics10-debug::CheckHeaderAndUpdateState -> recv mmrSize: %+v", mmrSize)
+		// log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> recv mmrSize: %+v", mmrSize)
 		leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
 		calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> cal mmrSize: %+v", calMmrSize)
+		log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> cal mmrSize: %+v", calMmrSize)
 
 		// convert mmrleaf
 		beefyMMRLeaves := ToBeefyMMRLeaves(beefyMMR.MmrLeavesAndBatchProof.Leaves)
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyMMRLeaves: %+v", beefyMMRLeaves)
+		// log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> beefyMMRLeaves: %+v", beefyMMRLeaves)
 
 		// convert mmr proof
 		beefyBatchProof := ToMMRBatchProof(beefyMMR.MmrLeavesAndBatchProof.MmrBatchProof)
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefyBatchProof: %+v", beefyBatchProof)
+		// log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> beefyBatchProof: %+v", beefyBatchProof)
 
 		// check mmr height
 		if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
-			log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
+			log.Printf("🐙🐙 ics10::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
 			return nil, nil, sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
 		}
 		// verify mmr
 		err = cs.VerifyMMR(bsc.Commitment.Payload[0].Data, calMmrSize, beefyMMRLeaves, beefyBatchProof)
 		if err != nil {
-			log.Printf("ics10-debug::CheckHeaderAndUpdateState -> use cal mmrsize to verify mmr error!")
-			// return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
+			log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> use cal mmrsize to verify mmr error!")
+			return nil, nil, sdkerrors.Wrap(err, "failed to verify mmr")
 		}
 		newBeefyMmr = true
 	} else {
-		log.Printf("ics10-debug::CheckHeaderAndUpdateState -> beefmmr is nil,just verfiy block header!")
+		log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> beefmmr is nil,just verfiy block header!")
 
 	}
 
@@ -102,11 +102,10 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 		mmrRoot = cs.LatestMmrRoot
 		latestBeefyHeight = cs.LatestBeefyHeight
 	}
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> mmrSize: %d,  mmrRoot: %+v ", mmrSize, mmrRoot)
+	// log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> mmrSize: %d,  mmrRoot: %+v ", mmrSize, mmrRoot)
 
 	latestChainHeight := clienttypes.NewHeight(pbHeader.GetHeight().GetRevisionNumber(), pbHeader.GetHeight().GetRevisionHeight())
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latestBeefyHeight: %+v,  latestChainHeight: %+v ",
-		latestBeefyHeight, latestChainHeight)
+	
 
 	// check height:latest block height must less LatestBeefyHeight
 	if latestChainHeight.RevisionHeight > latestBeefyHeight.RevisionHeight {
@@ -139,13 +138,13 @@ func (cs ClientState) CheckHeaderAndUpdateState(
 			LatestAuthoritySet: cs.LatestAuthoritySet,
 		}
 	}
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latest client state: %+v", *newClientState)
+	log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> latest client state: %+v", *newClientState)
 	// update consensue state and build latest new consensue state
 	newConsensusState, err := cs.UpdateConsensusStates(ctx, cdc, clientStore, pbHeader)
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Printf("ics10-debug::CheckHeaderAndUpdateState -> latest consensuse state: %+v", *newConsensusState)
+	log.Printf("🐙🐙 ics10::CheckHeaderAndUpdateState -> latest consensuse state: %+v", *newConsensusState)
 
 	return newClientState, newConsensusState, nil
 }
@@ -160,7 +159,7 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 	}
 
 	// // check bsc.Commitment.ValidatorSetID is cs.AuthoritySet.Id or cs.NextAuthoritySet.Id
-	// log.Printf("ics10-debug::VerifySignatures -> bsc.Commitment.ValidatorSetID: %+v ,cs.AuthoritySet.Id:%+v ,cs.NextAuthoritySet.Id:%+v ",
+	// log.Printf("🐙🐙 ics10::VerifySignatures -> bsc.Commitment.ValidatorSetID: %+v ,cs.AuthoritySet.Id:%+v ,cs.NextAuthoritySet.Id:%+v ",
 	// 	bsc.Commitment.ValidatorSetID, cs.AuthoritySet.Id, cs.NextAuthoritySet.Id)
 	// if bsc.Commitment.ValidatorSetID != cs.AuthoritySet.Id && bsc.Commitment.ValidatorSetID != cs.NextAuthoritySet.Id {
 	// 	return sdkerrors.Wrap(errors.New("ValidatorSetID Mismatch "), ErrInvalidValidatorSet.Error())
@@ -194,16 +193,11 @@ func (cs ClientState) VerifySignatures(bsc beefy.SignedCommitment, SignatureProo
 // verify batch mmr proof
 func (cs ClientState) VerifyMMR(mmrRoot []byte, mmrSize uint64,
 	beefyMMRLeaves []gsrpctypes.MMRLeaf, mmrBatchProof beefy.MMRBatchProof) error {
-	// check mmr height
-	// if bsc.Commitment.BlockNumber <= uint32(cs.LatestBeefyHeight.RevisionHeight) {
-	// 	log.Printf("ics10-debug::VerifyMMR -> Commitment.BlockNumber[%d] < cs.LatestBeefyHeight[%d]", bsc.Commitment.BlockNumber, cs.LatestBeefyHeight.RevisionHeight)
-	// 	return sdkerrors.Wrap(errors.New("Commitment.BlockNumber < cs.LatestBeefyHeight"), "")
-	// }
 
 	//verify mmr proof
 	result, err := beefy.VerifyMMRBatchProof(mmrRoot, mmrSize, beefyMMRLeaves, mmrBatchProof)
 	if err != nil || !result {
-		log.Printf("ics10-debug::VerifyMMR -> failed to verify mmr proof: %+v", err)
+		log.Printf("🐙🐙 ics10::VerifyMMR -> failed to verify mmr proof: %+v", err)
 		return sdkerrors.Wrap(err, "failed to verify mmr proof")
 	}
 	return nil
@@ -225,12 +219,12 @@ func (cs ClientState) VerifyHeader(gpHeader Header, mmrRoot []byte, mmrSize uint
 				Timestamp:   beefy.StateProof(header.Timestamp),
 			}
 		}
-		log.Printf("ics10-debug::VerifyHeader -> subchain headers : %+v", beefySubchainHeaderMap)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> subchain headers : %+v", beefySubchainHeaderMap)
 
 		headerMMRLeaves := ToBeefyMMRLeaves(gpHeader.GetSubchainHeaders().MmrLeavesAndBatchProof.Leaves)
-		log.Printf("ics10-debug::VerifyHeader -> subchain headerMMRLeaves : %+v", headerMMRLeaves)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> subchain headerMMRLeaves : %+v", headerMMRLeaves)
 		headerMMRProof := ToMMRBatchProof(gpHeader.GetSubchainHeaders().MmrLeavesAndBatchProof.MmrBatchProof)
-		log.Printf("ics10-debug::VerifyHeader -> subchain headerMMRProof : %+v", headerMMRProof)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> subchain headerMMRProof : %+v", headerMMRProof)
 
 		// verify mmr proof for subchain header
 		err := cs.VerifyMMR(mmrRoot, mmrSize, headerMMRLeaves, headerMMRProof)
@@ -259,12 +253,14 @@ func (cs ClientState) VerifyHeader(gpHeader Header, mmrRoot []byte, mmrSize uint
 				Timestamp:          beefy.StateProof(header.Timestamp),
 			}
 		}
-		log.Printf("ics10-debug::VerifyHeader -> parachain headers : %+v", beefyParachainHeaderMap)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> parachain headers : %+v", beefyParachainHeaderMap)
 
 		headerMMRLeaves := ToBeefyMMRLeaves(gpHeader.GetParachainHeaders().MmrLeavesAndBatchProof.Leaves)
-		log.Printf("ics10-debug::VerifyHeader -> parachain headerMMRLeaves : %+v", headerMMRLeaves)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> parachain headerMMRLeaves : %+v", headerMMRLeaves)
+
 		headerMMRProof := ToMMRBatchProof(gpHeader.GetParachainHeaders().MmrLeavesAndBatchProof.MmrBatchProof)
-		log.Printf("ics10-debug::VerifyHeader -> parachain headerMMRProof : %+v", headerMMRProof)
+		// log.Printf("🐙🐙 ics10::VerifyHeader -> parachain headerMMRProof : %+v", headerMMRProof)
+
 		// verify mmr proof for parachain header
 		err := cs.VerifyMMR(mmrRoot, mmrSize, headerMMRLeaves, headerMMRProof)
 		if err != nil {
@@ -305,8 +301,7 @@ func (cs ClientState) UpdateClientState(ctx sdk.Context, commitment Commitment, 
 
 	// update authority set
 	// newNextAuthoritySet := *latestAuthoritySet
-	log.Printf("ics10-debug::UpdateClientState -> latest AuthoritySet:%+v ",
-		*latestAuthoritySet)
+	log.Printf("🐙🐙 ics10::UpdateClientState -> latest AuthoritySet:%+v ", *latestAuthoritySet)
 
 	newClientState := NewClientState(
 		cs.ChainType, cs.ChainId,
@@ -381,11 +376,12 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 
 		}
 	}
-	log.Printf("ics10-debug::UpdateConsensusStates -> latestChainHeight: %+v \nlatestTimestamp: %+v \nlatestBlockHeader: %+v ",
+	log.Printf("🐙🐙 ics10::UpdateConsensusStates -> latestChainHeight: %+v \nlatestTimestamp: %+v \nlatestBlockHeader: %+v ",
 		latestChainHeight,
 		latestTimestamp,
 		latestBlockHeader)
-	// TODO: asset blockheader and timestamp is not nil
+
+	// asset blockheader and timestamp is not nil
 	newConsensueState = NewConsensusState(latestBlockHeader.StateRoot[:], time.UnixMilli(int64(latestTimestamp)))
 
 	// set metadata for this consensus
@@ -395,7 +391,7 @@ func (cs ClientState) UpdateConsensusStates(ctx sdk.Context, cdc codec.BinaryCod
 	}
 	setConsensusMetadata(ctx, clientStore, latestHeigh)
 	// TODO: consider to pruning!
-	//
+
 	return newConsensueState, nil
 
 }

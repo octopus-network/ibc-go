@@ -25,8 +25,7 @@ var (
 // CreateClient defines a rpc handler method for MsgCreateClient.
 func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateClient) (*clienttypes.MsgCreateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	// ctx.Logger().Debug("msg.ClientState.TypeUrl", msg.ClientState.TypeUrl)
-	log.Printf("ics10-debug::clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
+	// log.Printf("🐙🐙 ics10::clienttypes.ClientState.TypeUrl: %+v", msg.ClientState.TypeUrl)
 
 	clientState, err := clienttypes.UnpackClientState(msg.ClientState)
 	if err != nil {
@@ -48,9 +47,7 @@ func (k Keeper) CreateClient(goCtx context.Context, msg *clienttypes.MsgCreateCl
 // UpdateClient defines a rpc handler method for MsgUpdateClient.
 func (k Keeper) UpdateClient(goCtx context.Context, msg *clienttypes.MsgUpdateClient) (*clienttypes.MsgUpdateClientResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	// ctx.Logger().Info("msg.Header.TypeUrl", msg.Header.TypeUrl)
-
-	log.Printf("ics10-debug::clienttypes.MsgUpdateClient.TypeUrl: %+v ", msg.Header.TypeUrl)
+	// log.Printf("🐙🐙 ics10::clienttypes.MsgUpdateClient.TypeUrl: %+v ", msg.Header.TypeUrl)
 
 	header, err := clienttypes.UnpackHeader(msg.Header)
 	if err != nil {
@@ -373,6 +370,8 @@ func (k Keeper) ChannelCloseConfirm(goCtx context.Context, msg *channeltypes.Msg
 
 // RecvPacket defines a rpc handler method for MsgRecvPacket.
 func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacket) (*channeltypes.MsgRecvPacketResponse, error) {
+	log.Printf("🐙🐙 ics10::msg_server -> RecvPacket: %+v", *msg)
+
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
@@ -585,6 +584,7 @@ func (k Keeper) TimeoutOnClose(goCtx context.Context, msg *channeltypes.MsgTimeo
 
 // Acknowledgement defines a rpc handler method for MsgAcknowledgement.
 func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAcknowledgement) (*channeltypes.MsgAcknowledgementResponse, error) {
+	log.Printf("🐙🐙 ics10::msg_server -> Acknowledgement: %+v", *msg)
 	ctx := sdk.UnwrapSDKContext(goCtx)
 
 	relayer, err := sdk.AccAddressFromBech32(msg.Signer)
