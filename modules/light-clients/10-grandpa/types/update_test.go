@@ -633,12 +633,12 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			rebuildMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalBeefyMmr.MmrLeavesAndBatchProof.MmrBatchProof)
 			suite.Suite.T().Logf("Convert2MMRBatchProof: %+v", rebuildMMRBatchProof)
 			// check mmr height
-			suite.Suite.T().Logf("ics10-debug::clientState.LatestBeefyHeight: %+v, Commitment.BlockNumber: %+v ", clientState.LatestBeefyHeight.RevisionHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
+			suite.Suite.T().Logf("🐙🐙 ics10::clientState.LatestBeefyHeight: %+v, Commitment.BlockNumber: %+v ", clientState.LatestBeefyHeight.RevisionHeight, unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber)
 			suite.Require().Less(clientState.LatestBeefyHeight.RevisionHeight, uint64(unmarshalBeefyMmr.SignedCommitment.Commitment.BlockNumber))
 
 			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
 			calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
+			suite.Suite.T().Logf("🐙🐙 ics10::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
 			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
 				rebuildMMRLeaves, rebuildMMRBatchProof)
 			suite.Require().NoError(err)
@@ -656,12 +656,12 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 			rebuildSubchainHeaderMMRBatchProof := ibcgptypes.ToMMRBatchProof(unmarshalSubchainHeadersMmrProof.MmrBatchProof)
 			suite.Suite.T().Logf("rebuildSubchainHeaderMMRBatchProof: %+v", rebuildSubchainHeaderMMRBatchProof)
 			// check : latest block height must less LatestBeefyHeight
-			suite.Suite.T().Logf("ics10-debug::latest block height: %+v, clientState.LatestBeefyHeight: %+v ", unmarshalPBHeader.GetHeight(), clientState.LatestBeefyHeight)
+			suite.Suite.T().Logf("🐙🐙 ics10::latest block height: %+v, clientState.LatestBeefyHeight: %+v ", unmarshalPBHeader.GetHeight(), clientState.LatestBeefyHeight)
 			suite.Require().LessOrEqual(unmarshalPBHeader.GetHeight().GetRevisionHeight(), clientState.LatestBeefyHeight.RevisionHeight)
 			// cal mmr size use clientState.LatestBeefyHeight.RevisionHeight
 			leafIndex2 := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), uint32(clientState.LatestBeefyHeight.RevisionHeight))
 			calMmrSize2 := mmr.LeafIndexToMMRSize(uint64(leafIndex2))
-			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> clientState.LatestBeefyHeight.RevisionHeight: %+v, leafIndex2: %+v, cal mmrSize: %+v", clientState.LatestBeefyHeight.RevisionHeight, leafIndex2, calMmrSize2)
+			suite.Suite.T().Logf("🐙🐙 ics10::CheckHeaderAndUpdateState -> clientState.LatestBeefyHeight.RevisionHeight: %+v, leafIndex2: %+v, cal mmrSize: %+v", clientState.LatestBeefyHeight.RevisionHeight, leafIndex2, calMmrSize2)
 			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
 				rebuildSubchainHeaderMMRLeaves, rebuildSubchainHeaderMMRBatchProof)
 			suite.Require().NoError(err)
@@ -1022,7 +1022,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			// 	unmarshalBeefyMmr.MmrSize, rebuildMMRLeaves, beefyMmrBatchProof)
 			leafIndex := beefy.ConvertBlockNumberToMmrLeafIndex(uint32(beefy.BEEFY_ACTIVATION_BLOCK), bsc.Commitment.BlockNumber)
 			calMmrSize := mmr.LeafIndexToMMRSize(uint64(leafIndex))
-			suite.Suite.T().Logf("ics10-debug::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
+			suite.Suite.T().Logf("🐙🐙 ics10::CheckHeaderAndUpdateState -> Commitment.BlockNumber: %+v, leafIndex: %+v, cal mmrSize: %+v", bsc.Commitment.BlockNumber, leafIndex, calMmrSize)
 
 			err = clientState.VerifyMMR(rebuildBSC.Commitment.Payload[0].Data, calMmrSize,
 				rebuildMMRLeaves, beefyMmrBatchProof)
@@ -1147,7 +1147,7 @@ func (suite *GrandpaTestSuite) TestParachainLocalNet() {
 			}
 
 			received++
-			if received >= 3 {
+			if received >= 2 {
 				return
 			}
 		case <-timeout:

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	metrics "github.com/armon/go-metrics"
@@ -163,6 +164,8 @@ func (k Keeper) sendTransfer(
 // back tokens this chain originally transferred to it, the tokens are
 // unescrowed and sent to the receiving address.
 func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data types.FungibleTokenPacketData) error {
+	log.Printf("🐙🐙 ics10::transfer::relay -> packet: %+v, FungibleTokenPacketData: %+v", packet, data)
+
 	// validate packet data upon receiving
 	if err := data.ValidateBasic(); err != nil {
 		return err
@@ -274,6 +277,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		),
 	)
 	voucher := sdk.NewCoin(voucherDenom, transferAmount)
+	log.Printf("🐙🐙 ics10::transfer::relay -> mint new coin: %+v", voucher)
 
 	// mint new tokens if the source of the transfer is the same chain
 	if err := k.bankKeeper.MintCoins(

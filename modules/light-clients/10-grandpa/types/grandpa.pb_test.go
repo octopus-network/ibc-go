@@ -217,15 +217,15 @@ func (suite *GrandpaTestSuite) TestDecodeStateProof() {
 	err := gsrpccodec.Decode(proof, &stateProof)
 	// err = cdc.Unmarshal(existenceProof.Value, &stateProof)
 	if err != nil {
-		suite.Suite.T().Logf("ics10-debug::TestDecodeStateProof -> decoded stateProof err:%+v ", err)
+		suite.Suite.T().Logf("🐙🐙 ics10::TestDecodeStateProof -> decoded stateProof err:%+v ", err)
 
 	}
-	suite.Suite.T().Logf("ics10-debug::produceVerificationArgs -> decoded stateProof:%+v ", stateProof)
+	suite.Suite.T().Logf("🐙🐙 ics10::produceVerificationArgs -> decoded stateProof:%+v ", stateProof)
 	stateRoot := conv.SplitStrToSlice[byte]("155 161 120 40 55 234 101 167 69 91 161 30 249 87 16 29 196 126 34 124 193 228 232 16 73 36 69 248 61 62 226 50", " ")
 	// err = beefy.VerifyStateProof(stateProof.Proofs, consensusState.Root, stateProof.Key, stateProof.Value)
 	err = beefy.VerifyStateProof(stateProof.Proofs, stateRoot, stateProof.Key, stateProof.Value)
 	if err != nil {
-		suite.Suite.T().Logf("ics10-debug::TestDecodeStateProof -> beefy.VerifyStateProof err:%+v ", err)
+		suite.Suite.T().Logf("🐙🐙 ics10::TestDecodeStateProof -> beefy.VerifyStateProof err:%+v ", err)
 
 	}
 
