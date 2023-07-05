@@ -1,16 +1,11 @@
 package types
 
 import (
-	"github.com/octopus-network/beefy-go/beefy"
 	gsrpctypes "github.com/centrifuge/go-substrate-rpc-client/v4/types"
-
-	// log "github.com/go-kit/log"
-	// "github.com/ComposableFi/go-merkle-trees/mmr"
+	"github.com/octopus-network/beefy-go/beefy"
 )
 
-// var logger = log.Logger.With("light-client/10-grandpa/client_state")
-// var Logger = log.NewTMLogger(os.Stderr)
-
+// Type conversion,from beefy mmr to pb(protocol buffer) mmr
 func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp, authorityProof [][]byte) BeefyMMR {
 
 	// bsc := beefy.ConvertCommitment(sc)
@@ -52,6 +47,7 @@ func ToPBBeefyMMR(bsc beefy.SignedCommitment, mmrBatchProof beefy.MmrProofsResp,
 	return pbBeefyMMR
 }
 
+// Type conversion,from beefy mmr proof to pb(protocol buffer) mmr proof
 func ToPbMmrProof(mmrBatchProof beefy.MmrProofsResp) MMRLeavesAndBatchProof {
 	// convert mmrleaf
 	var pbMMRLeaves []MMRLeaf
@@ -106,6 +102,7 @@ func ToPbMmrProof(mmrBatchProof beefy.MmrProofsResp) MMRLeavesAndBatchProof {
 	return pbMmrLevavesAndProof
 }
 
+// Type conversion,from  pb(protocol buffer) SignedCommitment to beefy SignedCommitment
 func ToBeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
 	beefyPalyloads := make([]gsrpctypes.PayloadItem, len(pbsc.Commitment.Payloads))
 	// // step1:  verify signature
@@ -136,6 +133,7 @@ func ToBeefySC(pbsc SignedCommitment) beefy.SignedCommitment {
 	return bsc
 }
 
+// Type conversion,from  pb(protocol buffer) MMRLeaf to beefy MMRLeaf
 func ToBeefyMMRLeaves(pbMMRLeaves []MMRLeaf) []gsrpctypes.MMRLeaf {
 
 	beefyMMRLeaves := make([]gsrpctypes.MMRLeaf, len(pbMMRLeaves))
@@ -181,6 +179,7 @@ func ToMMRBatchProof(mmrBatchProof MMRBatchProof) beefy.MMRBatchProof {
 
 }
 
+// Type conversion,from  beefy SubchainHeader to pb SubchainHeader
 func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader, mmrBatchProof beefy.MmrProofsResp) Header_SubchainHeaders {
 
 	// headerMap := make(map[uint32]SubchainHeader)
@@ -209,7 +208,8 @@ func ToPBSubchainHeaders(beefySubchainHeaders []beefy.SubchainHeader, mmrBatchPr
 
 }
 
-func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader,mmrBatchProof beefy.MmrProofsResp) Header_ParachainHeaders {
+// Type conversion,from  beefy ParachainHeader to pb ParachainHeader
+func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader, mmrBatchProof beefy.MmrProofsResp) Header_ParachainHeaders {
 
 	var headers []ParachainHeader
 	for _, header := range beefyParachainHeaders {
@@ -227,7 +227,7 @@ func ToPBParachainHeaders(beefyParachainHeaders []beefy.ParachainHeader,mmrBatch
 	}
 	pbMmrLevavesAndProof := ToPbMmrProof(mmrBatchProof)
 	pbParachainHeaders := ParachainHeaders{
-		ParachainHeaders: headers,
+		ParachainHeaders:       headers,
 		MmrLeavesAndBatchProof: pbMmrLevavesAndProof,
 	}
 

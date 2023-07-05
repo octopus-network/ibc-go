@@ -1,7 +1,6 @@
 package types
 
 import (
-	"log"
 	"reflect"
 	time "time"
 
@@ -46,20 +45,17 @@ func (h Header) GetHeight() exported.Height {
 		return nil
 	}
 	latestHeight := clienttypes.NewHeight(0, uint64(latestHeader.Number))
-	log.Printf("🐙🐙 ics10::GetHeight -> latestHeight:%+v ", latestHeight)
 
 	return latestHeight
-	// revision := clienttypes.ParseChainID(h.Header.ChainID)
-	// return clienttypes.NewHeight(revision, uint64(h.Header.Height))
+
 }
 
 // // GetTime returns the current block timestamp. It returns a zero time if
-// // the tendermint header is nil.
+// // the grandpa header is nil.
 // // NOTE: the header.Header is checked to be non nil in ValidateBasic.
 func (h Header) GetTime() time.Time {
 	//get latest header and time
 	_, latestTime, err := getLastestBlockHeader(h)
-	// log.Printf("🐙🐙 ics10::GetTime -> latestTime: %+v ", latestTime)
 
 	if err != nil {
 		return time.Unix(0, 0)
@@ -88,7 +84,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 
 		// find lastest subchain header
 		latestSubchainHeader := subchainHeaderMap[latestHeight]
-		log.Printf("🐙🐙 ics10::getLastestBlockHeader -> latestSubchainHeader: %+v ", latestSubchainHeader)
+
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestSubchainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
@@ -109,7 +105,6 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
-		// log.Printf("🐙🐙 ics10::getLastestBlockHeader -> subchain latestTimestamp: %+v ", latestTimestamp)
 
 	case *Header_ParachainHeaders:
 		parachainHeaders := msg.ParachainHeaders.ParachainHeaders
@@ -122,7 +117,6 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			parachainHeaderMap[header.RelayerChainNumber] = header
 		}
 		latestParachainHeader := parachainHeaderMap[latestHeight]
-		log.Printf("🐙🐙 ics10::getLastestBlockHeader -> latestParachainHeader: %+v ", latestParachainHeader)
 		// var decodeHeader gsrpctypes.Header
 		err := gsrpccodec.Decode(latestParachainHeader.BlockHeader, &latestBlockHeader)
 		if err != nil {
@@ -143,7 +137,7 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 			return latestBlockHeader, latestTimestamp, sdkerrors.Wrapf(err, "decode timestamp error")
 		}
 		latestTimestamp = time.UnixMilli(int64(decodeTimestamp))
-		// log.Printf("🐙🐙 ics10::getLastestBlockHeader -> parachain latestTimestamp: %+v ", latestTimestamp)
+
 	}
 
 	return latestBlockHeader, latestTimestamp, nil
@@ -152,11 +146,11 @@ func getLastestBlockHeader(h Header) (gsrpctypes.Header, time.Time, error) {
 // ValidateBasic calls the header ValidateBasic function and checks
 // with MsgCreateClient
 func (h Header) ValidateBasic() error {
-	if reflect.DeepEqual(h, Header{}) {
+	if reflect.DeepEqual(h, &Header{}) {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "Grandpa header cannot be nil")
 	}
 
-	if reflect.DeepEqual(h.BeefyMmr, BeefyMMR{}) {
+	if reflect.DeepEqual(h.BeefyMmr, &BeefyMMR{}) {
 		return sdkerrors.Wrap(clienttypes.ErrInvalidHeader, "beefy mmr cannot be nil")
 	}
 

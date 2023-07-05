@@ -1,5 +1,5 @@
 package types_test
 
 func (suite *GrandpaTestSuite) TestVerifyUpgrade() {
-	suite.T().Skip("todo: impl upgrade!")
+	suite.T().Skip("todo: impl VerifyUpgradeAndUpdateState!")
 }

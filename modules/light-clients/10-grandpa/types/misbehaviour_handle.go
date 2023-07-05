@@ -6,7 +6,7 @@ import (
 	"github.com/cosmos/ibc-go/v6/modules/core/exported"
 )
 
-// TODO:
+// TODO: impl CheckMisbehaviourAndUpdateState
 // CheckMisbehaviourAndUpdateState determines whether or not two conflicting
 // headers at the same height would have convinced the light client.
 //

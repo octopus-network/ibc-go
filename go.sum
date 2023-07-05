@@ -824,6 +824,10 @@ github.com/neilotoole/errgroup v0.1.6/go.mod h1:Q2nLGf+594h0CLBs/Mbg6qOr7GtqDK7C
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/nxadm/tail v1.4.4 h1:DQuhQpB1tVlglWS2hLQ5OV6B5r8aGxSrPc5Qo6uTN78=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
+github.com/octopus-network/beefy-go v0.6.0 h1:CqytJuBAK4BkEgM7iZzb/8ybuD/uNU2h483G1OZX2sc=
+github.com/octopus-network/beefy-go v0.6.0/go.mod h1:47I3C/bcaU+prbxm8oNW176ytkifgrfaSppJDwstZBk=
+github.com/octopus-network/trie-go v0.3.0 h1:36xF+1JQPt4gWrE7fLpiquxOUBauGKi0eRoJgnuPP9I=
+github.com/octopus-network/trie-go v0.3.0/go.mod h1:eiq61zcvD66lXiMHJCX3dy6BkhAg4S8KVqffsLWFIsg=
 github.com/oklog/oklog v0.3.2/go.mod h1:FCV+B7mhrz4o+ueLpx+KqkyXRGMWOYEvfiXtdGtbWGs=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=

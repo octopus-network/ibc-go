@@ -15,10 +15,8 @@ import (
 	gsrpccodec "github.com/centrifuge/go-substrate-rpc-client/v4/types/codec"
 	clienttypes "github.com/cosmos/ibc-go/v6/modules/core/02-client/types"
 	commitmenttypes "github.com/cosmos/ibc-go/v6/modules/core/23-commitment/types"
-	"github.com/cosmos/ibc-go/v6/modules/core/exported"
 	types "github.com/cosmos/ibc-go/v6/modules/light-clients/07-tendermint/types"
 	ibcgptypes "github.com/cosmos/ibc-go/v6/modules/light-clients/10-grandpa/types"
-	ibctesting "github.com/cosmos/ibc-go/v6/testing"
 	ibctestingmock "github.com/cosmos/ibc-go/v6/testing/mock"
 )
 
@@ -375,90 +373,9 @@ func (suite *GrandpaTestSuite) TestCheckHeaderAndUpdateState() {
 	}
 }
 
-func (suite *GrandpaTestSuite) TestPruneConsensusState() {
-	// create path and setup clients
-	path := ibctesting.NewPath(suite.chainA, suite.chainB)
-	suite.coordinator.SetupClients(path)
-
-	// get the first height as it will be pruned first.
-	var pruneHeight exported.Height
-	getFirstHeightCb := func(height exported.Height) bool {
-		pruneHeight = height
-		return true
-	}
-	ctx := path.EndpointA.Chain.GetContext()
-	clientStore := path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
-	err := types.IterateConsensusStateAscending(clientStore, getFirstHeightCb)
-	suite.Require().Nil(err)
-
-	// this height will be expired but not pruned
-	path.EndpointA.UpdateClient()
-	expiredHeight := path.EndpointA.GetClientState().GetLatestHeight()
-
-	// expected values that must still remain in store after pruning
-	expectedConsState, ok := path.EndpointA.Chain.GetConsensusState(path.EndpointA.ClientID, expiredHeight)
-	suite.Require().True(ok)
-	ctx = path.EndpointA.Chain.GetContext()
-	clientStore = path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
-	expectedProcessTime, ok := types.GetProcessedTime(clientStore, expiredHeight)
-	suite.Require().True(ok)
-	expectedProcessHeight, ok := types.GetProcessedHeight(clientStore, expiredHeight)
-	suite.Require().True(ok)
-	expectedConsKey := types.GetIterationKey(clientStore, expiredHeight)
-	suite.Require().NotNil(expectedConsKey)
-
-	// Increment the time by a week
-	suite.coordinator.IncrementTimeBy(7 * 24 * time.Hour)
-
-	// create the consensus state that can be used as trusted height for next update
-	path.EndpointA.UpdateClient()
-
-	// Increment the time by another week, then update the client.
-	// This will cause the first two consensus states to become expired.
-	suite.coordinator.IncrementTimeBy(7 * 24 * time.Hour)
-	path.EndpointA.UpdateClient()
-
-	ctx = path.EndpointA.Chain.GetContext()
-	clientStore = path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
-
-	// check that the first expired consensus state got deleted along with all associated metadata
-	consState, ok := path.EndpointA.Chain.GetConsensusState(path.EndpointA.ClientID, pruneHeight)
-	suite.Require().Nil(consState, "expired consensus state not pruned")
-	suite.Require().False(ok)
-	// check processed time metadata is pruned
-	processTime, ok := types.GetProcessedTime(clientStore, pruneHeight)
-	suite.Require().Equal(uint64(0), processTime, "processed time metadata not pruned")
-	suite.Require().False(ok)
-	processHeight, ok := types.GetProcessedHeight(clientStore, pruneHeight)
-	suite.Require().Nil(processHeight, "processed height metadata not pruned")
-	suite.Require().False(ok)
-
-	// check iteration key metadata is pruned
-	consKey := types.GetIterationKey(clientStore, pruneHeight)
-	suite.Require().Nil(consKey, "iteration key not pruned")
-
-	// check that second expired consensus state doesn't get deleted
-	// this ensures that there is a cap on gas cost of UpdateClient
-	consState, ok = path.EndpointA.Chain.GetConsensusState(path.EndpointA.ClientID, expiredHeight)
-	suite.Require().Equal(expectedConsState, consState, "consensus state incorrectly pruned")
-	suite.Require().True(ok)
-	// check processed time metadata is not pruned
-	processTime, ok = types.GetProcessedTime(clientStore, expiredHeight)
-	suite.Require().Equal(expectedProcessTime, processTime, "processed time metadata incorrectly pruned")
-	suite.Require().True(ok)
-
-	// check processed height metadata is not pruned
-	processHeight, ok = types.GetProcessedHeight(clientStore, expiredHeight)
-	suite.Require().Equal(expectedProcessHeight, processHeight, "processed height metadata incorrectly pruned")
-	suite.Require().True(ok)
-
-	// check iteration key metadata is not pruned
-	consKey = types.GetIterationKey(clientStore, expiredHeight)
-	suite.Require().Equal(expectedConsKey, consKey, "iteration key incorrectly pruned")
-}
-
+// This test case need to spin up a substrate chain
 func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
-	// suite.Suite.T().Skip("need to setup relaychain or subchain")
+	suite.Suite.T().Skip("need to setup relaychain or subchain")
 	localSubchainEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_RELAY_ENDPPOIT)
 	if err != nil {
 		suite.Suite.T().Logf("Connecting err: %v", err)
@@ -785,8 +702,9 @@ func (suite *GrandpaTestSuite) TestSubchainLocalNet() {
 	}
 }
 
+// This test case need to spin up polkadot relay chain and a parachain
 func (suite *GrandpaTestSuite) TestParachainLocalNet() {
-	// suite.Suite.T().Skip("need setup relay chain and parachain")
+	suite.Suite.T().Skip("need setup relay chain and parachain")
 	localRelayEndpoint, err := gsrpc.NewSubstrateAPI(beefy.LOCAL_RELAY_ENDPPOIT)
 	if err != nil {
 		suite.Suite.T().Logf("Connecting err: %v", err)

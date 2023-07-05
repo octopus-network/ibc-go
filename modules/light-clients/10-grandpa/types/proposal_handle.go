@@ -10,6 +10,7 @@ import (
 	"github.com/cosmos/ibc-go/v6/modules/core/exported"
 )
 
+// TODO: impl CheckSubstituteAndUpdateState
 // CheckSubstituteAndUpdateState will try to update the client with the state of the
 // substitute if and only if the proposal passes and one of the following conditions are
 // satisfied:
@@ -27,8 +28,6 @@ func (cs ClientState) CheckSubstituteAndUpdateState(
 	ctx sdk.Context, cdc codec.BinaryCodec, subjectClientStore,
 	substituteClientStore sdk.KVStore, substituteClient exported.ClientState,
 ) (exported.ClientState, error) {
-	ctx.Logger().Debug("LightClient:", "10-Grandpa", "method:", "CheckSubstituteAndUpdateState")
-
 	substituteClientState, ok := substituteClient.(*ClientState)
 	if !ok {
 		return nil, sdkerrors.Wrapf(

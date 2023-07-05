@@ -34,7 +34,7 @@ func (misbehaviour Misbehaviour) GetClientID() string {
 	return misbehaviour.ClientId
 }
 
-// TODO:
+
 // GetTime returns the timestamp at which misbehaviour occurred. It uses the
 // maximum value from both headers to prevent producing an invalid header outside
 // of the misbehaviour age range.
@@ -44,10 +44,10 @@ func (misbehaviour Misbehaviour) GetTime() time.Time {
 		return t1
 	}
 	return t2
-	// return time.Now()
+	
 }
 
-// TODO: ValidateBasic implements Misbehaviour interface
+// ValidateBasic implements Misbehaviour interface
 func (misbehaviour Misbehaviour) ValidateBasic() error {
 	if err := misbehaviour.Header1.ValidateBasic(); err != nil {
 		return sdkerrors.Wrap(
