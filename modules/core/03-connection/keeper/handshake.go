@@ -82,7 +82,7 @@ func (k Keeper) ConnOpenTry(
 	proofHeight exported.Height, // height at which relayer constructs proof of A storing connectionEnd in state
 	consensusHeight exported.Height, // latest height of chain B which chain A has stored in its chain B client
 ) (string, error) {
-	fmt.Println("ConnOpenTry1")
+	fmt.Println("ys-debug: ConnOpenTry1")
 	// generate a new connection
 	connectionID := k.GenerateConnectionIdentifier(ctx)
 
@@ -117,7 +117,7 @@ func (k Keeper) ConnOpenTry(
 	// with Chain B's supported IBC versions. PickVersion will select the intersection
 	// of the supported versions and the counterparty versions.
 	version, err := types.PickVersion(types.GetCompatibleVersions(), counterpartyVersions)
-	fmt.Println("ConnOpenTry2", version, err)
+	fmt.Println("ys-debug: ConnOpenTry2", version, err)
 	if err != nil {
 		return "", err
 	}
@@ -126,16 +126,16 @@ func (k Keeper) ConnOpenTry(
 	connection := types.NewConnectionEnd(types.TRYOPEN, clientID, counterparty, []*types.Version{version}, delayPeriod)
 
 	// Check that ChainA committed expectedConnectionEnd to its state
-	fmt.Println("ConnOpenTry3", connection, proofHeight, proofInit, counterparty.ConnectionId)
+	fmt.Println("ys-debug: ConnOpenTry3", connection, proofHeight, proofInit, counterparty.ConnectionId)
 	if err := k.VerifyConnectionState(
 		ctx, connection, proofHeight, proofInit, counterparty.ConnectionId,
 		expectedConnection,
 	); err != nil {
-		fmt.Println("ConnOpenTry4", err)
+		fmt.Println("ys-debug: ConnOpenTry4", err)
 		return "", err
 	}
 
-	fmt.Println("ConnOpenTry5", connection, proofHeight, proofClient, clientState)
+	fmt.Println("ys-debug: ConnOpenTry5", connection, proofHeight, proofClient, clientState)
 	// Check that ChainA stored the clientState provided in the msg
 	if err := k.VerifyClientState(ctx, connection, proofHeight, proofClient, clientState); err != nil {
 		return "", err
