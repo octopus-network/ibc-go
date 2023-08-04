@@ -13,6 +13,7 @@ import (
 	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v7/modules/core/exported"
+	"fmt"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
@@ -116,11 +117,13 @@ func (cs *ClientState) VerifyMembership(
 	value []byte,
 ) error {
 	publicKey, sigData, timestamp, sequence, err := produceVerificationArgs(cdc, cs, proof)
+	fmt.Println("VerifyMembership1", publicKey, sigData, timestamp, sequence, err)
 	if err != nil {
 		return err
 	}
 
 	merklePath, ok := path.(commitmenttypes.MerklePath)
+	fmt.Println("VerifyMembership2", merklePath, ok)
 	if !ok {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "expected %T, got %T", commitmenttypes.MerklePath{}, path)
 	}
@@ -136,8 +139,10 @@ func (cs *ClientState) VerifyMembership(
 		Path:        []byte(merklePath.String()),
 		Data:        value,
 	}
+	fmt.Println("VerifyMembership3", signBytes)
 
 	signBz, err := cdc.Marshal(signBytes)
+	fmt.Println("VerifyMembership4", signBz, err)
 	if err != nil {
 		return err
 	}
@@ -145,6 +150,7 @@ func (cs *ClientState) VerifyMembership(
 	if err := VerifySignature(publicKey, signBz, sigData); err != nil {
 		return err
 	}
+	fmt.Println("VerifyMembership5", err)
 
 	cs.Sequence++
 	cs.ConsensusState.Timestamp = timestamp
