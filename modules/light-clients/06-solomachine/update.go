@@ -68,15 +68,15 @@ func (cs ClientState) verifyHeader(ctx sdk.Context, cdc codec.BinaryCodec, clien
 		return err
 	}
 
-	fmt.Println("ys-debug header.NewPublicKey", header.NewPublicKey)
-	fmt.Println("ys-debug header.NewDiversifier", header.NewDiversifier)
-	fmt.Println("ys-debug header.Signature", header.Signature)
-	fmt.Println("ys-debug header.Timestamp", header.Timestamp)
-	fmt.Println("ys-debug sequence", cs.Sequence)
-	fmt.Println("ys-debug cs.ConsensusState.Diversifier", cs.ConsensusState.Diversifier)
-	fmt.Println("ys-debug SentinelHeaderPath", SentinelHeaderPath)
-	fmt.Println("ys-debug dataBz", dataBz)
-	fmt.Println("ys-debug publicKey", publicKey)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug header.NewPublicKey", header.NewPublicKey)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug header.NewDiversifier", header.NewDiversifier)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug header.Signature", header.Signature)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug header.Timestamp", header.Timestamp)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug sequence", cs.Sequence)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug cs.ConsensusState.Diversifier", cs.ConsensusState.Diversifier)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug SentinelHeaderPath", SentinelHeaderPath)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug dataBz", dataBz)
+	ctx.Logger().With("module", "x/sm").Info("ys-debug publicKey", publicKey)
 	if err := VerifySignature(publicKey, data, sigData); err != nil {
 		return sdkerrors.Wrap(ErrInvalidHeader, err.Error())
 	}
