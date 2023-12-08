@@ -12,6 +12,7 @@ import (
 	commitmenttypes "github.com/cosmos/ibc-go/v7/modules/core/23-commitment/types"
 	host "github.com/cosmos/ibc-go/v7/modules/core/24-host"
 	"github.com/cosmos/ibc-go/v7/modules/core/exported"
+	"fmt"
 )
 
 // VerifyClientState verifies a proof of a client state of the running machine
@@ -77,20 +78,25 @@ func (k Keeper) VerifyClientConsensusState(
 
 	merklePath := commitmenttypes.NewMerklePath(host.FullConsensusStatePath(connection.GetCounterparty().GetClientID(), consensusHeight))
 	merklePath, err = commitmenttypes.ApplyPrefix(connection.GetCounterparty().GetPrefix(), merklePath)
+	fmt.Println("merklePaht:", merklePath, merklePath.String())
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("consensusState:", consensusState, consensusState.ClientType(), consensusState.GetTimestamp())
 	bz, err := k.cdc.MarshalInterface(consensusState)
+	fmt.Println("bz:", bz)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("height and proof:", height, proof)
 	if err := clientState.VerifyMembership(
 		ctx, clientStore, k.cdc, height,
 		0, 0, // skip delay period checks for non-packet processing verification
 		proof, merklePath, bz,
 	); err != nil {
+		fmt.Println("err:", err)
 		return sdkerrors.Wrapf(err, "failed consensus state verification for client (%s)", clientID)
 	}
 

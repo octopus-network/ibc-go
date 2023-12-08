@@ -174,25 +174,32 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	fmt.Println("ys-debug: in OnRecvPacket", packet.GetData())
 	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
+	fmt.Println("ys-debug:  ack1: ", ack.Acknowledgement())
 
 	var data types.FungibleTokenPacketData
 	var ackErr error
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		ackErr = sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "cannot unmarshal ICS-20 transfer packet data")
+		fmt.Println("ys-debug:  ackErr1: ", ackErr)
 		ack = channeltypes.NewErrorAcknowledgement(ackErr)
 	}
+	fmt.Println("ys-debug:  ack2: ", ack.Acknowledgement())
+	fmt.Println("ys-debug: in OnRecvPacket data: ", data)
 
 	// only attempt the application logic if the packet data
 	// was successfully decoded
 	if ack.Success() {
 		err := im.keeper.OnRecvPacket(ctx, packet, data)
+	fmt.Println("ys-debug: in OnRecvPacket err: ", err)
 		if err != nil {
 			ack = channeltypes.NewErrorAcknowledgement(err)
 			ackErr = err
 		}
 	}
 
+	fmt.Println("ys-debug:  ack3: ", ack.Acknowledgement())
 	eventAttributes := []sdk.Attribute{
 		sdk.NewAttribute(sdk.AttributeKeyModule, types.ModuleName),
 		sdk.NewAttribute(sdk.AttributeKeySender, data.Sender),
@@ -203,10 +210,12 @@ func (im IBCModule) OnRecvPacket(
 		sdk.NewAttribute(types.AttributeKeyAckSuccess, fmt.Sprintf("%t", ack.Success())),
 	}
 
+	fmt.Println("ys-debug:  ackErr: ", ackErr)
 	if ackErr != nil {
 		eventAttributes = append(eventAttributes, sdk.NewAttribute(types.AttributeKeyAckError, ackErr.Error()))
 	}
 
+	fmt.Println("ys-debug:  eventAttributes: ", eventAttributes)
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypePacket,
