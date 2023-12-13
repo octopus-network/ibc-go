@@ -1,6 +1,7 @@
 package solomachine
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -116,6 +117,12 @@ func (cs *ClientState) VerifyMembership(
 	value []byte,
 ) error {
 	publicKey, sigData, timestamp, sequence, err := produceVerificationArgs(cdc, cs, proof)
+	fmt.Println("ys-debug: publicKey:", publicKey)
+	fmt.Println("ys-debug: sigData:", sigData)
+	fmt.Println("ys-debug: timestamp:", timestamp)
+	fmt.Println("ys-debug: sequence:", sequence)
+	fmt.Println("ys-debug: proof:", proof)
+	fmt.Println("ys-debug: value:", value)
 	if err != nil {
 		return err
 	}
@@ -135,6 +142,7 @@ func (cs *ClientState) VerifyMembership(
 		return sdkerrors.Wrapf(host.ErrInvalidPath, "key not found at index 1: %v", err)
 	}
 
+	fmt.Println("ys-debug: key:", key)
 	signBytes := &SignBytes{
 		Sequence:    sequence,
 		Timestamp:   timestamp,
@@ -144,6 +152,7 @@ func (cs *ClientState) VerifyMembership(
 	}
 
 	signBz, err := cdc.Marshal(signBytes)
+	fmt.Println("ys-debug: signBz:", signBz)
 	if err != nil {
 		return err
 	}
